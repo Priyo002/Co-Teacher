@@ -23,7 +23,7 @@ app.get('/', (req, res) => {
   res.send('Text-to-Learn API is running...');
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Connect to Database and start server
 const startServer = async () => {

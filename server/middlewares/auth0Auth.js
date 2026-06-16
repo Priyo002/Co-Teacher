@@ -1,5 +1,7 @@
 const User = require("../models/User");
 
+const tokenCache = new Map();
+
 async function verifyAuth0Token(req, res, next) {
   const authorization = req.headers.authorization || "";
   if (!authorization.startsWith("Bearer ")) {
@@ -9,16 +11,26 @@ async function verifyAuth0Token(req, res, next) {
   const token = authorization.slice(7);
 
   try {
-    const response = await fetch(`https://${process.env.AUTH0_DOMAIN}/userinfo`, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: AbortSignal.timeout(8000),
-    });
+    let auth0Profile;
+    const cached = tokenCache.get(token);
+    
+    if (cached && cached.expiresAt > Date.now()) {
+      auth0Profile = cached.profile;
+    } else {
+      const response = await fetch(`https://${process.env.AUTH0_DOMAIN}/userinfo`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(8000),
+      });
 
-    if (!response.ok) {
-      return res.status(401).json({ error: "Auth0 rejected the access token" });
+      if (!response.ok) {
+        return res.status(401).json({ error: "Auth0 rejected the access token" });
+      }
+
+      auth0Profile = await response.json();
+      // Cache for 5 minutes to avoid rate limits
+      tokenCache.set(token, { profile: auth0Profile, expiresAt: Date.now() + 5 * 60 * 1000 });
     }
 
-    const auth0Profile = await response.json();
     
     // Find or create user in MongoDB
     let user = await User.findOne({ email: auth0Profile.email });

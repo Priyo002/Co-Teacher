@@ -43,20 +43,20 @@ function formatQuiz(result) {
       correctAnswer,
       explanation: String(item.explanation || "").trim().slice(0, 700),
     };
-  }).filter(Boolean).slice(0, 5);
+  }).filter(Boolean).slice(0, 10);
 }
 
 async function createLessonQuiz(lesson) {
   const instructions = `
-Create exactly 5 multiple-choice questions from the lesson.
+Create 5 to 10 multiple-choice questions from the lesson, depending on the depth and difficulty of the lesson.
 Return JSON with a "questions" array.
 Each question needs "question", exactly 4 string "options", a zero-based
 "correctAnswer", and a short "explanation".
   `.trim();
   const questions = formatQuiz(await generateJson(instructions, requireLessonText(lesson), 2048));
 
-  if (questions.length !== 5) {
-    const error = new Error("AI could not generate 5 valid quiz questions. Please try again.");
+  if (questions.length < 5) {
+    const error = new Error("AI could not generate enough valid quiz questions. Please try again.");
     error.statusCode = 502;
     throw error;
   }

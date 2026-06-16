@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, Circle, Menu, X, ChevronRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Circle, Menu, ChevronRight, Loader2, Bot, PanelLeftClose, PanelLeftOpen, PanelRightOpen } from 'lucide-react';
 import LessonRenderer from '../components/LessonRenderer';
-import StudyToolsPanel from '../components/StudyToolsPanel';
+import AITutorChat from '../components/AITutorChat';
 import { useApi } from '../hooks/useApi';
+import { Sparkles } from 'lucide-react';
 
 export default function LessonViewerPage() {
   const { courseId, id } = useParams();
@@ -12,6 +13,10 @@ export default function LessonViewerPage() {
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
+  const [generatingLesson, setGeneratingLesson] = useState(false);
+  const [savingProgress, setSavingProgress] = useState(false);
   const fetchApi = useApi();
 
   useEffect(() => {
@@ -31,6 +36,46 @@ export default function LessonViewerPage() {
     loadLessonView();
   }, [courseId, id]);
 
+  const handleGenerateLesson = async () => {
+    setGeneratingLesson(true);
+    try {
+      await fetchApi(`/courses/${courseId}/lessons/${id}/enrich`, { method: 'POST' });
+      // Reload lesson data
+      const data = await fetchApi(`/courses/${courseId}/lessons/${id}`);
+      setLesson(data.lesson);
+    } catch (err) {
+      alert("Failed to generate lesson: " + err.message);
+    } finally {
+      setGeneratingLesson(false);
+    }
+  };
+
+  const handleToggleComplete = async () => {
+    setSavingProgress(true);
+    try {
+      const isCurrentlyCompleted = !!lesson.completedAt;
+      const updatedLesson = await fetchApi(`/courses/${courseId}/lessons/${id}/progress`, {
+        method: 'PUT',
+        body: JSON.stringify({ completed: !isCurrentlyCompleted })
+      });
+      setLesson(updatedLesson);
+      
+      // Update the course state so the sidebar checkmark updates immediately
+      setCourse(prevCourse => {
+        const newCourse = { ...prevCourse };
+        newCourse.modules = newCourse.modules.map(mod => ({
+          ...mod,
+          lessons: mod.lessons.map(l => l._id === id ? { ...l, completedAt: updatedLesson.completedAt } : l)
+        }));
+        return newCourse;
+      });
+    } catch (err) {
+      alert("Failed to update progress: " + err.message);
+    } finally {
+      setSavingProgress(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
@@ -45,36 +90,39 @@ export default function LessonViewerPage() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] relative overflow-hidden">
-      {/* Mobile Sidebar Overlay */}
+      {/* Sidebar Toggle Overlay / Button */}
       {!isSidebarOpen && (
         <button 
           onClick={() => setIsSidebarOpen(true)}
-          className="absolute top-4 left-4 z-20 md:hidden bg-dark-800 p-2 rounded-lg border border-white/10 text-slate-300"
+          className="absolute top-4 left-4 z-20 bg-dark-800 p-2 rounded-lg border border-white/10 text-slate-300 hover:text-white transition-colors shadow-lg"
+          title="Expand Curriculum"
         >
-          <Menu className="w-5 h-5" />
+          <PanelLeftOpen className="w-5 h-5" />
         </button>
       )}
 
       {/* Sidebar Navigation */}
-      <aside 
-        className={`absolute md:static inset-y-0 left-0 z-30 w-72 bg-dark-900 border-r border-white/5 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
-      >
-        <div className="flex items-center justify-between p-4 border-b border-white/5">
-          <button 
-            onClick={() => navigate(`/course/${courseId}`)}
-            className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Course
-          </button>
-          <button 
-            onClick={() => setIsSidebarOpen(false)}
-            className="md:hidden text-slate-400 hover:text-white"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+      {isSidebarOpen && (
+        <aside 
+          className="absolute lg:static inset-y-0 left-0 z-30 w-72 bg-dark-900 border-r border-white/5 flex flex-col shadow-xl"
+        >
+          <div className="flex items-center justify-between p-4 border-b border-white/5">
+            <button 
+              onClick={() => navigate(`/course/${courseId}`)}
+              className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back to Course
+            </button>
+            <button 
+              onClick={() => setIsSidebarOpen(false)}
+              className="text-slate-400 hover:text-white p-1 rounded hover:bg-white/5 transition-colors"
+              title="Shrink Curriculum"
+            >
+              <PanelLeftClose className="w-5 h-5" />
+            </button>
+          </div>
 
-        <div className="p-4 overflow-y-auto h-[calc(100%-60px)]">
+          <div className="p-4 overflow-y-auto flex-1 custom-scrollbar">
           <h3 className="font-bold mb-6 text-sm uppercase tracking-wider text-slate-500">Curriculum</h3>
           
           <div className="space-y-6">
@@ -105,9 +153,19 @@ export default function LessonViewerPage() {
           </div>
         </div>
       </aside>
+      )}
 
       {/* Main Content Area Shell */}
       <main className="flex-1 bg-dark-950 overflow-y-auto relative">
+        {lesson.isEnriched && !isRightSidebarOpen && (
+          <button
+            onClick={() => setIsRightSidebarOpen(true)}
+            className="hidden lg:flex absolute top-4 right-4 z-20 bg-dark-800 text-slate-300 border border-white/10 p-2 rounded-lg hover:text-white transition-colors shadow-lg"
+            title="Expand AI Tutor"
+          >
+            <PanelRightOpen className="w-5 h-5" />
+          </button>
+        )}
         <div className="max-w-4xl mx-auto p-6 md:p-10 pb-32">
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-sm text-slate-500 mb-8">
@@ -116,15 +174,65 @@ export default function LessonViewerPage() {
             <span className="text-brand-400">{lesson.title}</span>
           </div>
 
-          <h1 className="text-3xl md:text-5xl font-bold mb-12">{lesson.title}</h1>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-12 gap-6">
+            <h1 className="text-3xl md:text-5xl font-bold">{lesson.title}</h1>
+            
+            {lesson.isEnriched && (
+              <button 
+                onClick={handleToggleComplete}
+                disabled={savingProgress}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                  lesson.completedAt 
+                    ? 'bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20' 
+                    : 'bg-dark-800 text-slate-300 border border-white/10 hover:bg-dark-700'
+                }`}
+              >
+                {savingProgress ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : lesson.completedAt ? (
+                  <><CheckCircle className="w-5 h-5" /> Completed</>
+                ) : (
+                  <><Circle className="w-5 h-5" /> Mark as Complete</>
+                )}
+              </button>
+            )}
+          </div>
           
-          <div className="glass-panel p-8 md:p-12">
-            <LessonRenderer blocks={lesson.content} />
+          <div className="glass-panel p-8 md:p-12 mb-8">
+            {!lesson.isEnriched ? (
+              <div className="text-center py-12">
+                <Sparkles className="w-16 h-16 text-brand-500 mx-auto mb-6 opacity-50" />
+                <h3 className="text-2xl font-bold mb-4">Lesson Content Not Generated</h3>
+                <p className="text-slate-400 mb-8 max-w-md mx-auto">
+                  This lesson's detailed content, examples, and study materials haven't been generated yet. Click below to let the AI build it.
+                </p>
+                <button 
+                  onClick={handleGenerateLesson}
+                  disabled={generatingLesson}
+                  className="btn-primary shadow-brand-500/20"
+                >
+                  {generatingLesson ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Generate Full Lesson'}
+                </button>
+              </div>
+            ) : (
+              <LessonRenderer blocks={lesson.content} />
+            )}
           </div>
 
-          <StudyToolsPanel courseId={courseId} lessonId={id} />
+          {lesson.isEnriched && (
+            <div className="lg:hidden h-[600px] mb-8 rounded-xl overflow-hidden border border-white/10">
+              <AITutorChat courseId={courseId} lessonId={id} />
+            </div>
+          )}
         </div>
       </main>
+
+      {/* Right Sidebar AI Tutor (Desktop) */}
+      {lesson.isEnriched && isRightSidebarOpen && (
+        <aside className="hidden lg:flex flex-col w-96 shrink-0 border-l border-white/5 bg-dark-900 z-20 relative shadow-xl">
+          <AITutorChat courseId={courseId} lessonId={id} onClose={() => setIsRightSidebarOpen(false)} />
+        </aside>
+      )}
     </div>
   );
 }

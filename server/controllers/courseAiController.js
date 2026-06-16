@@ -26,7 +26,29 @@ async function enrichLesson(req, res) {
   const depth = VALID_DEPTHS.has(requestedDepth) ? requestedDepth : "standard";
   const language = String(req.body?.language || "").trim().slice(0, 80) || "English";
 
-  context.lesson.content = await createLessonContent({ ...context, depth, language });
+  const blocks = await createLessonContent({ ...context, depth, language });
+  
+  context.lesson.content = blocks;
+
+  // Fetch videos and quiz in parallel
+  const [videosResult, questionsResult] = await Promise.allSettled([
+    findLessonVideos(context),
+    createLessonQuiz(context.lesson)
+  ]);
+
+  if (videosResult.status === "fulfilled" && videosResult.value) {
+    blocks.splice(Math.floor(blocks.length / 2), 0, ...videosResult.value);
+  }
+
+  if (questionsResult.status === "fulfilled" && questionsResult.value) {
+    blocks.push({
+      type: 'quiz',
+      title: 'Knowledge Check',
+      questions: questionsResult.value
+    });
+  }
+
+  context.lesson.content = blocks;
   context.lesson.language = language;
   context.lesson.isEnriched = true;
   await context.lesson.save();
@@ -66,7 +88,32 @@ async function enrichLessonStream(req, res) {
       },
     });
 
-    // Save to database
+    // Temporarily save text blocks to allow quiz generation to use them
+    context.lesson.content = blocks;
+
+    const [videosResult, questionsResult] = await Promise.allSettled([
+      findLessonVideos(context),
+      createLessonQuiz(context.lesson)
+    ]);
+
+    if (videosResult.status === "fulfilled" && videosResult.value) {
+      for (const v of videosResult.value) {
+        blocks.push(v);
+        sendEvent("block", v);
+      }
+    }
+
+    if (questionsResult.status === "fulfilled" && questionsResult.value) {
+      const quizBlock = {
+        type: 'quiz',
+        title: 'Knowledge Check',
+        questions: questionsResult.value
+      };
+      blocks.push(quizBlock);
+      sendEvent("block", quizBlock);
+    }
+
+    // Save final enriched content to database
     context.lesson.content = blocks;
     context.lesson.language = language;
     context.lesson.isEnriched = true;
@@ -80,26 +127,6 @@ async function enrichLessonStream(req, res) {
   } finally {
     if (!closed) res.end();
   }
-}
-
-async function addSuggestedVideos(req, res) {
-  const context = await getOwnedLesson(req.params.lessonId, req.user._id);
-  const videos = await findLessonVideos(context);
-
-  context.lesson.content = [...(context.lesson.content || []), ...videos];
-  await context.lesson.save();
-
-  return res.json({
-    lesson: context.lesson.toObject({ depopulate: true }),
-    videos,
-  });
-}
-
-async function generateQuiz(req, res) {
-  const { lesson } = await getOwnedLesson(req.params.lessonId, req.user._id);
-  const questions = await createLessonQuiz(lesson);
-
-  return res.json({ questions });
 }
 
 async function generateFlashcards(req, res) {
@@ -134,8 +161,6 @@ module.exports = {
   generateCourseContent,
   enrichLesson,
   enrichLessonStream,
-  addSuggestedVideos,
-  generateQuiz,
   generateFlashcards,
   generatePracticeLab,
   chatAboutLesson,

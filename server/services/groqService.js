@@ -22,6 +22,10 @@ function groqError(error) {
   } else if (error.status === 413) {
     message = "The AI request is too large. Try using less context.";
     statusCode = 413;
+  } else {
+    // Include the actual Groq error message for debugging
+    console.error("Groq API Error:", error.message || error);
+    if (error.message) message = error.message;
   }
 
   const serviceError = new Error(message);
@@ -34,7 +38,6 @@ async function generateJson(systemPrompt, userPrompt, maxTokens = 4096) {
     try {
       const completion = await groq.chat.completions.create({
         model,
-        reasoning_effort: "low",
         response_format: { type: "json_object" },
         temperature: 0.3,
         max_tokens: maxTokens,
@@ -65,7 +68,6 @@ async function* generateJsonStream(systemPrompt, userPrompt, maxTokens = 4096) {
   try {
     const stream = await groq.chat.completions.create({
       model,
-      reasoning_effort: "low",
       temperature: 0.3,
       max_tokens: maxTokens,
       stream: true,
@@ -88,7 +90,6 @@ async function generateText(messages, maxTokens = 1024) {
   try {
     const completion = await groq.chat.completions.create({
       model,
-      reasoning_effort: "low",
       messages,
       temperature: 0.7,
       max_tokens: maxTokens,

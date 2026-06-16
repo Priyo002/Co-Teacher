@@ -1,6 +1,9 @@
-import { Lightbulb, Terminal, AlertTriangle, Info } from 'lucide-react';
+import { useState } from 'react';
+import { Lightbulb, Terminal, AlertTriangle, Info, CheckCircle2, XCircle } from 'lucide-react';
 
 export default function LessonRenderer({ blocks }) {
+  const [quizAnswers, setQuizAnswers] = useState({});
+  const [showResults, setShowResults] = useState({});
   if (!blocks || !blocks.length) {
     return <div className="text-slate-400 italic">No content available for this lesson yet.</div>;
   }
@@ -83,6 +86,74 @@ export default function LessonRenderer({ blocks }) {
                   className="w-full h-full"
                   allowFullScreen
                 ></iframe>
+              </div>
+            );
+
+          case 'quiz':
+            return (
+              <div key={idx} className="my-10 bg-dark-800 rounded-2xl border border-white/10 p-8 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-32 bg-brand-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                <h3 className="text-2xl font-bold text-white mb-8 relative z-10">{block.title || 'Knowledge Check'}</h3>
+                
+                <div className="space-y-8 relative z-10">
+                  {block.questions.map((q, qIdx) => {
+                    const questionKey = `${idx}-${qIdx}`;
+                    const selectedAns = quizAnswers[questionKey];
+                    const isSubmitted = showResults[questionKey];
+                    const isCorrect = selectedAns === q.correctAnswer;
+
+                    return (
+                      <div key={qIdx} className="bg-dark-950 p-6 rounded-xl border border-white/5">
+                        <p className="font-bold text-slate-200 mb-4">{qIdx + 1}. {q.question}</p>
+                        <div className="space-y-3">
+                          {q.options.map((opt, oIdx) => {
+                            let btnClass = "w-full text-left p-4 rounded-lg border transition-all ";
+                            if (isSubmitted) {
+                              if (oIdx === q.correctAnswer) btnClass += "border-green-500 bg-green-500/10 text-white";
+                              else if (oIdx === selectedAns) btnClass += "border-red-500 bg-red-500/10 text-slate-400 line-through";
+                              else btnClass += "border-white/5 bg-white/5 text-slate-500 opacity-50";
+                            } else {
+                              if (selectedAns === oIdx) btnClass += "border-brand-500 bg-brand-500/10 text-white";
+                              else btnClass += "border-white/5 bg-white/5 text-slate-300 hover:border-white/20 hover:bg-white/10";
+                            }
+
+                            return (
+                              <button
+                                key={oIdx}
+                                disabled={isSubmitted}
+                                onClick={() => setQuizAnswers(prev => ({ ...prev, [questionKey]: oIdx }))}
+                                className={btnClass}
+                              >
+                                {opt}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        
+                        {!isSubmitted && selectedAns !== undefined && (
+                          <div className="mt-4 flex justify-end">
+                            <button
+                              onClick={() => setShowResults(prev => ({ ...prev, [questionKey]: true }))}
+                              className="px-4 py-2 bg-brand-500 text-dark-900 font-bold rounded-lg hover:bg-brand-400 transition-colors"
+                            >
+                              Check Answer
+                            </button>
+                          </div>
+                        )}
+
+                        {isSubmitted && (
+                          <div className={`mt-4 p-4 rounded-lg flex gap-3 ${isCorrect ? 'bg-green-500/10 text-green-400' : 'bg-brand-500/10 text-brand-400'}`}>
+                            {isCorrect ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <Info className="w-5 h-5 shrink-0" />}
+                            <div>
+                              <p className="font-bold mb-1">{isCorrect ? 'Correct!' : 'Not quite.'}</p>
+                              <p className="text-sm opacity-90">{q.explanation}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             );
 
