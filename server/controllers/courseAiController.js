@@ -3,6 +3,7 @@ const { streamLessonContent, createLessonContent } = require("../services/lesson
 const { saveGeneratedCourse } = require("../services/coursePersistence");
 const { getOwnedLesson } = require("../services/lessonAccessService");
 const { findLessonVideos } = require("../services/youtubeService");
+const { createLessonFlashcards, createPracticeLab, createLessonQuiz } = require("../services/studyGeneration");
 
 const VALID_DEPTHS = new Set(["brief", "standard", "deep"]);
 
@@ -94,9 +95,33 @@ async function addSuggestedVideos(req, res) {
   });
 }
 
+async function generateQuiz(req, res) {
+  const { lesson } = await getOwnedLesson(req.params.lessonId, req.user._id);
+  const questions = await createLessonQuiz(lesson);
+
+  return res.json({ questions });
+}
+
+async function generateFlashcards(req, res) {
+  const { lesson } = await getOwnedLesson(req.params.lessonId, req.user._id);
+  const flashcards = await createLessonFlashcards(lesson);
+
+  return res.json({ flashcards });
+}
+
+async function generatePracticeLab(req, res) {
+  const context = await getOwnedLesson(req.params.lessonId, req.user._id);
+  const lab = await createPracticeLab(context);
+
+  return res.json({ lab });
+}
+
 module.exports = {
   generateCourseContent,
   enrichLesson,
   enrichLessonStream,
   addSuggestedVideos,
+  generateQuiz,
+  generateFlashcards,
+  generatePracticeLab,
 };
