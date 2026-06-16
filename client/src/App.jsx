@@ -7,6 +7,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import CourseOverviewPage from './pages/CourseOverviewPage';
+import LessonViewerPage from './pages/LessonViewerPage';
 
 function GuestRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -45,6 +46,7 @@ export default function App() {
         <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
         <Route path="/" element={<DashboardPage><HomePage /></DashboardPage>} />
         <Route path="/course/:id" element={<DashboardPage><CourseOverviewPage /></DashboardPage>} />
+        <Route path="/course/:courseId/lesson/:id" element={<DashboardPage><LessonViewerPage /></DashboardPage>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
