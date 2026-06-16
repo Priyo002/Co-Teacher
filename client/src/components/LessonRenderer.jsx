@@ -1,0 +1,95 @@
+import { Lightbulb, Terminal, AlertTriangle, Info } from 'lucide-react';
+
+export default function LessonRenderer({ blocks }) {
+  if (!blocks || !blocks.length) {
+    return <div className="text-slate-400 italic">No content available for this lesson yet.</div>;
+  }
+
+  return (
+    <div className="space-y-6 text-slate-300 leading-relaxed max-w-none">
+      {blocks.map((block, idx) => {
+        switch (block.type) {
+          case 'heading':
+            const HeadingTag = `h${block.level || 2}`;
+            return (
+              <HeadingTag 
+                key={idx} 
+                className={`text-white font-bold tracking-tight ${
+                  block.level === 2 ? 'text-2xl mt-10 mb-4' : 'text-xl mt-8 mb-3'
+                }`}
+              >
+                {block.text}
+              </HeadingTag>
+            );
+
+          case 'paragraph':
+            return (
+              <p key={idx} className="mb-4 text-slate-300 text-lg">
+                {block.text}
+              </p>
+            );
+
+          case 'list':
+            const ListTag = block.style === 'numbered' ? 'ol' : 'ul';
+            const listClass = block.style === 'numbered' 
+              ? 'list-decimal list-outside ml-6 space-y-2 mb-6' 
+              : 'list-disc list-outside ml-6 space-y-2 mb-6 marker:text-brand-500';
+            
+            return (
+              <ListTag key={idx} className={listClass}>
+                {block.items.map((item, i) => (
+                  <li key={i} className="pl-2 text-slate-300 text-lg">{item}</li>
+                ))}
+              </ListTag>
+            );
+
+          case 'code':
+            return (
+              <div key={idx} className="my-6 rounded-xl overflow-hidden border border-white/10 bg-[#0d1117] shadow-xl">
+                <div className="flex items-center px-4 py-2 bg-white/5 border-b border-white/5 text-xs font-mono text-slate-400">
+                  <Terminal className="w-3 h-3 mr-2" />
+                  {block.language || 'code'}
+                </div>
+                <div className="p-4 overflow-x-auto">
+                  <pre className="text-sm font-mono text-slate-200">
+                    <code>{block.code}</code>
+                  </pre>
+                </div>
+              </div>
+            );
+
+          case 'callout':
+            return (
+              <div key={idx} className="my-8 glass-panel p-6 border-l-4 border-l-brand-500 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-16 bg-brand-500/5 rounded-full blur-2xl -mr-10 -mt-10 transition-opacity group-hover:opacity-100 opacity-50"></div>
+                <div className="flex items-start gap-4 relative z-10">
+                  <div className="text-2xl bg-dark-900/50 p-2 rounded-xl shadow-inner border border-white/5">
+                    {block.emoji || '💡'}
+                  </div>
+                  <div>
+                    {block.title && <h4 className="font-bold text-white mb-1">{block.title}</h4>}
+                    <p className="text-slate-300">{block.text}</p>
+                  </div>
+                </div>
+              </div>
+            );
+
+          case 'video':
+            return (
+              <div key={idx} className="my-8 aspect-video w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+                <iframe
+                  src={block.url.replace('watch?v=', 'embed/')}
+                  title={block.title || 'Video Player'}
+                  className="w-full h-full"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            );
+
+          default:
+            return null;
+        }
+      })}
+    </div>
+  );
+}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Circle, Menu, X, ChevronRight } from 'lucide-react';
+import LessonRenderer from '../components/LessonRenderer';
 
 export default function LessonViewerPage() {
   const { courseId, id } = useParams();
@@ -29,7 +30,14 @@ export default function LessonViewerPage() {
     setLesson({
       _id: id,
       title: 'History of AI',
-      content: [],
+      content: [
+        { type: 'paragraph', text: 'Artificial intelligence has a rich history that spans back to ancient myths, but formally began in the mid-20th century.' },
+        { type: 'heading', level: 2, text: 'The Turing Test' },
+        { type: 'paragraph', text: 'In 1950, Alan Turing published "Computing Machinery and Intelligence" which proposed a test of machine intelligence.' },
+        { type: 'callout', emoji: '🧠', title: 'Key Insight', text: 'The Turing Test doesn\'t check if a machine is correct, only if its answers are indistinguishable from a human\'s.' },
+        { type: 'list', style: 'bullet', items: ['Dartmouth Workshop (1956)', 'First AI Winter (1974-1980)', 'Expert Systems Boom (1980s)'] },
+        { type: 'code', language: 'python', code: 'def turing_test(agent):\n    if agent.can_fool_human():\n        return "Intelligent"\n    return "Needs work"' }
+      ],
       isEnriched: true
     });
   }, [courseId, id]);
@@ -113,11 +121,8 @@ export default function LessonViewerPage() {
 
           <h1 className="text-3xl md:text-5xl font-bold mb-12">{lesson.title}</h1>
           
-          <div className="glass-panel p-8 min-h-[400px] flex items-center justify-center text-center">
-            <div>
-              <h2 className="text-xl font-semibold mb-2">Lesson content will stream here</h2>
-              <p className="text-slate-400">Step 18 will implement the LessonRenderer</p>
-            </div>
+          <div className="glass-panel p-8 md:p-12 mb-10">
+            <LessonRenderer blocks={lesson.content} />
           </div>
         </div>
       </main>
