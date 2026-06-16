@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Circle, Menu, X, ChevronRight } from 'lucide-react';
 import LessonRenderer from '../components/LessonRenderer';
+import StudyToolsPanel from '../components/StudyToolsPanel';
 
 export default function LessonViewerPage() {
   const { courseId, id } = useParams();
@@ -121,9 +122,11 @@ export default function LessonViewerPage() {
 
           <h1 className="text-3xl md:text-5xl font-bold mb-12">{lesson.title}</h1>
           
-          <div className="glass-panel p-8 md:p-12 mb-10">
+          <div className="glass-panel p-8 md:p-12">
             <LessonRenderer blocks={lesson.content} />
           </div>
+
+          <StudyToolsPanel />
         </div>
       </main>
     </div>
