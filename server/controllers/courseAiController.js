@@ -1,5 +1,5 @@
 const { createCourseOutline } = require("../services/courseGeneration");
-const { streamLessonContent } = require("../services/lessonGeneration");
+const { streamLessonContent, createLessonContent } = require("../services/lessonGeneration");
 const { saveGeneratedCourse } = require("../services/coursePersistence");
 const { getOwnedLesson } = require("../services/lessonAccessService");
 
@@ -16,6 +16,20 @@ async function generateCourseContent(req, res) {
   const course = await saveGeneratedCourse(outline, req.user._id);
 
   return res.status(201).json(course);
+}
+
+async function enrichLesson(req, res) {
+  const context = await getOwnedLesson(req.params.lessonId, req.user._id);
+  const requestedDepth = String(req.body?.depth || "").trim().slice(0, 20);
+  const depth = VALID_DEPTHS.has(requestedDepth) ? requestedDepth : "standard";
+  const language = String(req.body?.language || "").trim().slice(0, 80) || "English";
+
+  context.lesson.content = await createLessonContent({ ...context, depth, language });
+  context.lesson.language = language;
+  context.lesson.isEnriched = true;
+  await context.lesson.save();
+
+  return res.json(context.lesson.toObject({ depopulate: true }));
 }
 
 async function enrichLessonStream(req, res) {
@@ -68,5 +82,6 @@ async function enrichLessonStream(req, res) {
 
 module.exports = {
   generateCourseContent,
+  enrichLesson,
   enrichLessonStream,
 };
