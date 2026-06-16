@@ -1,5 +1,9 @@
 const { createCourseOutline } = require("../services/courseGeneration");
+const { streamLessonContent } = require("../services/lessonGeneration");
 const { saveGeneratedCourse } = require("../services/coursePersistence");
+const { getOwnedLesson } = require("../services/lessonAccessService");
+
+const VALID_DEPTHS = new Set(["brief", "standard", "deep"]);
 
 async function generateCourseContent(req, res) {
   const prompt = String(req.body?.prompt || "").trim().slice(0, 2000);
@@ -14,6 +18,55 @@ async function generateCourseContent(req, res) {
   return res.status(201).json(course);
 }
 
+async function enrichLessonStream(req, res) {
+  const context = await getOwnedLesson(req.params.lessonId, req.user._id);
+  const requestedDepth = String(req.body?.depth || "").trim().slice(0, 20);
+  const depth = VALID_DEPTHS.has(requestedDepth) ? requestedDepth : "standard";
+  const language = String(req.body?.language || "").trim().slice(0, 80) || "English";
+
+  // Set up SSE headers
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no",
+  });
+
+  let closed = false;
+  res.on("close", () => { closed = true; });
+
+  function sendEvent(event, data) {
+    if (closed) return;
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  }
+
+  try {
+    const blocks = await streamLessonContent({
+      ...context,
+      depth,
+      language,
+      onBlock(block) {
+        sendEvent("block", block);
+      },
+    });
+
+    // Save to database
+    context.lesson.content = blocks;
+    context.lesson.language = language;
+    context.lesson.isEnriched = true;
+    await context.lesson.save();
+
+    sendEvent("done", context.lesson.toObject({ depopulate: true }));
+  } catch (error) {
+    sendEvent("error", {
+      error: error.message || "Failed to generate lesson content.",
+    });
+  } finally {
+    if (!closed) res.end();
+  }
+}
+
 module.exports = {
   generateCourseContent,
+  enrichLessonStream,
 };
