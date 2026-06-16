@@ -2,6 +2,7 @@ const { createCourseOutline } = require("../services/courseGeneration");
 const { streamLessonContent, createLessonContent } = require("../services/lessonGeneration");
 const { saveGeneratedCourse } = require("../services/coursePersistence");
 const { getOwnedLesson } = require("../services/lessonAccessService");
+const { findLessonVideos } = require("../services/youtubeService");
 
 const VALID_DEPTHS = new Set(["brief", "standard", "deep"]);
 
@@ -80,8 +81,22 @@ async function enrichLessonStream(req, res) {
   }
 }
 
+async function addSuggestedVideos(req, res) {
+  const context = await getOwnedLesson(req.params.lessonId, req.user._id);
+  const videos = await findLessonVideos(context);
+
+  context.lesson.content = [...(context.lesson.content || []), ...videos];
+  await context.lesson.save();
+
+  return res.json({
+    lesson: context.lesson.toObject({ depopulate: true }),
+    videos,
+  });
+}
+
 module.exports = {
   generateCourseContent,
   enrichLesson,
   enrichLessonStream,
+  addSuggestedVideos,
 };

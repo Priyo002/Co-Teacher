@@ -1,5 +1,5 @@
 const { Router } = require("express");
-const { generateCourseContent, enrichLessonStream, enrichLesson } = require("../../controllers/courseAiController");
+const { generateCourseContent, enrichLessonStream, enrichLesson, addSuggestedVideos } = require("../../controllers/courseAiController");
 const {
   deleteCourse,
   getCourseById,
@@ -20,6 +20,7 @@ router.get("/mine", getMyCourses);
 router.get("/:courseId/lessons/:lessonId", getLessonView);
 router.post("/:courseId/lessons/:lessonId/enrich", enrichLesson);
 router.post("/:courseId/lessons/:lessonId/enrich-stream", enrichLessonStream);
+router.post("/:courseId/lessons/:lessonId/add-videos", addSuggestedVideos);
 router.patch("/lessons/:lessonId/progress", updateLessonProgress);
 router.patch("/:courseId/sharing", updateSharing);
 
