@@ -1,8 +1,11 @@
-const express = require('express');
-const router = express.Router();
-const { getHealth } = require('../controllers/healthController');
+const { Router } = require("express");
+const courseRoutes = require("./courses/courseRoutes");
 
-// Health check route
-router.get('/health', getHealth);
+const router = Router();
+
+// In a full implementation, you would add auth routes here
+// router.use("/auth", authRoutes);
+
+router.use("/courses", courseRoutes);
 
 module.exports = router;
