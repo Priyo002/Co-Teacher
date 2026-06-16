@@ -1,2 +1,4 @@
 .DS_Store
 *.md
+/server/node_modules
+/server/.env
