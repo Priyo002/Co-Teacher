@@ -18,18 +18,25 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     async function initSession() {
+      console.log('Auth0 State:', { auth0Loading, isAuthenticated, user });
       if (auth0Loading) return;
       
       if (!isAuthenticated) {
+        console.log('Auth0 says NOT authenticated. Clearing session user.');
         setSessionUser(null);
         setLoading(false);
         return;
       }
 
       try {
-        const token = await getAccessTokenSilently();
-        // Since we are mocking the backend logic for now, we just pretend the user is authenticated
-        // In a real app we would call /api/auth/me to sync with our database
+        let token = null;
+        try {
+          token = await getAccessTokenSilently();
+        } catch (tokenErr) {
+          console.warn('Could not get token silently (this is normal if no API audience is configured):', tokenErr);
+        }
+        
+        // As long as Auth0 says we are authenticated, we let the user in.
         setSessionUser({ ...user, token });
       } catch (err) {
         console.error('Session init failed:', err);

@@ -228,15 +228,15 @@ async function answerLessonQuestion({ lesson, moduleDoc, course, message, histor
   return generateText([
     {
       role: "system",
-      content: \`
-You are a tutor for "\${lesson.title}" in "\${moduleDoc.title}" from "\${course.title}".
+      content: `
+You are a tutor for "${lesson.title}" in "${moduleDoc.title}" from "${course.title}".
 Use this lesson when answering:
-\${lessonText(lesson, 2000) || "No detailed lesson content is available yet."}
+${lessonText(lesson, 2000) || "No detailed lesson content is available yet."}
 Answer clearly and in the same language as the student.
 Lead with a direct answer, then add only the detail needed to teach it well.
 Format longer answers with short Markdown paragraphs, bullets, or numbered steps.
 Use fenced code blocks for code. Avoid oversized headings and long walls of text.
-      \`.trim(),
+      `.trim(),
     },
     ...recentHistory,
     { role: "user", content: message },

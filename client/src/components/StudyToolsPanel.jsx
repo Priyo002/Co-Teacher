@@ -1,27 +1,50 @@
 import { useState } from 'react';
-import { MessageSquare, BrainCircuit, PlayCircle, Send, Sparkles } from 'lucide-react';
+import { MessageSquare, BrainCircuit, PlayCircle, Send, Sparkles, Loader2 } from 'lucide-react';
+import { useApi } from '../hooks/useApi';
 
-export default function StudyToolsPanel() {
+export default function StudyToolsPanel({ courseId, lessonId }) {
   const [activeTab, setActiveTab] = useState('chat');
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const fetchApi = useApi();
   const [chatLog, setChatLog] = useState([
     { role: 'assistant', content: 'Hi! I am your AI tutor for this lesson. Ask me anything to clarify concepts or dive deeper.' }
   ]);
 
-  const handleSendChat = (e) => {
+  const handleSendChat = async (e) => {
     e.preventDefault();
-    if (!message.trim()) return;
+    if (!message.trim() || loading) return;
     
-    setChatLog([...chatLog, { role: 'user', content: message }]);
+    const userMsg = message;
+    setChatLog([...chatLog, { role: 'user', content: userMsg }]);
     setMessage('');
+    setLoading(true);
     
-    // Simulate AI response
-    setTimeout(() => {
-      setChatLog(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'That is a great question! In the context of this lesson, it means applying computational thinking to problem-solving.'
-      }]);
-    }, 1500);
+    try {
+      const response = await fetchApi(`/courses/${courseId}/lessons/${lessonId}/chat`, {
+        method: 'POST',
+        body: JSON.stringify({ message: userMsg, history: chatLog })
+      });
+      setChatLog(prev => [...prev, { role: 'assistant', content: response.reply }]);
+    } catch (err) {
+      setChatLog(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAction = async (action) => {
+    setLoading(true);
+    try {
+      await fetchApi(`/courses/${courseId}/lessons/${lessonId}/${action}`, { method: 'POST' });
+      // In a real app, we would re-fetch the lesson or show the result.
+      // For now, we will just alert success since the streaming logic isn't wired to the UI state completely.
+      alert(`${action} generated successfully! Reload page to see changes.`);
+    } catch (err) {
+      alert(`Error generating ${action}: ` + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -69,13 +92,15 @@ export default function StudyToolsPanel() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Ask your AI tutor..."
-                className="input-field pr-12 bg-dark-800 border-white/10"
+                disabled={loading}
+                className="input-field pr-12 bg-dark-800 border-white/10 disabled:opacity-50"
               />
               <button 
                 type="submit" 
-                className="absolute right-2 top-2 bottom-2 aspect-square flex items-center justify-center bg-brand-500 text-dark-900 rounded-lg hover:bg-brand-400 transition-colors"
+                disabled={loading}
+                className="absolute right-2 top-2 bottom-2 aspect-square flex items-center justify-center bg-brand-500 text-dark-900 rounded-lg hover:bg-brand-400 transition-colors disabled:opacity-50"
               >
-                <Send className="w-4 h-4" />
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </button>
             </form>
           </div>
@@ -86,7 +111,13 @@ export default function StudyToolsPanel() {
             <BrainCircuit className="w-16 h-16 text-slate-600 mb-4" />
             <h3 className="text-xl font-bold mb-2">Test Your Knowledge</h3>
             <p className="text-slate-400 mb-6 max-w-sm">Generate a 5-question multiple choice quiz based exactly on this lesson's content.</p>
-            <button className="btn-primary shadow-brand-500/20">Generate Quiz</button>
+            <button 
+              onClick={() => handleAction('quiz')}
+              disabled={loading}
+              className="btn-primary shadow-brand-500/20"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Generate Quiz'}
+            </button>
           </div>
         )}
 
@@ -95,7 +126,13 @@ export default function StudyToolsPanel() {
             <PlayCircle className="w-16 h-16 text-slate-600 mb-4" />
             <h3 className="text-xl font-bold mb-2">Suggested Videos</h3>
             <p className="text-slate-400 mb-6 max-w-sm">Our AI will search YouTube for the best tutorials relevant to this specific lesson.</p>
-            <button className="btn-primary shadow-brand-500/20">Find Videos</button>
+            <button 
+              onClick={() => handleAction('add-videos')}
+              disabled={loading}
+              className="btn-primary shadow-brand-500/20"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Find Videos'}
+            </button>
           </div>
         )}
       </div>

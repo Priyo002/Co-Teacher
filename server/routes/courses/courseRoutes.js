@@ -8,11 +8,11 @@ const {
   updateSharing,
   updateLessonProgress
 } = require("../../controllers/courseController");
-const { protect } = require("../../middlewares/sessionAuth"); // Using sessionAuth for now
+const { verifyAuth0Token } = require("../../middlewares/auth0Auth");
 
 const router = Router();
 
-router.use(protect); // Ensure user is authenticated
+router.use(verifyAuth0Token); // Ensure user is authenticated via Auth0
 
 router.post("/generate", generateCourseContent);
 router.get("/mine", getMyCourses);

@@ -1,9 +1,14 @@
 import { useState } from 'react';
 import { Sparkles, X, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useApi } from '../hooks/useApi';
 
 export default function CreateCourseModal({ isOpen, onClose }) {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState('');
+  const fetchApi = useApi();
+  const navigate = useNavigate();
 
   if (!isOpen) return null;
 
@@ -12,11 +17,19 @@ export default function CreateCourseModal({ isOpen, onClose }) {
     if (prompt.trim().length < 10) return;
     
     setIsGenerating(true);
-    // TODO: Connect to backend API
-    setTimeout(() => {
-      setIsGenerating(false);
+    setError('');
+    
+    try {
+      const newCourse = await fetchApi('/courses/generate', {
+        method: 'POST',
+        body: JSON.stringify({ prompt })
+      });
       onClose();
-    }, 2000);
+      navigate(`/course/${newCourse._id}`);
+    } catch (err) {
+      setError(err.message || 'Failed to generate course');
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -47,6 +60,8 @@ export default function CreateCourseModal({ isOpen, onClose }) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {error && <div className="text-red-400 bg-red-400/10 p-3 rounded-lg text-sm border border-red-400/20">{error}</div>}
+          
           <div className="relative">
             <textarea
               value={prompt}

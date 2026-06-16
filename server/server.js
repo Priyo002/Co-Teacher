@@ -1,11 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+
+// Load environment variables FIRST
+dotenv.config();
+
 const connectDB = require('./config/db');
 const routes = require('./routes');
-
-// Load environment variables
-dotenv.config();
 
 // Initialize express app
 const app = express();

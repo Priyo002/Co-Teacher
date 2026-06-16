@@ -1,50 +1,46 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, Circle, Menu, X, ChevronRight } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Circle, Menu, X, ChevronRight, Loader2 } from 'lucide-react';
 import LessonRenderer from '../components/LessonRenderer';
 import StudyToolsPanel from '../components/StudyToolsPanel';
+import { useApi } from '../hooks/useApi';
 
 export default function LessonViewerPage() {
   const { courseId, id } = useParams();
   const navigate = useNavigate();
   const [course, setCourse] = useState(null);
   const [lesson, setLesson] = useState(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const fetchApi = useApi();
 
-  // Simulated fetch
   useEffect(() => {
-    // In reality, we'd fetch `/api/courses/${courseId}/lessons/${id}`
-    setCourse({
-      _id: courseId,
-      title: 'Introduction to Artificial Intelligence',
-      modules: [
-        {
-          _id: 'm1',
-          title: 'Module 1: AI Fundamentals',
-          lessons: [
-            { _id: 'l1', title: 'What is Artificial Intelligence?', isEnriched: true, completedAt: '2023-10-01' },
-            { _id: 'l2', title: 'History of AI', isEnriched: true, completedAt: null }
-          ]
-        }
-      ]
-    });
-    setLesson({
-      _id: id,
-      title: 'History of AI',
-      content: [
-        { type: 'paragraph', text: 'Artificial intelligence has a rich history that spans back to ancient myths, but formally began in the mid-20th century.' },
-        { type: 'heading', level: 2, text: 'The Turing Test' },
-        { type: 'paragraph', text: 'In 1950, Alan Turing published "Computing Machinery and Intelligence" which proposed a test of machine intelligence.' },
-        { type: 'callout', emoji: '🧠', title: 'Key Insight', text: 'The Turing Test doesn\'t check if a machine is correct, only if its answers are indistinguishable from a human\'s.' },
-        { type: 'list', style: 'bullet', items: ['Dartmouth Workshop (1956)', 'First AI Winter (1974-1980)', 'Expert Systems Boom (1980s)'] },
-        { type: 'code', language: 'python', code: 'def turing_test(agent):\n    if agent.can_fool_human():\n        return "Intelligent"\n    return "Needs work"' }
-      ],
-      isEnriched: true
-    });
+    async function loadLessonView() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchApi(`/courses/${courseId}/lessons/${id}`);
+        setCourse(data.course);
+        setLesson(data.lesson);
+      } catch (err) {
+        setError(err.message || 'Failed to load lesson');
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadLessonView();
   }, [courseId, id]);
 
-  if (!course || !lesson) {
-    return <div className="p-8 text-center text-slate-400">Loading lesson...</div>;
+  if (loading) {
+    return (
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+        <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !course || !lesson) {
+    return <div className="p-8 text-center text-red-400">{error || 'Lesson not found'}</div>;
   }
 
   return (
@@ -126,7 +122,7 @@ export default function LessonViewerPage() {
             <LessonRenderer blocks={lesson.content} />
           </div>
 
-          <StudyToolsPanel />
+          <StudyToolsPanel courseId={courseId} lessonId={id} />
         </div>
       </main>
     </div>

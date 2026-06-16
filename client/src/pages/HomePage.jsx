@@ -1,31 +1,36 @@
 import { useState, useEffect } from 'react';
-import { Plus, BookOpen } from 'lucide-react';
+import { Plus, BookOpen, Loader2 } from 'lucide-react';
 import CourseCard from '../components/CourseCard';
 import CreateCourseModal from '../components/CreateCourseModal';
+import { useApi } from '../hooks/useApi';
 
 export default function HomePage() {
   const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const fetchApi = useApi();
   
-  // Simulated initial courses
   useEffect(() => {
-    setCourses([
-      {
-        _id: '1',
-        title: 'Introduction to Artificial Intelligence',
-        description: 'Learn the fundamentals of AI, machine learning, and neural networks from scratch.',
-        isPublic: true,
-        modules: [{ lessons: [1,2,3] }, { lessons: [1,2] }]
-      },
-      {
-        _id: '2',
-        title: 'Advanced Web Architecture',
-        description: 'Master microservices, distributed systems, and scalable backend design patterns.',
-        isPublic: false,
-        modules: [{ lessons: [1,2,3,4] }]
+    async function loadCourses() {
+      try {
+        const data = await fetchApi('/courses/mine');
+        setCourses(data || []);
+      } catch (err) {
+        console.error('Failed to load courses', err);
+      } finally {
+        setLoading(false);
       }
-    ]);
+    }
+    loadCourses();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 animate-fade-in">

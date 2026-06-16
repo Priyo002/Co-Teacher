@@ -1,43 +1,40 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { BookOpen, CheckCircle, Circle, PlayCircle, ArrowLeft, MoreVertical, Share2 } from 'lucide-react';
+import { BookOpen, CheckCircle, Circle, PlayCircle, ArrowLeft, MoreVertical, Share2, Loader2 } from 'lucide-react';
+import { useApi } from '../hooks/useApi';
 
 export default function CourseOverviewPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [course, setCourse] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const fetchApi = useApi();
   
-  // Simulated initial course fetch
   useEffect(() => {
-    setCourse({
-      _id: id,
-      title: 'Introduction to Artificial Intelligence',
-      description: 'Learn the fundamentals of AI, machine learning, and neural networks from scratch.',
-      isPublic: false,
-      modules: [
-        {
-          _id: 'm1',
-          title: 'Module 1: AI Fundamentals',
-          lessons: [
-            { _id: 'l1', title: 'What is Artificial Intelligence?', isEnriched: true, completedAt: '2023-10-01' },
-            { _id: 'l2', title: 'History of AI', isEnriched: true, completedAt: null },
-            { _id: 'l3', title: 'Types of AI', isEnriched: false, completedAt: null }
-          ]
-        },
-        {
-          _id: 'm2',
-          title: 'Module 2: Machine Learning',
-          lessons: [
-            { _id: 'l4', title: 'Supervised vs Unsupervised Learning', isEnriched: false, completedAt: null },
-            { _id: 'l5', title: 'Linear Regression', isEnriched: false, completedAt: null }
-          ]
-        }
-      ]
-    });
+    async function loadCourse() {
+      try {
+        const data = await fetchApi(`/courses/${id}`);
+        setCourse(data);
+      } catch (err) {
+        setError(err.message || 'Failed to load course');
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadCourse();
   }, [id]);
 
-  if (!course) {
-    return <div className="p-8 text-center text-slate-400">Loading course...</div>;
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-[50vh]">
+        <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !course) {
+    return <div className="p-8 text-center text-red-400">{error || 'Course not found'}</div>;
   }
 
   const totalLessons = course.modules.reduce((acc, mod) => acc + mod.lessons.length, 0);

@@ -7,17 +7,16 @@ import App from './App.jsx';
 import './index.css';
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <BrowserRouter>
-      <Auth0Provider
-        domain={import.meta.env.VITE_AUTH0_DOMAIN || "placeholder-domain.auth0.com"}
-        clientId={import.meta.env.VITE_AUTH0_CLIENT_ID || "placeholder-client-id"}
-        authorizationParams={{ redirect_uri: window.location.origin }}
-      >
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </Auth0Provider>
-    </BrowserRouter>
-  </StrictMode>,
+  <BrowserRouter>
+    <Auth0Provider
+      domain={import.meta.env.VITE_AUTH0_DOMAIN || "placeholder-domain.auth0.com"}
+      clientId={import.meta.env.VITE_AUTH0_CLIENT_ID || "placeholder-client-id"}
+      authorizationParams={{ redirect_uri: window.location.origin }}
+      cacheLocation="localstorage"
+    >
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </Auth0Provider>
+  </BrowserRouter>
 );

@@ -1,3 +1,5 @@
+const User = require("../models/User");
+
 async function verifyAuth0Token(req, res, next) {
   const authorization = req.headers.authorization || "";
   if (!authorization.startsWith("Bearer ")) {
@@ -16,9 +18,23 @@ async function verifyAuth0Token(req, res, next) {
       return res.status(401).json({ error: "Auth0 rejected the access token" });
     }
 
-    req.auth0User = await response.json();
+    const auth0Profile = await response.json();
+    
+    // Find or create user in MongoDB
+    let user = await User.findOne({ email: auth0Profile.email });
+    if (!user) {
+      user = await User.create({
+        name: auth0Profile.name || auth0Profile.nickname || "Learner",
+        email: auth0Profile.email,
+        authProviderId: auth0Profile.sub, // The Auth0 user ID
+      });
+    }
+
+    req.auth0User = auth0Profile;
+    req.user = user; // Attach mongoose document for controllers
     return next();
-  } catch {
+  } catch (err) {
+    console.error("Auth0 Verification Error:", err);
     return res.status(401).json({ error: "Could not verify Auth0 login" });
   }
 }
