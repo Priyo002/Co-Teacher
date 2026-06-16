@@ -1,5 +1,5 @@
 const { createCourseOutline } = require("../services/courseGeneration");
-const { streamLessonContent, createLessonContent } = require("../services/lessonGeneration");
+const { streamLessonContent, createLessonContent, answerLessonQuestion } = require("../services/lessonGeneration");
 const { saveGeneratedCourse } = require("../services/coursePersistence");
 const { getOwnedLesson } = require("../services/lessonAccessService");
 const { findLessonVideos } = require("../services/youtubeService");
@@ -116,6 +116,20 @@ async function generatePracticeLab(req, res) {
   return res.json({ lab });
 }
 
+async function chatAboutLesson(req, res) {
+  const message = String(req.body?.message || "").trim().slice(0, 2000);
+  if (!message) return res.status(400).json({ error: "Message is required." });
+
+  const context = await getOwnedLesson(req.params.lessonId, req.user._id);
+  const reply = await answerLessonQuestion({
+    ...context,
+    message,
+    history: Array.isArray(req.body?.history) ? req.body.history : [],
+  });
+
+  return res.json({ reply });
+}
+
 module.exports = {
   generateCourseContent,
   enrichLesson,
@@ -124,4 +138,5 @@ module.exports = {
   generateQuiz,
   generateFlashcards,
   generatePracticeLab,
+  chatAboutLesson,
 };
