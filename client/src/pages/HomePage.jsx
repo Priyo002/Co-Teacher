@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, BookOpen } from 'lucide-react';
 import CourseCard from '../components/CourseCard';
+import CreateCourseModal from '../components/CreateCourseModal';
 
 export default function HomePage() {
   const [courses, setCourses] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Simulated initial courses
   useEffect(() => {
@@ -33,7 +35,10 @@ export default function HomePage() {
           <p className="text-slate-400">Pick up right where you left off.</p>
         </div>
         
-        <button className="btn-primary shadow-brand-500/20">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="btn-primary shadow-brand-500/20"
+        >
           <Plus className="w-5 h-5" />
           Generate Course
         </button>
@@ -46,7 +51,9 @@ export default function HomePage() {
           </div>
           <h3 className="text-xl font-semibold mb-2">No courses yet</h3>
           <p className="text-slate-400 max-w-md mb-6">You haven't generated any courses. Use the AI course generator to start learning anything.</p>
-          <button className="btn-secondary">Create Your First Course</button>
+          <button onClick={() => setIsModalOpen(true)} className="btn-secondary">
+            Create Your First Course
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -55,6 +62,8 @@ export default function HomePage() {
           ))}
         </div>
       )}
+
+      <CreateCourseModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 }
