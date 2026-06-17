@@ -1,15 +1,30 @@
 import { useState } from 'react';
-import { Lightbulb, Terminal, AlertTriangle, Info, CheckCircle2, XCircle } from 'lucide-react';
+import { Lightbulb, Terminal, AlertTriangle, Info, CheckCircle2, XCircle, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 function CodeBlockWithTabs({ codes }) {
   const availableLangs = ['python', 'cpp', 'java'].filter(l => codes && codes[l]);
   const [activeTab, setActiveTab] = useState(availableLangs[0] || 'python');
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    const codeToCopy = codes[activeTab] || codes?.python || '';
+    navigator.clipboard.writeText(codeToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   if (availableLangs.length === 0) {
     return (
-      <div className="p-4 overflow-x-auto">
-        <pre className="text-sm font-mono text-slate-200">
+      <div className="relative p-4 overflow-x-auto">
+        <button
+          onClick={handleCopy}
+          className="absolute top-2 right-2 p-2 bg-white/5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+          title="Copy code"
+        >
+          {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+        </button>
+        <pre className="text-sm font-mono text-slate-200 mt-2">
           <code>{codes?.python || "No code available"}</code>
         </pre>
       </div>
@@ -18,26 +33,48 @@ function CodeBlockWithTabs({ codes }) {
 
   return (
     <>
-      <div className="flex bg-white/5 border-b border-white/5 overflow-x-auto custom-scrollbar">
-        {availableLangs.map(lang => (
-          <button
-            key={lang}
-            onClick={() => setActiveTab(lang)}
-            className={`px-4 py-3 text-xs font-mono transition-colors border-b-2 whitespace-nowrap ${
-              activeTab === lang 
-                ? 'border-brand-500 text-brand-400 bg-brand-500/10' 
-                : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'
-            }`}
-          >
-            <Terminal className="w-3 h-3 inline-block mr-2" />
-            {lang === 'cpp' ? 'C++' : lang === 'python' ? 'Python' : 'Java'}
-          </button>
-        ))}
+      <div className="flex items-center justify-between bg-white/5 border-b border-white/5 print:hidden">
+        <div className="flex overflow-x-auto custom-scrollbar">
+          {availableLangs.map(lang => (
+            <button
+              key={lang}
+              onClick={() => setActiveTab(lang)}
+              className={`px-4 py-3 text-xs font-mono transition-colors border-b-2 whitespace-nowrap ${
+                activeTab === lang 
+                  ? 'border-brand-500 text-brand-400 bg-brand-500/10' 
+                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'
+              }`}
+            >
+              <Terminal className="w-3 h-3 inline-block mr-2" />
+              {lang === 'cpp' ? 'C++' : lang === 'python' ? 'Python' : 'Java'}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={handleCopy}
+          className="p-2 mr-2 bg-dark-800/50 hover:bg-dark-700 rounded-lg text-slate-400 hover:text-white transition-colors border border-white/5"
+          title="Copy code"
+        >
+          {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+        </button>
       </div>
-      <div className="p-4 overflow-x-auto custom-scrollbar">
+      <div className="p-4 overflow-x-auto custom-scrollbar print:hidden">
         <pre className="text-sm font-mono text-slate-200">
           <code>{codes[activeTab]}</code>
         </pre>
+      </div>
+      {/* Print only: stacked code blocks */}
+      <div className="hidden print:block space-y-4">
+        {availableLangs.map(lang => (
+          <div key={lang} className="break-inside-avoid border border-black/20 rounded-lg p-4">
+            <h4 className="font-bold text-black border-b border-black/20 mb-2 pb-1">
+              {lang === 'cpp' ? 'C++' : lang === 'python' ? 'Python' : 'Java'}
+            </h4>
+            <pre className="text-sm font-mono text-black whitespace-pre-wrap">
+              <code>{codes[lang]}</code>
+            </pre>
+          </div>
+        ))}
       </div>
     </>
   );
@@ -117,21 +154,28 @@ export default function LessonRenderer({ blocks }) {
 
           case 'video':
             return (
-              <div key={idx} className="my-8 aspect-video w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
-                <iframe
-                  src={block.url.replace('watch?v=', 'embed/')}
-                  title={block.title || 'Video Player'}
-                  className="w-full h-full"
-                  allowFullScreen
-                ></iframe>
+              <div key={idx} className="my-8 relative">
+                <div className="aspect-video w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl print:hidden">
+                  <iframe
+                    src={block.url.replace('watch?v=', 'embed/')}
+                    title={block.title || 'Video Player'}
+                    className="w-full h-full"
+                    allowFullScreen
+                  ></iframe>
+                </div>
+                {/* Print only: Video Link */}
+                <div className="hidden print:block my-4 p-4 border border-black/20 rounded-lg break-inside-avoid">
+                  <p className="font-bold text-black mb-1">Video: {block.title || 'Lesson Video'}</p>
+                  <a href={block.url} className="text-blue-600 underline break-all">{block.url}</a>
+                </div>
               </div>
             );
 
           case 'quiz':
             return (
-              <div key={idx} className="my-10 bg-dark-800 rounded-2xl border border-white/10 p-8 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-32 bg-brand-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-                <h3 className="text-2xl font-bold text-white mb-8 relative z-10">{block.title || 'Knowledge Check'}</h3>
+              <div key={idx} className="my-10 bg-dark-800 rounded-2xl border border-white/10 p-8 shadow-2xl relative overflow-hidden print:bg-transparent print:border-black/20 print:shadow-none print:p-0">
+                <div className="absolute top-0 right-0 p-32 bg-brand-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none print:hidden"></div>
+                <h3 className="text-2xl font-bold text-white mb-8 relative z-10 print:text-black">{block.title || 'Knowledge Check'}</h3>
                 
                 <div className="space-y-8 relative z-10">
                   {block.questions.map((q, qIdx) => {
@@ -141,35 +185,36 @@ export default function LessonRenderer({ blocks }) {
                     const isCorrect = selectedAns === q.correctAnswer;
 
                     return (
-                      <div key={qIdx} className="bg-dark-950 p-6 rounded-xl border border-white/5">
-                        <p className="font-bold text-slate-200 mb-4">{qIdx + 1}. {q.question}</p>
+                      <div key={qIdx} className="bg-dark-950 p-6 rounded-xl border border-white/5 print:bg-transparent print:border-black/20 print:p-4">
+                        <p className="font-bold text-slate-200 mb-4 print:text-black">{qIdx + 1}. {q.question}</p>
                         <div className="space-y-3">
                           {q.options.map((opt, oIdx) => {
-                            let btnClass = "w-full text-left p-4 rounded-lg border transition-all ";
+                            let btnClass = "w-full text-left p-4 rounded-lg border transition-all print:border-black/20 print:text-black print:bg-transparent print:block print:opacity-100 ";
                             if (isSubmitted) {
-                              if (oIdx === q.correctAnswer) btnClass += "border-green-500 bg-green-500/10 text-white";
-                              else if (oIdx === selectedAns) btnClass += "border-red-500 bg-red-500/10 text-slate-400 line-through";
+                              if (oIdx === q.correctAnswer) btnClass += "border-green-500 bg-green-500/10 text-white print:bg-green-100 print:text-green-900";
+                              else if (oIdx === selectedAns) btnClass += "border-red-500 bg-red-500/10 text-slate-400 line-through print:bg-red-50 print:text-red-900";
                               else btnClass += "border-white/5 bg-white/5 text-slate-500 opacity-50";
                             } else {
-                              if (selectedAns === oIdx) btnClass += "border-brand-500 bg-brand-500/10 text-white";
+                              if (selectedAns === oIdx) btnClass += "border-brand-500 bg-brand-500/10 text-white print:bg-brand-50 print:border-brand-500";
                               else btnClass += "border-white/5 bg-white/5 text-slate-300 hover:border-white/20 hover:bg-white/10";
                             }
 
                             return (
-                              <button
+                              <div
                                 key={oIdx}
-                                disabled={isSubmitted}
-                                onClick={() => setQuizAnswers(prev => ({ ...prev, [questionKey]: oIdx }))}
-                                className={btnClass}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => !isSubmitted && setQuizAnswers(prev => ({ ...prev, [questionKey]: oIdx }))}
+                                className={btnClass + (isSubmitted ? " cursor-default" : " cursor-pointer")}
                               >
                                 {opt}
-                              </button>
+                              </div>
                             );
                           })}
                         </div>
                         
                         {!isSubmitted && selectedAns !== undefined && (
-                          <div className="mt-4 flex justify-end">
+                          <div className="mt-4 flex justify-end print:hidden">
                             <button
                               onClick={() => setShowResults(prev => ({ ...prev, [questionKey]: true }))}
                               className="px-4 py-2 bg-brand-500 text-dark-900 font-bold rounded-lg hover:bg-brand-400 transition-colors"

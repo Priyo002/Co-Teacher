@@ -1,6 +1,11 @@
 const { GoogleGenAI } = require("@google/genai");
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+function getAiClient() {
+  const keysStr = process.env.GEMINI_API_KEY || "";
+  const keys = keysStr.split(',').map(k => k.trim()).filter(Boolean);
+  const apiKey = keys.length > 0 ? keys[Math.floor(Math.random() * keys.length)] : undefined;
+  return new GoogleGenAI({ apiKey });
+}
 
 function parseJson(value) {
   try {
@@ -43,7 +48,7 @@ function geminiError(error) {
 async function generateJson(systemPrompt, userPrompt, maxTokens = 4096, modelName = "gemini-1.5-flash") {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      const response = await ai.models.generateContent({
+      const response = await getAiClient().models.generateContent({
         model: modelName,
         contents: userPrompt,
         config: {
@@ -68,7 +73,7 @@ async function generateJson(systemPrompt, userPrompt, maxTokens = 4096, modelNam
 
 async function* generateJsonStream(systemPrompt, userPrompt, maxTokens = 4096, modelName = "gemini-1.5-flash") {
   try {
-    const stream = await ai.models.generateContentStream({
+    const stream = await getAiClient().models.generateContentStream({
       model: modelName,
       contents: userPrompt,
       config: {
@@ -110,7 +115,7 @@ async function generateText(messages, maxTokens = 1024, modelName = "gemini-1.5-
       config.systemInstruction = systemInstruction;
     }
 
-    const response = await ai.models.generateContent({
+    const response = await getAiClient().models.generateContent({
       model: modelName,
       contents,
       config

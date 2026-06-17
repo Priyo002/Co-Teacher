@@ -180,13 +180,15 @@ async function chatAboutLesson(req, res) {
   }
 }
 
-async function generateLessonIntro(req, res) {
+const { createLessonOutline, createLessonChunk, lessonText } = require("../services/lessonGeneration");
+
+async function generateLessonOutline(req, res) {
   try {
     const context = await getOwnedLesson(req.params.lessonId, req.user._id);
     
     // Backward compatibility: If it's an old lesson that already has content, mark it as complete
     if (context.lesson.generationStatus === 'none' && context.lesson.content && context.lesson.content.length > 0) {
-      context.lesson.generationStatus = context.lesson.isEnriched ? 'complete' : 'content';
+      context.lesson.generationStatus = 'complete';
       await context.lesson.save();
       return res.json(context.lesson.toObject({ depopulate: true }));
     }
@@ -199,57 +201,89 @@ async function generateLessonIntro(req, res) {
     const depth = VALID_DEPTHS.has(requestedDepth) ? requestedDepth : "standard";
     const language = String(req.body?.language || "").trim().slice(0, 80) || "English";
     
-    const blocks = await createLessonIntro({ ...context, depth, language });
-    context.lesson.content = blocks;
+    const outline = await createLessonOutline({ ...context, depth, language });
+    context.lesson.outline = outline.length > 0 ? outline : ["Introduction", "Main Concepts", "Conclusion"];
+    context.lesson.currentChunkIndex = 0;
     context.lesson.language = language;
-    context.lesson.generationStatus = 'intro';
+    context.lesson.generationStatus = 'outline';
     await context.lesson.save();
     return res.json(context.lesson.toObject({ depopulate: true }));
   } catch (err) {
-    console.error("Intro generation error:", err);
-    return res.status(500).json({ error: err.message || "Failed to generate intro" });
+    console.error("Outline generation error:", err);
+    return res.status(500).json({ error: err.message || "Failed to generate outline" });
   }
 }
 
-async function generateLessonContent(req, res) {
+async function generateLessonChunk(req, res) {
   try {
     const context = await getOwnedLesson(req.params.lessonId, req.user._id);
     if (context.lesson.generationStatus === 'none') {
-      return res.status(400).json({ error: "Intro must be generated first" });
+      return res.status(400).json({ error: "Outline must be generated first" });
     }
-    if (context.lesson.generationStatus !== 'intro') {
+    
+    if (context.lesson.generationStatus !== 'outline' && context.lesson.generationStatus !== 'chunks') {
       return res.json(context.lesson.toObject({ depopulate: true }));
     }
 
     const requestedDepth = String(req.body?.depth || "").trim().slice(0, 20);
     const depth = VALID_DEPTHS.has(requestedDepth) ? requestedDepth : "standard";
     const language = context.lesson.language || "English";
-
-    const blocks = await createLessonMainContent({ ...context, depth, language });
     
-    try {
-      const videos = await findLessonVideos(context);
-      if (videos && videos.length > 0) {
-        blocks.splice(Math.floor(blocks.length / 2), 0, ...videos);
+    const currentIndex = context.lesson.currentChunkIndex || 0;
+    const outline = context.lesson.outline || [];
+    
+    if (currentIndex >= outline.length) {
+      context.lesson.generationStatus = 'quiz';
+      await context.lesson.save();
+      return res.json(context.lesson.toObject({ depopulate: true }));
+    }
+
+    const currentHeading = outline[currentIndex];
+    
+    // Extract the previous chunk's text for context, if this is not the first chunk
+    let previousContext = "";
+    if (currentIndex > 0 && context.lesson.content.length > 0) {
+      // Find the start of the previous chunk by going backwards until we hit a heading that matches outline[currentIndex - 1]
+      // Or just take the last 1500 chars
+      previousContext = lessonText(context.lesson, 1500);
+    }
+
+    const blocks = await createLessonChunk({ ...context, depth, language }, currentHeading, previousContext);
+    
+    // For the first chunk, maybe add videos
+    if (currentIndex === 0) {
+      try {
+        const videos = await findLessonVideos(context);
+        if (videos && videos.length > 0) {
+          blocks.splice(Math.floor(blocks.length / 2), 0, ...videos);
+        }
+      } catch (e) {
+        console.warn("Failed to find videos", e);
       }
-    } catch (e) {
-      console.warn("Failed to find videos", e);
     }
 
     context.lesson.content.push(...blocks);
-    context.lesson.generationStatus = 'content';
+    context.lesson.markModified('content');
+    context.lesson.currentChunkIndex = currentIndex + 1;
+    
+    if (context.lesson.currentChunkIndex >= outline.length) {
+      context.lesson.generationStatus = 'quiz';
+    } else {
+      context.lesson.generationStatus = 'chunks';
+    }
+    
     await context.lesson.save();
     return res.json(context.lesson.toObject({ depopulate: true }));
   } catch (err) {
-    console.error("Content generation error:", err);
-    return res.status(500).json({ error: err.message || "Failed to generate content" });
+    console.error("Chunk generation error:", err);
+    return res.status(500).json({ error: err.message || "Failed to generate chunk" });
   }
 }
 
 async function generateLessonQuizChunk(req, res) {
   try {
     const context = await getOwnedLesson(req.params.lessonId, req.user._id);
-    if (context.lesson.generationStatus === 'none' || context.lesson.generationStatus === 'intro') {
+    if (context.lesson.generationStatus !== 'quiz' && context.lesson.generationStatus !== 'content') {
        return res.status(400).json({ error: "Content must be generated first" });
     }
     if (context.lesson.generationStatus === 'complete' || context.lesson.isEnriched) {
@@ -263,6 +297,7 @@ async function generateLessonQuizChunk(req, res) {
         title: 'Knowledge Check',
         questions: questions
       });
+      context.lesson.markModified('content');
     }
 
     context.lesson.generationStatus = 'complete';
@@ -314,7 +349,7 @@ module.exports = {
   generatePracticeLab,
   chatAboutLesson,
   chatAboutCourse,
-  generateLessonIntro,
-  generateLessonContent,
+  generateLessonOutline,
+  generateLessonChunk,
   generateLessonQuizChunk,
 };

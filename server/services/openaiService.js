@@ -1,5 +1,12 @@
 const { OpenAI } = require("openai");
 
+function getApiKey() {
+  const keysStr = process.env.OPENAI_API_KEY || "";
+  const keys = keysStr.split(',').map(k => k.trim()).filter(Boolean);
+  if (keys.length === 0) return undefined;
+  return keys[Math.floor(Math.random() * keys.length)];
+}
+
 function parseJson(value) {
   try {
     const cleaned = value.replace(/^```(json)?\n?/i, '').replace(/\n?```$/i, '').trim();
@@ -10,7 +17,7 @@ function parseJson(value) {
 }
 
 async function generateJson(systemPrompt, userPrompt, maxTokens = 4096, modelName = "gpt-4o-mini") {
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const openai = new OpenAI({ apiKey: getApiKey() });
 
   const completion = await openai.chat.completions.create({
     model: modelName,
@@ -29,7 +36,7 @@ async function generateJson(systemPrompt, userPrompt, maxTokens = 4096, modelNam
 }
 
 async function* generateJsonStream(systemPrompt, userPrompt, maxTokens = 4096, modelName = "gpt-4o-mini") {
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const openai = new OpenAI({ apiKey: getApiKey() });
 
   const stream = await openai.chat.completions.create({
     model: modelName,
@@ -49,7 +56,7 @@ async function* generateJsonStream(systemPrompt, userPrompt, maxTokens = 4096, m
 }
 
 async function generateText(messages, maxTokens = 1024, modelName = "gpt-4o-mini") {
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const openai = new OpenAI({ apiKey: getApiKey() });
 
   const completion = await openai.chat.completions.create({
     model: modelName,

@@ -97,6 +97,8 @@ export default function LessonViewerPage() {
       setLoading(true);
       setError(null);
       setGenerationError(null);
+      setGeneratingChunk(false);
+      if (generatingRef) generatingRef.current = false;
       try {
         const data = await fetchApi(`/courses/${courseId}/lessons/${id}`);
         setCourse(data.course);
@@ -110,36 +112,51 @@ export default function LessonViewerPage() {
     loadLessonView();
   }, [courseId, id]);
 
+  const generatingRef = useRef(false);
+  const currentIdRef = useRef(id);
+
+  useEffect(() => {
+    currentIdRef.current = id;
+  }, [id]);
+
   const handleGenerateChunk = async (chunkType) => {
-    if (generatingChunk) return;
+    if (generatingRef.current) return;
+    generatingRef.current = true;
     setGeneratingChunk(true);
     setGenerationError(null);
     try {
       const updatedLesson = await fetchApi(`/courses/${courseId}/lessons/${id}/generate/${chunkType}`, { method: 'POST' });
-      setLesson(updatedLesson);
+      if (currentIdRef.current === id) {
+        setLesson(updatedLesson);
+      }
     } catch (err) {
-      console.error(`Failed to generate ${chunkType}:`, err);
-      setGenerationError(`Failed to generate ${chunkType}. Please try again.`);
+      if (currentIdRef.current === id) {
+        console.error(`Failed to generate ${chunkType}:`, err);
+        setGenerationError(`Failed to generate ${chunkType}. Please try again.`);
+      }
     } finally {
-      setGeneratingChunk(false);
+      if (currentIdRef.current === id) {
+        generatingRef.current = false;
+        setGeneratingChunk(false);
+      }
     }
   };
 
   useEffect(() => {
-    if (lesson && lesson.generationStatus === 'none' && !generatingChunk && !generationError) {
-      handleGenerateChunk('intro');
+    if (lesson && lesson.generationStatus === 'none' && !generatingRef.current && !generationError) {
+      handleGenerateChunk('outline');
     }
-  }, [lesson, generatingChunk, generationError]);
+  }, [lesson, generationError]);
 
   useEffect(() => {
-    if (!endOfContentRef.current || !lesson || generatingChunk || generationError) return;
+    if (!endOfContentRef.current || !lesson || generationError) return;
     if (lesson.generationStatus === 'none' || lesson.generationStatus === 'complete' || lesson.isEnriched) return;
 
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && !generatingChunk) {
-        if (lesson.generationStatus === 'intro') {
-          handleGenerateChunk('content');
-        } else if (lesson.generationStatus === 'content') {
+      if (entries[0].isIntersecting && !generatingRef.current) {
+        if (lesson.generationStatus === 'outline' || lesson.generationStatus === 'chunks') {
+          handleGenerateChunk('chunk');
+        } else if (lesson.generationStatus === 'quiz') {
           handleGenerateChunk('quiz');
         }
       }
@@ -147,7 +164,7 @@ export default function LessonViewerPage() {
 
     observer.observe(endOfContentRef.current);
     return () => observer.disconnect();
-  }, [lesson, generatingChunk, generationError]);
+  }, [lesson, generationError]);
 
   useEffect(() => {
     if (course && lesson) {
@@ -157,6 +174,15 @@ export default function LessonViewerPage() {
       }
     }
   }, [course, lesson]);
+
+  useEffect(() => {
+    if (lesson?.title) {
+      document.title = lesson.title.replace(/^Module\s*\d+:\s*/i, '');
+    }
+    return () => {
+      document.title = 'AI Course App';
+    };
+  }, [lesson?.title]);
 
   const toggleModule = (moduleId) => {
     setExpandedModules(prev => ({ ...prev, [moduleId]: !prev[moduleId] }));
@@ -201,7 +227,7 @@ export default function LessonViewerPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] relative overflow-hidden">
+    <div className="flex h-[calc(100vh-4rem)] relative overflow-hidden print:h-auto print:overflow-visible print:block">
       {/* Sidebar Toggle Overlay / Button */}
       {!isSidebarOpen && (
         <div className="absolute top-1/2 -translate-y-1/2 left-4 z-40 hidden lg:block no-print">
@@ -275,7 +301,7 @@ export default function LessonViewerPage() {
                     onClick={() => toggleModule(module._id)}
                     className="flex items-center justify-between w-full text-left font-semibold text-slate-300 mb-2 hover:text-white transition-colors"
                   >
-                    <span className="pr-4 line-clamp-2">Module {mIdx + 1}: {module.title}</span>
+                    <span className="pr-4 line-clamp-2">Module {mIdx + 1}: {module.title.replace(/^Module\s*\d+:\s*/i, '')}</span>
                     <ChevronRight className={`w-4 h-4 shrink-0 transition-transform ${isExpanded ? 'rotate-90 text-brand-400' : ''}`} />
                   </button>
                   
@@ -332,7 +358,7 @@ export default function LessonViewerPage() {
         </button>
       )}
 
-      <main className="flex-1 bg-dark-950 overflow-y-auto relative">
+      <main className="flex-1 bg-dark-950 overflow-y-auto relative print:overflow-visible print:block">
         {!lesson ? (
           <div className="flex h-full items-center justify-center">
             <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
@@ -342,7 +368,11 @@ export default function LessonViewerPage() {
         ) : (
           <>
             
-            <div className="w-full max-w-[1400px] mx-auto p-6 md:px-12 lg:px-16 pb-32 print-content">
+            <div className={`w-full max-w-[1400px] mx-auto p-6 md:px-12 pb-32 print-content transition-all duration-300 ${
+              !isSidebarOpen ? 'lg:pl-24' : 'lg:pl-16'
+            } ${
+              !isRightSidebarOpen ? 'lg:pr-24' : 'lg:pr-16'
+            }`}>
               {/* Breadcrumb */}
               <div className="flex items-center gap-2 text-sm text-slate-500 mb-8">
                 <Link to={`/course/${courseId}`} className="truncate max-w-[150px] md:max-w-[300px] hover:text-slate-300 transition-colors">
@@ -353,7 +383,7 @@ export default function LessonViewerPage() {
                   const activeModule = course.modules.find(m => m.lessons.some(l => l._id === lesson._id));
                   return activeModule ? (
                     <>
-                      <span className="truncate max-w-[150px] md:max-w-[200px]">{activeModule.title}</span>
+                      <span className="truncate max-w-[150px] md:max-w-[200px]">{activeModule.title.replace(/^Module\s*\d+:\s*/i, '')}</span>
                       <ChevronRight className="w-4 h-4" />
                     </>
                   ) : null;
@@ -409,9 +439,7 @@ export default function LessonViewerPage() {
                       </div>
                     </div>
                     <p className="text-slate-400 text-sm font-medium">
-                      {lesson.generationStatus === 'none' && "Drafting introduction..."}
-                      {lesson.generationStatus === 'intro' && "Writing detailed content & finding videos..."}
-                      {lesson.generationStatus === 'content' && "Building knowledge check quiz..."}
+                      Generating lesson content...
                     </p>
                   </div>
                 )}

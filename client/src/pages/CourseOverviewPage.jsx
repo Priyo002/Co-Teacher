@@ -125,7 +125,7 @@ export default function CourseOverviewPage() {
         {course.modules?.map((module, mIdx) => (
           <div key={module._id} className="glass-panel overflow-hidden">
             <div className="bg-dark-800/50 p-4 border-b border-white/5">
-              <h3 className="font-semibold text-lg">Module {mIdx + 1}: {module.title}</h3>
+              <h3 className="font-semibold text-lg">Module {mIdx + 1}: {module.title.replace(/^Module\s*\d+:\s*/i, '')}</h3>
             </div>
             <div className="divide-y divide-white/5">
               {module.lessons?.map((lesson, lIdx) => (

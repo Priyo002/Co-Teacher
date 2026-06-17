@@ -141,37 +141,32 @@ async function createLessonContent(context) {
   return formatBlocks(result);
 }
 
-async function createLessonIntro(context) {
+async function createLessonOutline(context) {
   const { generateJson } = require("./aiRouter");
   const prompt = `
-Write an engaging introduction for the lesson "${context.lesson.title}" in the module "${context.moduleDoc.title}" for the course "${context.course.title}".
-This should be brief (1-3 blocks) and set the stage for what the student will learn.
-Use a mix of heading, paragraph, or callout blocks.
+Generate a structural outline for the lesson "${context.lesson.title}" in the module "${context.moduleDoc.title}" for the course "${context.course.title}".
+Return exactly a JSON object with an "outline" array containing 3 to 5 strings. 
+Each string should be a logical heading for a section of the lesson.
+The first string should be an introductory heading. The last string should be a concluding or summary heading.
+Do not include quizzes in the outline.
   `.trim();
 
   const result = await generateJson(
-    RICH_CONTENT_INSTRUCTIONS + "\n\n" + prompt,
-    context.lesson.title,
-    1500
+    "Return JSON like: { \"outline\": [\"Heading 1\", \"Heading 2\"] }",
+    prompt,
+    1000
   );
-  return formatBlocks(result);
+  return Array.isArray(result?.outline) ? result.outline : [];
 }
 
-async function createLessonMainContent(context) {
+async function createLessonChunk(context, heading, previousContext) {
   const { generateJson } = require("./aiRouter");
   
-  // We should pass the intro blocks so the AI doesn't repeat them
-  const existingContentStr = lessonText(context.lesson, 1000);
-  
   const prompt = `
-Write the main body content for the lesson "${context.lesson.title}".
-The student has already read this introduction:
-"""
-${existingContentStr}
-"""
-Now, provide the deep-dive content. Do NOT repeat the introduction.
+Write the main body content for the section titled "${heading}" in the lesson "${context.lesson.title}".
+${previousContext ? `The student just read the previous section:\n"""\n${previousContext}\n"""\nContinue smoothly from there, but DO NOT repeat it.` : "This is the first section of the lesson. Write an engaging introduction."}
 Use a rich mix of heading, paragraph, code, list, and callout blocks.
-Length requirement: Detailed deep-dive suitable for the "standard" depth (at least 4-6 detailed blocks).
+Start with a heading block for "${heading}".
 Include realistic, runnable code examples in Python, C++, and Java if the topic allows it.
   `.trim();
 
@@ -322,12 +317,20 @@ async function answerCourseQuestion({ course, message, currentLessonId, history 
            else if (block.type === 'quiz' && Array.isArray(block.questions)) {
               lessonTextContent += `Knowledge Check Questions:\n`;
               block.questions.forEach((q, qIdx) => {
-                 lessonTextContent += `Q${qIdx+1}: ${q.question}\nCorrect Answer: ${q.options[q.correctAnswer]}\n`;
+                 lessonTextContent += `Q${qIdx+1}: ${q.question}\nOptions:\n`;
+                 q.options.forEach((opt, oIdx) => {
+                   lessonTextContent += `  - ${opt}\n`;
+                 });
+                 lessonTextContent += `Correct Answer: ${q.options[q.correctAnswer]}\n`;
               });
            }
         });
         if (lessonTextContent) {
-           courseContext += `    Content:\n    ${lessonTextContent.substring(0, 2500).replace(/\n/g, '\n    ')}...\n`;
+           if (String(l._id) === String(currentLessonId)) {
+             courseContext += `    Content:\n    ${lessonTextContent.replace(/\n/g, '\n    ')}\n`;
+           } else {
+             courseContext += `    Content:\n    ${lessonTextContent.substring(0, 1500).replace(/\n/g, '\n    ')}...\n`;
+           }
         }
       }
     });
@@ -355,4 +358,12 @@ ${courseContext}
   ]);
 }
 
-module.exports = { answerLessonQuestion, answerCourseQuestion, createLessonContent, streamLessonContent, createLessonIntro, createLessonMainContent };
+module.exports = {
+  createLessonContent,
+  streamLessonContent,
+  createLessonOutline,
+  createLessonChunk,
+  answerLessonQuestion,
+  answerCourseQuestion,
+  lessonText,
+};

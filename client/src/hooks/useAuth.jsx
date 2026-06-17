@@ -18,7 +18,6 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     async function initSession() {
-      console.log('Auth0 State:', { auth0Loading, isAuthenticated, user });
       if (auth0Loading) return;
       
       if (!isAuthenticated) {
