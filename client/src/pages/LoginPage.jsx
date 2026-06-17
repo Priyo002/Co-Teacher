@@ -1,5 +1,5 @@
 import { useAuth } from '../hooks/useAuth';
-import { Sparkles, BookOpen, BrainCircuit, Target, Video, ArrowRight, Zap, Code, Shield } from 'lucide-react';
+import { Sparkles, BookOpen, GraduationCap, Target, Video, ArrowRight, Zap, Code, Shield } from 'lucide-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -17,9 +17,9 @@ export default function LoginPage() {
       <nav className="relative z-10 flex items-center justify-between px-6 py-6 max-w-7xl mx-auto">
         <div className="flex items-center gap-2">
           <div className="bg-brand-500/10 p-2 rounded-xl border border-brand-500/20 shadow-[0_0_15px_rgba(34,211,238,0.2)]">
-            <BrainCircuit className="w-6 h-6 text-brand-400" />
+            <GraduationCap className="w-6 h-6 text-brand-400" />
           </div>
-          <span className="text-xl font-bold tracking-tight text-white">CourseGen <span className="text-brand-400">AI</span></span>
+          <span className="text-xl font-bold tracking-tight text-white">Co-Teacher</span>
         </div>
         <button 
           onClick={() => login()} 
@@ -103,7 +103,7 @@ export default function LoginPage() {
       
       {/* Footer */}
       <footer className="border-t border-white/5 py-8 text-center text-slate-500 text-sm bg-dark-950">
-        <p>© {new Date().getFullYear()} CourseGen AI. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} Co-Teacher. All rights reserved.</p>
       </footer>
     </div>
   );

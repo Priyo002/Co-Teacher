@@ -95,7 +95,7 @@ export default function CertificatePage() {
                 <p className="text-sm text-slate-500 uppercase tracking-widest">Date Issued</p>
               </div>
               <div className="text-center">
-                <p className="text-xl font-bold text-gradient-brand mb-1 font-signature">TextToLearn</p>
+                <p className="text-xl font-bold text-gradient-brand mb-1 font-signature">Co-Teacher</p>
                 <p className="text-sm text-slate-500 uppercase tracking-widest">Platform</p>
               </div>
             </div>
