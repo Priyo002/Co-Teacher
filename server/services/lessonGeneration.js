@@ -74,7 +74,8 @@ function formatBlocks(result) {
   return blocks.map(formatBlock).filter((block) => {
     if (!block) return false;
     if (block.type === "list") return block.items.length > 0;
-    return block.text || block.code;
+    if (block.type === "code") return Object.values(block.codes).some(Boolean);
+    return block.text;
   });
 }
 
@@ -91,6 +92,7 @@ function isCompleteLesson(blocks, depth) {
 }
 
 const RICH_CONTENT_INSTRUCTIONS = `
+Return ONLY valid JSON with a "contentBlocks" array containing your blocks.
 Allowed block types: "heading", "paragraph", "code", "list", "callout".
 - heading: { "type": "heading", "level": 2 or 3, "text": "..." }
 - paragraph: { "type": "paragraph", "text": "..." }
@@ -128,6 +130,57 @@ Course description: ${course.description || "Not provided"}
   const blocks = formatBlocks(await generateJson(instructions, context, size.maxTokens, validator));
 
   return blocks;
+}
+
+async function createLessonContent(context) {
+  // Keeping this for backwards compatibility if needed, but not actively used for new flow
+  const { generateJson } = require("./aiRouter");
+  const prompt = `Create a complete lesson. Use these blocks: ${JSON.stringify(LESSON_DEPTHS[context.depth])}`;
+  
+  const result = await generateJson(RICH_CONTENT_INSTRUCTIONS + "\n\n" + prompt, context.lesson.title, context.depth.maxTokens);
+  return formatBlocks(result);
+}
+
+async function createLessonIntro(context) {
+  const { generateJson } = require("./aiRouter");
+  const prompt = `
+Write an engaging introduction for the lesson "${context.lesson.title}" in the module "${context.moduleDoc.title}" for the course "${context.course.title}".
+This should be brief (1-3 blocks) and set the stage for what the student will learn.
+Use a mix of heading, paragraph, or callout blocks.
+  `.trim();
+
+  const result = await generateJson(
+    RICH_CONTENT_INSTRUCTIONS + "\n\n" + prompt,
+    context.lesson.title,
+    1500
+  );
+  return formatBlocks(result);
+}
+
+async function createLessonMainContent(context) {
+  const { generateJson } = require("./aiRouter");
+  
+  // We should pass the intro blocks so the AI doesn't repeat them
+  const existingContentStr = lessonText(context.lesson, 1000);
+  
+  const prompt = `
+Write the main body content for the lesson "${context.lesson.title}".
+The student has already read this introduction:
+"""
+${existingContentStr}
+"""
+Now, provide the deep-dive content. Do NOT repeat the introduction.
+Use a rich mix of heading, paragraph, code, list, and callout blocks.
+Length requirement: Detailed deep-dive suitable for the "standard" depth (at least 4-6 detailed blocks).
+Include realistic, runnable code examples in Python, C++, and Java if the topic allows it.
+  `.trim();
+
+  const result = await generateJson(
+    RICH_CONTENT_INSTRUCTIONS + "\n\n" + prompt,
+    context.lesson.title,
+    4500
+  );
+  return formatBlocks(result);
 }
 
 /**
@@ -241,4 +294,65 @@ Use fenced code blocks for code. Avoid oversized headings and long walls of text
   ]);
 }
 
-module.exports = { answerLessonQuestion, createLessonContent, streamLessonContent };
+async function answerCourseQuestion({ course, message, currentLessonId, history }) {
+  const { generateText } = require("./aiRouter");
+  const recentHistory = (Array.isArray(history) ? history : []).slice(-6).map((item) => ({
+    role: item?.role === "user" ? "user" : "assistant",
+    content: String(item?.content || "").trim().slice(0, 1000),
+  })).filter((item) => item.content);
+
+  // Build the full course context
+  let courseContext = `Course Title: ${course.title}\nDescription: ${course.description}\n\n`;
+  course.modules.forEach((mod, mIdx) => {
+    courseContext += `Module ${mIdx + 1}: ${mod.title}\n`;
+    mod.lessons.forEach((l, lIdx) => {
+      courseContext += `  Lesson ${lIdx + 1}: ${l.title}`;
+      if (String(l._id) === String(currentLessonId)) {
+        courseContext += ` (*** STUDENT IS CURRENTLY VIEWING THIS LESSON ***)`;
+      }
+      courseContext += `\n`;
+      if (l.content && l.content.length > 0) {
+        let lessonTextContent = '';
+        l.content.forEach(block => {
+           if (block.type === 'paragraph') lessonTextContent += block.text + '\n';
+           else if (block.type === 'code') lessonTextContent += 'Code:\n' + block.code + '\n';
+           else if (block.type === 'knowledge_check') {
+              lessonTextContent += `Knowledge Check: ${block.question}\nCorrect Answer: ${block.options.find(o => o.isCorrect)?.text}\n`;
+           }
+           else if (block.type === 'quiz' && Array.isArray(block.questions)) {
+              lessonTextContent += `Knowledge Check Questions:\n`;
+              block.questions.forEach((q, qIdx) => {
+                 lessonTextContent += `Q${qIdx+1}: ${q.question}\nCorrect Answer: ${q.options[q.correctAnswer]}\n`;
+              });
+           }
+        });
+        if (lessonTextContent) {
+           courseContext += `    Content:\n    ${lessonTextContent.substring(0, 2500).replace(/\n/g, '\n    ')}...\n`;
+        }
+      }
+    });
+  });
+
+  // truncate overall context if it gets absurdly huge
+  courseContext = courseContext.substring(0, 40000);
+
+  return generateText([
+    {
+      role: "system",
+      content: `
+You are an expert AI tutor for the course "${course.title}".
+You have access to the full course curriculum and the content of generated lessons below.
+If the student asks a question, use this context to answer accurately. 
+DO NOT regurgitate or output raw course content or markdown blocks. Be highly conversational, encouraging, and act like a human tutor. Provide concise, direct answers.
+If the student just says "hello" or greets you, greet them back warmly and ask how you can help them with the course.
+
+Course Context:
+${courseContext}
+      `.trim(),
+    },
+    ...recentHistory,
+    { role: "user", content: message },
+  ]);
+}
+
+module.exports = { answerLessonQuestion, answerCourseQuestion, createLessonContent, streamLessonContent, createLessonIntro, createLessonMainContent };

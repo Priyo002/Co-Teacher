@@ -59,7 +59,7 @@ export default function LessonRenderer({ blocks }) {
             return (
               <HeadingTag 
                 key={idx} 
-                className={`text-white font-bold tracking-tight ${
+                className={`text-white font-bold tracking-tight first:mt-0 ${
                   block.level === 2 ? 'text-2xl mt-10 mb-4' : 'text-xl mt-8 mb-3'
                 }`}
               >

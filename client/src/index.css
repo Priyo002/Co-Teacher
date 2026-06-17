@@ -86,3 +86,30 @@
   pointer-events: none;
   z-index: -1;
 }
+
+@media print {
+  .no-print, aside, nav, button {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .glass-panel {
+    border: none !important;
+    box-shadow: none !important;
+    background: none !important;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    color: black !important;
+  }
+  .text-slate-300, .text-slate-400, .text-white {
+    color: black !important;
+  }
+  .print-content {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}

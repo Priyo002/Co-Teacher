@@ -2,11 +2,11 @@ const { generateJson } = require("./aiRouter");
 
 function formatCourse(result) {
   const sourceModules = Array.isArray(result.modules) ? result.modules : [];
-  const modules = sourceModules.slice(0, 8).map((module) => {
+  const modules = sourceModules.slice(0, 10).map((module) => {
     if (!module || typeof module !== "object") return null;
 
     const lessons = (Array.isArray(module.lessons) ? module.lessons : [])
-      .slice(0, 8)
+      .slice(0, 10)
       .map((lesson) => ({
         title: String(typeof lesson === "string" ? lesson : lesson?.title || "")
           .trim()
@@ -39,13 +39,13 @@ async function createCourseOutline(prompt) {
   const instructions = `
 Create a practical course outline.
 Return JSON with "title", "description", and "modules".
-Create 4-6 modules. Each module needs a "title" and a "lessons" array.
+Create 5-10 modules depending on the course topic. Each module needs a "title" and a "lessons" array.
 Each lesson must be an object with a "title".
 Do not include lesson content, quizzes, or videos.
 Use the same language as the user's request.
   `.trim();
 
-  const result = await generateJson(instructions, prompt, 2400);
+  const result = await generateJson(instructions, prompt, 8192);
   return formatCourse(result);
 }
 

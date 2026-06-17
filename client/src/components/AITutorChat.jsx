@@ -1,15 +1,55 @@
-import { useState } from 'react';
-import { Send, Sparkles, Bot, PanelRightClose } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Send, Sparkles, Bot, PanelRightClose, Trash2 } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import ReactMarkdown from 'react-markdown';
 
 export default function AITutorChat({ courseId, lessonId, onClose }) {
+  const storageKey = `ai_tutor_chat_${courseId}`;
+
   const [message, setMessage] = useState('');
-  const [chatHistory, setChatHistory] = useState([
-    { role: 'assistant', content: 'Hi! I am your AI tutor for this lesson. Ask me anything to clarify concepts or dive deeper.' }
-  ]);
+  const [chatHistory, setChatHistory] = useState(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to parse chat history', e);
+    }
+    return [
+      { role: 'assistant', content: 'Hi! I am your AI tutor for this course. Ask me anything to clarify concepts or dive deeper.' }
+    ];
+  });
+  
   const [isTyping, setIsTyping] = useState(false);
   const fetchApi = useApi();
+
+  // Load chat history when switching courses (or if it gets cleared)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        setChatHistory(JSON.parse(saved));
+      } else {
+        setChatHistory([
+          { role: 'assistant', content: 'Hi! I am your AI tutor for this course. Ask me anything to clarify concepts or dive deeper.' }
+        ]);
+      }
+    } catch (e) {
+      console.error('Failed to load chat history', e);
+    }
+  }, [storageKey]);
+
+  // Save chat history to local storage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(storageKey, JSON.stringify(chatHistory));
+  }, [chatHistory, storageKey]);
+
+  const handleClearHistory = () => {
+    if (window.confirm("Are you sure you want to clear this chat's history?")) {
+      setChatHistory([
+        { role: 'assistant', content: 'Hi! I am your AI tutor for this course. Ask me anything to clarify concepts or dive deeper.' }
+      ]);
+    }
+  };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -21,10 +61,11 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
     setIsTyping(true);
 
     try {
-      const data = await fetchApi(`/courses/${courseId}/lessons/${lessonId}/chat`, {
+      const data = await fetchApi(`/courses/${courseId}/chat`, {
         method: 'POST',
         body: JSON.stringify({
           message: userMsg,
+          currentLessonId: lessonId,
           history: chatHistory
         })
       });
@@ -38,21 +79,30 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
 
   return (
     <div className="flex flex-col h-full bg-dark-900 border-l border-white/10 relative z-10 overflow-hidden">
-      <div className="p-4 border-b border-white/10 bg-dark-950 flex items-center justify-between gap-3 shadow-md shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-brand-500/20 rounded-lg text-brand-400">
-            <Bot className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="font-bold text-slate-200">AI Tutor</h3>
-            <p className="text-xs text-brand-400">Online</p>
-          </div>
+      <div className="flex items-center justify-between p-4 border-b border-white/5 shrink-0">
+        <div className="flex items-center gap-2 text-sm text-brand-400 font-semibold">
+          <Bot className="w-4 h-4" /> AI Tutor
         </div>
-        {onClose && (
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors" title="Shrink AI Tutor">
-            <PanelRightClose className="w-5 h-5" />
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          {chatHistory.length > 1 && (
+            <button
+              onClick={handleClearHistory}
+              className="text-slate-400 hover:text-red-400 p-1.5 rounded hover:bg-white/5 transition-colors"
+              title="Clear Chat History"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+          {onClose && (
+            <button 
+              onClick={onClose} 
+              className="lg:hidden text-slate-400 hover:text-white p-1.5 rounded hover:bg-white/5 transition-colors" 
+              title="Shrink AI Tutor"
+            >
+              <PanelRightClose className="w-5 h-5" />
+            </button>
+          )}
+        </div>
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">

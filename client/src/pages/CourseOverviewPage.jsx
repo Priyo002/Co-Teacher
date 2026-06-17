@@ -9,7 +9,6 @@ export default function CourseOverviewPage() {
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [copied, setCopied] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const fetchApi = useApi();
   
@@ -26,12 +25,6 @@ export default function CourseOverviewPage() {
     }
     loadCourse();
   }, [id]);
-
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const handleDelete = async () => {
     if (window.confirm("Are you sure you want to delete this course? This action cannot be undone.")) {
@@ -56,11 +49,11 @@ export default function CourseOverviewPage() {
     return <div className="p-8 text-center text-red-400">{error || 'Course not found'}</div>;
   }
 
-  const totalLessons = course.modules.reduce((acc, mod) => acc + mod.lessons.length, 0);
-  const completedLessons = course.modules.reduce(
-    (acc, mod) => acc + mod.lessons.filter(l => l.completedAt).length, 0
-  );
-  const progress = Math.round((completedLessons / totalLessons) * 100) || 0;
+  const totalLessons = course.modules?.reduce((acc, mod) => acc + (mod.lessons?.length || 0), 0) || 0;
+  const completedLessons = course.modules?.reduce(
+    (acc, mod) => acc + (mod.lessons?.filter(l => l.completedAt)?.length || 0), 0
+  ) || 0;
+  const progress = totalLessons === 0 ? 0 : Math.round((completedLessons / totalLessons) * 100);
 
   return (
     <div className="p-4 sm:p-8 animate-fade-in max-w-4xl mx-auto">
@@ -91,10 +84,6 @@ export default function CourseOverviewPage() {
           </div>
           
           <div className="flex gap-3 relative">
-            <button onClick={handleShare} className="btn-secondary px-4 py-2 min-w-[100px] justify-center">
-              {copied ? <Check className="w-4 h-4 text-green-400" /> : <Share2 className="w-4 h-4" />} 
-              {copied ? <span className="text-green-400">Copied!</span> : 'Share'}
-            </button>
             <div className="relative">
               <button 
                 onClick={() => setShowDropdown(!showDropdown)} 
@@ -133,13 +122,13 @@ export default function CourseOverviewPage() {
 
       <div className="space-y-6">
         <h2 className="text-2xl font-bold mb-4">Curriculum</h2>
-        {course.modules.map((module, mIdx) => (
+        {course.modules?.map((module, mIdx) => (
           <div key={module._id} className="glass-panel overflow-hidden">
             <div className="bg-dark-800/50 p-4 border-b border-white/5">
-              <h3 className="font-semibold text-lg">{module.title}</h3>
+              <h3 className="font-semibold text-lg">Module {mIdx + 1}: {module.title}</h3>
             </div>
             <div className="divide-y divide-white/5">
-              {module.lessons.map((lesson, lIdx) => (
+              {module.lessons?.map((lesson, lIdx) => (
                 <Link 
                   key={lesson._id}
                   to={`/course/${course._id}/lesson/${lesson._id}`}
@@ -159,7 +148,7 @@ export default function CourseOverviewPage() {
                   </div>
                   
                   <div className="flex items-center gap-3">
-                    {!lesson.isEnriched && (
+                    {lesson.generationStatus === 'none' && (
                       <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 bg-dark-900 px-2 py-1 rounded border border-white/5">
                         Draft
                       </span>

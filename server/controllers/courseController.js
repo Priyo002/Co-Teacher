@@ -45,6 +45,10 @@ async function getLessonView(req, res) {
     return res.status(404).json({ error: "Lesson not found in this course" });
   }
 
+  // Automatically update lastOpenedAt when the lesson is viewed
+  context.lesson.lastOpenedAt = new Date();
+  await context.lesson.save();
+
   const course = await Course.findById(req.params.courseId)
     .select("title description modules")
     .populate(COURSE_OUTLINE)

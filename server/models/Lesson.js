@@ -6,6 +6,7 @@ const lessonSchema = new mongoose.Schema(
     content: { type: [mongoose.Schema.Types.Mixed], default: [] },
     language: { type: String, default: "English", trim: true, maxlength: 80 },
     isEnriched: { type: Boolean, default: false },
+    generationStatus: { type: String, enum: ['none', 'intro', 'content', 'complete'], default: 'none' },
     notes: { type: String, default: "", maxlength: 12000 },
     bookmarked: { type: Boolean, default: false },
     completedAt: { type: Date, default: null },

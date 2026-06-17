@@ -50,7 +50,7 @@ async function findLessonVideos({ lesson, moduleDoc }) {
       title: item.snippet?.title || query,
     });
 
-    if (videos.length >= 2) break;
+    if (videos.length >= 1) break;
   }
 
   if (!videos.length) {
