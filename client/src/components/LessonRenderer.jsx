@@ -3,13 +3,18 @@ import { Lightbulb, Terminal, AlertTriangle, Info, CheckCircle2, XCircle, Copy, 
 import ReactMarkdown from 'react-markdown';
 
 function CodeBlockWithTabs({ codes }) {
+  const cleanCode = (code) => {
+    if (!code || typeof code !== 'string') return '';
+    return code.replace(/^```[\w]*\n?/g, '').replace(/\n?```$/g, '').trim();
+  };
+
   const availableLangs = ['python', 'cpp', 'java'].filter(l => codes && codes[l]);
   const [activeTab, setActiveTab] = useState(availableLangs[0] || 'python');
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    const codeToCopy = codes[activeTab] || codes?.python || '';
-    navigator.clipboard.writeText(codeToCopy);
+    const rawCode = codes[activeTab] || codes?.python || '';
+    navigator.clipboard.writeText(cleanCode(rawCode));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -25,7 +30,7 @@ function CodeBlockWithTabs({ codes }) {
           {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
         </button>
         <pre className="text-sm font-mono text-slate-200 mt-2">
-          <code>{codes?.python || "No code available"}</code>
+          <code>{cleanCode(codes?.python || "No code available")}</code>
         </pre>
       </div>
     );
@@ -60,7 +65,7 @@ function CodeBlockWithTabs({ codes }) {
       </div>
       <div className="p-4 overflow-x-auto custom-scrollbar print:hidden">
         <pre className="text-sm font-mono text-slate-200">
-          <code>{codes[activeTab]}</code>
+          <code>{cleanCode(codes[activeTab])}</code>
         </pre>
       </div>
       {/* Print only: stacked code blocks */}
@@ -71,7 +76,7 @@ function CodeBlockWithTabs({ codes }) {
               {lang === 'cpp' ? 'C++' : lang === 'python' ? 'Python' : 'Java'}
             </h4>
             <pre className="text-sm font-mono text-black whitespace-pre-wrap">
-              <code>{codes[lang]}</code>
+              <code>{cleanCode(codes[lang])}</code>
             </pre>
           </div>
         ))}

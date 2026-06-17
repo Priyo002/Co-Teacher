@@ -12,6 +12,7 @@ async function findLessonVideos({ lesson, moduleDoc }) {
     key: process.env.YOUTUBE_API_KEY,
     part: "snippet",
     type: "video",
+    videoEmbeddable: "true",
     safeSearch: "moderate",
     maxResults: "10",
     q: query,
