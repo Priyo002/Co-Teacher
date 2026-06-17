@@ -90,7 +90,7 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
           <input
             type="text"
             value={message}
-            onChange={(e) => setMessage(e.target)}
+            onChange={(e) => setMessage(e.target.value)}
             placeholder="Ask your AI tutor..."
             className="w-full bg-dark-800 border border-white/10 rounded-xl py-3 pl-4 pr-12 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500/50 transition-colors"
           />

@@ -1,4 +1,4 @@
-const { generateJson, generateJsonStream } = require("./groqService");
+const { generateJson, generateJsonStream } = require("./aiRouter");
 
 const LESSON_DEPTHS = {
   brief: { words: "700-1000", blocks: 5, characters: 2000, maxTokens: 3000 },
@@ -219,7 +219,7 @@ Course description: ${course.description || "Not provided"}
 }
 
 async function answerLessonQuestion({ lesson, moduleDoc, course, message, history }) {
-  const { generateText } = require("./groqService");
+  const { generateText } = require("./aiRouter");
   const recentHistory = (Array.isArray(history) ? history : []).slice(-6).map((item) => ({
     role: item?.role === "user" ? "user" : "assistant",
     content: String(item?.content || "").trim().slice(0, 1000),

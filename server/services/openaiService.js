@@ -1,4 +1,4 @@
-const Groq = require("groq-sdk");
+const { OpenAI } = require("openai");
 
 function parseJson(value) {
   try {
@@ -10,10 +10,10 @@ function parseJson(value) {
 }
 
 async function generateJson(systemPrompt, userPrompt, maxTokens = 4096) {
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-  const model = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
-  const completion = await groq.chat.completions.create({
+  const completion = await openai.chat.completions.create({
     model,
     messages: [
       { role: "system", content: systemPrompt },
@@ -25,15 +25,15 @@ async function generateJson(systemPrompt, userPrompt, maxTokens = 4096) {
   });
   
   const result = parseJson(completion.choices[0]?.message?.content || "");
-  if (!result) throw new Error("Groq returned invalid JSON");
+  if (!result) throw new Error("OpenAI returned invalid JSON");
   return result;
 }
 
 async function* generateJsonStream(systemPrompt, userPrompt, maxTokens = 4096) {
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-  const model = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
-  const stream = await groq.chat.completions.create({
+  const stream = await openai.chat.completions.create({
     model,
     messages: [
       { role: "system", content: systemPrompt },
@@ -51,10 +51,10 @@ async function* generateJsonStream(systemPrompt, userPrompt, maxTokens = 4096) {
 }
 
 async function generateText(messages, maxTokens = 1024) {
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-  const model = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
-  const completion = await groq.chat.completions.create({
+  const completion = await openai.chat.completions.create({
     model,
     messages,
     temperature: 0.7,
@@ -63,4 +63,4 @@ async function generateText(messages, maxTokens = 1024) {
   return completion.choices[0]?.message?.content || "";
 }
 
-module.exports = { generateJson, generateJsonStream, generateText, name: "groq" };
+module.exports = { generateJson, generateJsonStream, generateText, name: "openai" };

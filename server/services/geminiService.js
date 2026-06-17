@@ -1,0 +1,126 @@
+const { GoogleGenAI } = require("@google/genai");
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+
+function parseJson(value) {
+  try {
+    const cleaned = value.replace(/^```(json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+    return JSON.parse(cleaned);
+  } catch {
+    return null;
+  }
+}
+
+function geminiError(error) {
+  let message = "AI service is unavailable. Please try again.";
+  let statusCode = 502;
+
+  if (error.status === 429) {
+    message = "AI rate limit reached. Please wait a few seconds and try again.";
+    statusCode = 429;
+  } else {
+    console.error("Gemini API Error:", error.message || error);
+    if (error.message) {
+      try {
+        // Extract inner message if Gemini wraps it in JSON
+        const parsed = JSON.parse(error.message);
+        if (parsed.error && parsed.error.message) {
+          message = parsed.error.message;
+        } else {
+          message = error.message;
+        }
+      } catch {
+        message = error.message;
+      }
+    }
+  }
+
+  const serviceError = new Error(message);
+  serviceError.statusCode = statusCode;
+  return serviceError;
+}
+
+async function generateJson(systemPrompt, userPrompt, maxTokens = 4096) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: userPrompt,
+        config: {
+          systemInstruction: systemPrompt,
+          responseMimeType: "application/json",
+          temperature: 0.3,
+          maxOutputTokens: maxTokens,
+        }
+      });
+      const result = parseJson(response.text || "");
+      if (result) return result;
+    } catch (error) {
+      console.error("Generate JSON Error", error);
+      throw geminiError(error);
+    }
+  }
+
+  const error = new Error("AI returned an invalid response. Please try again.");
+  error.statusCode = 502;
+  throw error;
+}
+
+async function* generateJsonStream(systemPrompt, userPrompt, maxTokens = 4096) {
+  try {
+    const stream = await ai.models.generateContentStream({
+      model,
+      contents: userPrompt,
+      config: {
+        systemInstruction: systemPrompt,
+        temperature: 0.3,
+        maxOutputTokens: maxTokens,
+      }
+    });
+
+    for await (const chunk of stream) {
+      if (chunk.text) yield chunk.text;
+    }
+  } catch (error) {
+    throw geminiError(error);
+  }
+}
+
+async function generateText(messages, maxTokens = 1024) {
+  try {
+    let systemInstruction = "";
+    const contents = [];
+    
+    for (const msg of messages) {
+      if (msg.role === 'system') {
+        systemInstruction = msg.content;
+      } else {
+        contents.push({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }]
+        });
+      }
+    }
+
+    const config = {
+      temperature: 0.7,
+      maxOutputTokens: maxTokens,
+    };
+    if (systemInstruction) {
+      config.systemInstruction = systemInstruction;
+    }
+
+    const response = await ai.models.generateContent({
+      model,
+      contents,
+      config
+    });
+
+    return response.text || "";
+  } catch (error) {
+    throw geminiError(error);
+  }
+}
+
+module.exports = { generateJson, generateJsonStream, generateText };

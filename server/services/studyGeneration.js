@@ -1,4 +1,4 @@
-const { generateJson } = require("./groqService");
+const { generateJson } = require("./aiRouter");
 
 function lessonText(lesson) {
   return (lesson.content || [])

@@ -1,4 +1,4 @@
-const { generateJson } = require("./groqService");
+const { generateJson } = require("./aiRouter");
 
 function formatCourse(result) {
   const sourceModules = Array.isArray(result.modules) ? result.modules : [];

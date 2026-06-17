@@ -8,52 +8,62 @@ const { createLessonFlashcards, createPracticeLab, createLessonQuiz } = require(
 const VALID_DEPTHS = new Set(["brief", "standard", "deep"]);
 
 async function generateCourseContent(req, res) {
-  const prompt = String(req.body?.prompt || "").trim().slice(0, 2000);
+  try {
+    const prompt = String(req.body?.prompt || "").trim().slice(0, 2000);
 
-  if (prompt.length < 10) {
-    return res.status(400).json({ error: "Describe the course in at least 10 characters" });
+    if (prompt.length < 10) {
+      return res.status(400).json({ error: "Describe the course in at least 10 characters" });
+    }
+
+    const outline = await createCourseOutline(prompt);
+    const course = await saveGeneratedCourse(outline, req.user._id);
+
+    return res.status(201).json(course);
+  } catch (error) {
+    console.error("Generate Course Error:", error);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Failed to generate course" });
   }
-
-  const outline = await createCourseOutline(prompt);
-  const course = await saveGeneratedCourse(outline, req.user._id);
-
-  return res.status(201).json(course);
 }
 
 async function enrichLesson(req, res) {
-  const context = await getOwnedLesson(req.params.lessonId, req.user._id);
-  const requestedDepth = String(req.body?.depth || "").trim().slice(0, 20);
-  const depth = VALID_DEPTHS.has(requestedDepth) ? requestedDepth : "standard";
-  const language = String(req.body?.language || "").trim().slice(0, 80) || "English";
+  try {
+    const context = await getOwnedLesson(req.params.lessonId, req.user._id);
+    const requestedDepth = String(req.body?.depth || "").trim().slice(0, 20);
+    const depth = VALID_DEPTHS.has(requestedDepth) ? requestedDepth : "standard";
+    const language = String(req.body?.language || "").trim().slice(0, 80) || "English";
 
-  const blocks = await createLessonContent({ ...context, depth, language });
-  
-  context.lesson.content = blocks;
+    const blocks = await createLessonContent({ ...context, depth, language });
+    
+    context.lesson.content = blocks;
 
-  // Fetch videos and quiz in parallel
-  const [videosResult, questionsResult] = await Promise.allSettled([
-    findLessonVideos(context),
-    createLessonQuiz(context.lesson)
-  ]);
+    // Fetch videos and quiz in parallel
+    const [videosResult, questionsResult] = await Promise.allSettled([
+      findLessonVideos(context),
+      createLessonQuiz(context.lesson)
+    ]);
 
-  if (videosResult.status === "fulfilled" && videosResult.value) {
-    blocks.splice(Math.floor(blocks.length / 2), 0, ...videosResult.value);
+    if (videosResult.status === "fulfilled" && videosResult.value) {
+      blocks.splice(Math.floor(blocks.length / 2), 0, ...videosResult.value);
+    }
+
+    if (questionsResult.status === "fulfilled" && questionsResult.value) {
+      blocks.push({
+        type: 'quiz',
+        title: 'Knowledge Check',
+        questions: questionsResult.value
+      });
+    }
+
+    context.lesson.content = blocks;
+    context.lesson.language = language;
+    context.lesson.isEnriched = true;
+    await context.lesson.save();
+
+    return res.json(context.lesson.toObject({ depopulate: true }));
+  } catch (error) {
+    console.error("Enrich Lesson Error:", error);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Failed to enrich lesson" });
   }
-
-  if (questionsResult.status === "fulfilled" && questionsResult.value) {
-    blocks.push({
-      type: 'quiz',
-      title: 'Knowledge Check',
-      questions: questionsResult.value
-    });
-  }
-
-  context.lesson.content = blocks;
-  context.lesson.language = language;
-  context.lesson.isEnriched = true;
-  await context.lesson.save();
-
-  return res.json(context.lesson.toObject({ depopulate: true }));
 }
 
 async function enrichLessonStream(req, res) {
@@ -130,31 +140,43 @@ async function enrichLessonStream(req, res) {
 }
 
 async function generateFlashcards(req, res) {
-  const { lesson } = await getOwnedLesson(req.params.lessonId, req.user._id);
-  const flashcards = await createLessonFlashcards(lesson);
+  try {
+    const { lesson } = await getOwnedLesson(req.params.lessonId, req.user._id);
+    const flashcards = await createLessonFlashcards(lesson);
 
-  return res.json({ flashcards });
+    return res.json({ flashcards });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Failed to generate flashcards" });
+  }
 }
 
 async function generatePracticeLab(req, res) {
-  const context = await getOwnedLesson(req.params.lessonId, req.user._id);
-  const lab = await createPracticeLab(context);
+  try {
+    const context = await getOwnedLesson(req.params.lessonId, req.user._id);
+    const lab = await createPracticeLab(context);
 
-  return res.json({ lab });
+    return res.json({ lab });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Failed to generate lab" });
+  }
 }
 
 async function chatAboutLesson(req, res) {
-  const message = String(req.body?.message || "").trim().slice(0, 2000);
-  if (!message) return res.status(400).json({ error: "Message is required." });
+  try {
+    const message = String(req.body?.message || "").trim().slice(0, 2000);
+    if (!message) return res.status(400).json({ error: "Message is required." });
 
-  const context = await getOwnedLesson(req.params.lessonId, req.user._id);
-  const reply = await answerLessonQuestion({
-    ...context,
-    message,
-    history: Array.isArray(req.body?.history) ? req.body.history : [],
-  });
+    const context = await getOwnedLesson(req.params.lessonId, req.user._id);
+    const reply = await answerLessonQuestion({
+      ...context,
+      message,
+      history: Array.isArray(req.body?.history) ? req.body.history : [],
+    });
 
-  return res.json({ reply });
+    return res.json({ reply });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Failed to chat" });
+  }
 }
 
 module.exports = {

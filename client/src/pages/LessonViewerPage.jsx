@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, Circle, Menu, ChevronRight, Loader2, Bot, PanelLeftClose, PanelLeftOpen, PanelRightOpen } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Circle, Menu, ChevronRight, Loader2, Bot, PanelLeftClose, PanelLeftOpen, PanelRightOpen, AlertTriangle } from 'lucide-react';
 import LessonRenderer from '../components/LessonRenderer';
 import AITutorChat from '../components/AITutorChat';
 import { useApi } from '../hooks/useApi';
@@ -16,17 +16,52 @@ export default function LessonViewerPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
   const [generatingLesson, setGeneratingLesson] = useState(false);
+  const [generationError, setGenerationError] = useState(null);
   const [savingProgress, setSavingProgress] = useState(false);
   const fetchApi = useApi();
+
+  const handleGenerateLesson = async () => {
+    setGeneratingLesson(true);
+    setGenerationError(null);
+    try {
+      await fetchApi(`/courses/${courseId}/lessons/${id}/enrich`, { method: 'POST' });
+      const data = await fetchApi(`/courses/${courseId}/lessons/${id}`);
+      setLesson(data.lesson);
+    } catch (err) {
+      console.error("Failed to generate lesson:", err);
+      // Clean up nasty HTML error messages
+      const msg = err.message.includes('<!DOCTYPE html>') ? 'AI returned incomplete lesson content. Please try again.' : err.message;
+      setGenerationError(msg || 'Failed to generate lesson content.');
+    } finally {
+      setGeneratingLesson(false);
+    }
+  };
 
   useEffect(() => {
     async function loadLessonView() {
       setLoading(true);
       setError(null);
+      setGenerationError(null);
       try {
         const data = await fetchApi(`/courses/${courseId}/lessons/${id}`);
         setCourse(data.course);
         setLesson(data.lesson);
+
+        // Automatically trigger generation if it's a draft
+        if (!data.lesson.isEnriched) {
+          setGeneratingLesson(true);
+          try {
+            await fetchApi(`/courses/${courseId}/lessons/${id}/enrich`, { method: 'POST' });
+            const updatedData = await fetchApi(`/courses/${courseId}/lessons/${id}`);
+            setLesson(updatedData.lesson);
+          } catch (err) {
+            console.error("Failed to auto-generate lesson:", err);
+            const msg = err.message.includes('<!DOCTYPE html>') ? 'AI returned incomplete lesson content. Please try again.' : err.message;
+            setGenerationError(msg || 'Failed to auto-generate lesson.');
+          } finally {
+            setGeneratingLesson(false);
+          }
+        }
       } catch (err) {
         setError(err.message || 'Failed to load lesson');
       } finally {
@@ -35,20 +70,6 @@ export default function LessonViewerPage() {
     }
     loadLessonView();
   }, [courseId, id]);
-
-  const handleGenerateLesson = async () => {
-    setGeneratingLesson(true);
-    try {
-      await fetchApi(`/courses/${courseId}/lessons/${id}/enrich`, { method: 'POST' });
-      // Reload lesson data
-      const data = await fetchApi(`/courses/${courseId}/lessons/${id}`);
-      setLesson(data.lesson);
-    } catch (err) {
-      alert("Failed to generate lesson: " + err.message);
-    } finally {
-      setGeneratingLesson(false);
-    }
-  };
 
   const handleToggleComplete = async () => {
     setSavingProgress(true);
@@ -76,7 +97,7 @@ export default function LessonViewerPage() {
     }
   };
 
-  if (loading) {
+  if (loading && !course) {
     return (
       <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
         <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
@@ -84,7 +105,7 @@ export default function LessonViewerPage() {
     );
   }
 
-  if (error || !course || !lesson) {
+  if (error && !course) {
     return <div className="p-8 text-center text-red-400">{error || 'Lesson not found'}</div>;
   }
 
@@ -157,74 +178,102 @@ export default function LessonViewerPage() {
 
       {/* Main Content Area Shell */}
       <main className="flex-1 bg-dark-950 overflow-y-auto relative">
-        {lesson.isEnriched && !isRightSidebarOpen && (
-          <button
-            onClick={() => setIsRightSidebarOpen(true)}
-            className="hidden lg:flex absolute top-4 right-4 z-20 bg-dark-800 text-slate-300 border border-white/10 p-2 rounded-lg hover:text-white transition-colors shadow-lg"
-            title="Expand AI Tutor"
-          >
-            <PanelRightOpen className="w-5 h-5" />
-          </button>
-        )}
-        <div className="max-w-4xl mx-auto p-6 md:p-10 pb-32">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-sm text-slate-500 mb-8">
-            <span className="truncate max-w-[150px] md:max-w-[300px]">{course.title}</span>
-            <ChevronRight className="w-4 h-4" />
-            <span className="text-brand-400">{lesson.title}</span>
+        {loading || !lesson ? (
+          <div className="flex h-full items-center justify-center">
+            <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
           </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-12 gap-6">
-            <h1 className="text-3xl md:text-5xl font-bold">{lesson.title}</h1>
-            
-            {lesson.isEnriched && (
-              <button 
-                onClick={handleToggleComplete}
-                disabled={savingProgress}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                  lesson.completedAt 
-                    ? 'bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20' 
-                    : 'bg-dark-800 text-slate-300 border border-white/10 hover:bg-dark-700'
-                }`}
+        ) : error ? (
+          <div className="p-8 text-center text-red-400">{error}</div>
+        ) : (
+          <>
+            {lesson.isEnriched && !isRightSidebarOpen && (
+              <button
+                onClick={() => setIsRightSidebarOpen(true)}
+                className="hidden lg:flex absolute top-4 right-4 z-20 bg-dark-800 text-slate-300 border border-white/10 p-2 rounded-lg hover:text-white transition-colors shadow-lg"
+                title="Expand AI Tutor"
               >
-                {savingProgress ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : lesson.completedAt ? (
-                  <><CheckCircle className="w-5 h-5" /> Completed</>
-                ) : (
-                  <><Circle className="w-5 h-5" /> Mark as Complete</>
-                )}
+                <PanelRightOpen className="w-5 h-5" />
               </button>
             )}
-          </div>
-          
-          <div className="glass-panel p-8 md:p-12 mb-8">
-            {!lesson.isEnriched ? (
-              <div className="text-center py-12">
-                <Sparkles className="w-16 h-16 text-brand-500 mx-auto mb-6 opacity-50" />
-                <h3 className="text-2xl font-bold mb-4">Lesson Content Not Generated</h3>
-                <p className="text-slate-400 mb-8 max-w-md mx-auto">
-                  This lesson's detailed content, examples, and study materials haven't been generated yet. Click below to let the AI build it.
-                </p>
-                <button 
-                  onClick={handleGenerateLesson}
-                  disabled={generatingLesson}
-                  className="btn-primary shadow-brand-500/20"
-                >
-                  {generatingLesson ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Generate Full Lesson'}
-                </button>
+            <div className="max-w-4xl mx-auto p-6 md:p-10 pb-32">
+              {/* Breadcrumb */}
+              <div className="flex items-center gap-2 text-sm text-slate-500 mb-8">
+                <span className="truncate max-w-[150px] md:max-w-[300px]">{course.title}</span>
+                <ChevronRight className="w-4 h-4" />
+                <span className="text-brand-400">{lesson.title}</span>
               </div>
-            ) : (
-              <LessonRenderer blocks={lesson.content} />
-            )}
-          </div>
 
-          {lesson.isEnriched && (
-            <div className="lg:hidden h-[600px] mb-8 rounded-xl overflow-hidden border border-white/10">
-              <AITutorChat courseId={courseId} lessonId={id} />
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-12 gap-6">
+                <h1 className="text-3xl md:text-5xl font-bold">{lesson.title}</h1>
+                
+                {lesson.isEnriched && (
+                  <button 
+                    onClick={handleToggleComplete}
+                    disabled={savingProgress}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                      lesson.completedAt 
+                        ? 'bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20' 
+                        : 'bg-dark-800 text-slate-300 border border-white/10 hover:bg-dark-700'
+                    }`}
+                  >
+                    {savingProgress ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : lesson.completedAt ? (
+                      <><CheckCircle className="w-5 h-5" /> Completed</>
+                    ) : (
+                      <><Circle className="w-5 h-5" /> Mark as Complete</>
+                    )}
+                  </button>
+                )}
+              </div>
+              
+              <div className="glass-panel p-8 md:p-12 mb-8">
+                {!lesson.isEnriched ? (
+                  <div className="text-center py-16">
+                    {generationError ? (
+                      <>
+                        <div className="w-16 h-16 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center mx-auto mb-6">
+                          <AlertTriangle className="w-8 h-8" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-red-400 mb-4">Generation Failed</h3>
+                        <p className="text-slate-400 max-w-md mx-auto mb-8">
+                          {generationError}
+                        </p>
+                        <button 
+                          onClick={handleGenerateLesson} 
+                          className="btn-primary shadow-brand-500/20"
+                        >
+                          Try Again
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="relative w-24 h-24 mx-auto mb-8">
+                          <div className="absolute inset-0 bg-brand-500/20 rounded-full animate-ping" style={{ animationDuration: '3s' }}></div>
+                          <div className="relative flex items-center justify-center w-full h-full bg-dark-800 border border-brand-500/30 rounded-full shadow-[0_0_30px_rgba(34,211,238,0.2)]">
+                            <Sparkles className="w-10 h-10 text-brand-400 animate-pulse" />
+                          </div>
+                        </div>
+                        <h3 className="text-2xl font-bold mb-4">Crafting Your Lesson...</h3>
+                        <p className="text-slate-400 max-w-md mx-auto leading-relaxed">
+                          The AI is writing detailed content, discovering relevant videos, and building a knowledge check quiz. This usually takes about 20-30 seconds.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <LessonRenderer blocks={lesson.content} />
+                )}
+              </div>
+
+              {lesson.isEnriched && (
+                <div className="lg:hidden h-[600px] mb-8 rounded-xl overflow-hidden border border-white/10">
+                  <AITutorChat courseId={courseId} lessonId={id} />
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </main>
 
       {/* Right Sidebar AI Tutor (Desktop) */}

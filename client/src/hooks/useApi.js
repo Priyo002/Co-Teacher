@@ -24,7 +24,14 @@ export function useApi() {
 
     if (!res.ok) {
       const errorText = await res.text();
-      throw new Error(errorText || 'API request failed');
+      let errorMessage = errorText || 'API request failed';
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error) errorMessage = errorJson.error;
+      } catch (e) {
+        // Fallback to text
+      }
+      throw new Error(errorMessage);
     }
 
     // Some endpoints might return empty body (e.g. DELETE or 204 No Content)
