@@ -1,10 +1,11 @@
 const { GoogleGenAI } = require("@google/genai");
 
+const KeyManager = require("./keyManager");
+const geminiKeys = new KeyManager("GEMINI_API_KEY");
+
 function getAiClient() {
-  const keysStr = process.env.GEMINI_API_KEY || "";
-  const keys = keysStr.split(',').map(k => k.trim()).filter(Boolean);
-  const apiKey = keys.length > 0 ? keys[Math.floor(Math.random() * keys.length)] : undefined;
-  return new GoogleGenAI({ apiKey });
+  const apiKey = geminiKeys.getKey();
+  return { client: new GoogleGenAI({ apiKey }), apiKey };
 }
 
 function parseJson(value) {
@@ -47,8 +48,9 @@ function geminiError(error) {
 
 async function generateJson(systemPrompt, userPrompt, maxTokens = 4096, modelName = "gemini-1.5-flash") {
   for (let attempt = 0; attempt < 2; attempt += 1) {
+    const { client, apiKey } = getAiClient();
     try {
-      const response = await getAiClient().models.generateContent({
+      const response = await client.models.generateContent({
         model: modelName,
         contents: userPrompt,
         config: {
@@ -61,8 +63,9 @@ async function generateJson(systemPrompt, userPrompt, maxTokens = 4096, modelNam
       const result = parseJson(response.text || "");
       if (result) return result;
     } catch (error) {
+      if (error.status === 429) geminiKeys.markExhausted(apiKey);
       console.error("Generate JSON Error", error);
-      throw geminiError(error);
+      if (attempt === 1) throw geminiError(error);
     }
   }
 
@@ -72,8 +75,9 @@ async function generateJson(systemPrompt, userPrompt, maxTokens = 4096, modelNam
 }
 
 async function* generateJsonStream(systemPrompt, userPrompt, maxTokens = 4096, modelName = "gemini-1.5-flash") {
+  const { client, apiKey } = getAiClient();
   try {
-    const stream = await getAiClient().models.generateContentStream({
+    const stream = await client.models.generateContentStream({
       model: modelName,
       contents: userPrompt,
       config: {
@@ -87,6 +91,7 @@ async function* generateJsonStream(systemPrompt, userPrompt, maxTokens = 4096, m
       if (chunk.text) yield chunk.text;
     }
   } catch (error) {
+    if (error.status === 429) geminiKeys.markExhausted(apiKey);
     throw geminiError(error);
   }
 }
@@ -115,13 +120,19 @@ async function generateText(messages, maxTokens = 1024, modelName = "gemini-1.5-
       config.systemInstruction = systemInstruction;
     }
 
-    const response = await getAiClient().models.generateContent({
-      model: modelName,
-      contents,
-      config
-    });
+    const { client, apiKey } = getAiClient();
+    try {
+      const response = await client.models.generateContent({
+        model: modelName,
+        contents,
+        config
+      });
 
-    return response.text || "";
+      return response.text || "";
+    } catch (error) {
+      if (error.status === 429) geminiKeys.markExhausted(apiKey);
+      throw error;
+    }
   } catch (error) {
     throw geminiError(error);
   }
