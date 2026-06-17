@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { BookOpen, CheckCircle, Circle, PlayCircle, ArrowLeft, MoreVertical, Share2, Loader2 } from 'lucide-react';
+import { BookOpen, CheckCircle, Circle, PlayCircle, ArrowLeft, MoreVertical, Share2, Loader2, Check, Trash2 } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 
 export default function CourseOverviewPage() {
@@ -9,6 +9,8 @@ export default function CourseOverviewPage() {
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const fetchApi = useApi();
   
   useEffect(() => {
@@ -24,6 +26,23 @@ export default function CourseOverviewPage() {
     }
     loadCourse();
   }, [id]);
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm("Are you sure you want to delete this course? This action cannot be undone.")) {
+      try {
+        await fetchApi(`/courses/${id}`, { method: 'DELETE' });
+        navigate('/');
+      } catch (err) {
+        alert(err.message || 'Failed to delete course');
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -71,13 +90,33 @@ export default function CourseOverviewPage() {
             <p className="text-slate-300 max-w-2xl text-lg">{course.description}</p>
           </div>
           
-          <div className="flex gap-3">
-            <button className="btn-secondary px-4 py-2">
-              <Share2 className="w-4 h-4" /> Share
+          <div className="flex gap-3 relative">
+            <button onClick={handleShare} className="btn-secondary px-4 py-2 min-w-[100px] justify-center">
+              {copied ? <Check className="w-4 h-4 text-green-400" /> : <Share2 className="w-4 h-4" />} 
+              {copied ? <span className="text-green-400">Copied!</span> : 'Share'}
             </button>
-            <button className="btn-secondary px-4 py-2">
-              <MoreVertical className="w-4 h-4" />
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setShowDropdown(!showDropdown)} 
+                className={`btn-secondary px-4 py-2 ${showDropdown ? 'bg-white/10' : ''}`}
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+              {showDropdown && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowDropdown(false)}></div>
+                  <div className="absolute right-0 mt-2 w-48 bg-dark-800 border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden animate-fade-in">
+                    <button 
+                      onClick={handleDelete}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 transition-colors text-sm font-medium"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete Course
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 

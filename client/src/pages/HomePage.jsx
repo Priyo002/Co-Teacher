@@ -33,7 +33,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="p-8 animate-fade-in">
+    <div className="p-8 animate-fade-in max-w-[1400px] mx-auto">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">My Courses</h1>

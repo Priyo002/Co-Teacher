@@ -1,5 +1,47 @@
 import { useState } from 'react';
 import { Lightbulb, Terminal, AlertTriangle, Info, CheckCircle2, XCircle } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+
+function CodeBlockWithTabs({ codes }) {
+  const availableLangs = ['python', 'cpp', 'java'].filter(l => codes && codes[l]);
+  const [activeTab, setActiveTab] = useState(availableLangs[0] || 'python');
+
+  if (availableLangs.length === 0) {
+    return (
+      <div className="p-4 overflow-x-auto">
+        <pre className="text-sm font-mono text-slate-200">
+          <code>{codes?.python || "No code available"}</code>
+        </pre>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex bg-white/5 border-b border-white/5 overflow-x-auto custom-scrollbar">
+        {availableLangs.map(lang => (
+          <button
+            key={lang}
+            onClick={() => setActiveTab(lang)}
+            className={`px-4 py-3 text-xs font-mono transition-colors border-b-2 whitespace-nowrap ${
+              activeTab === lang 
+                ? 'border-brand-500 text-brand-400 bg-brand-500/10' 
+                : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'
+            }`}
+          >
+            <Terminal className="w-3 h-3 inline-block mr-2" />
+            {lang === 'cpp' ? 'C++' : lang === 'python' ? 'Python' : 'Java'}
+          </button>
+        ))}
+      </div>
+      <div className="p-4 overflow-x-auto custom-scrollbar">
+        <pre className="text-sm font-mono text-slate-200">
+          <code>{codes[activeTab]}</code>
+        </pre>
+      </div>
+    </>
+  );
+}
 
 export default function LessonRenderer({ blocks }) {
   const [quizAnswers, setQuizAnswers] = useState({});
@@ -27,9 +69,9 @@ export default function LessonRenderer({ blocks }) {
 
           case 'paragraph':
             return (
-              <p key={idx} className="mb-4 text-slate-300 text-lg">
-                {block.text}
-              </p>
+              <div key={idx} className="mb-4 text-slate-300 text-lg prose prose-invert max-w-none">
+                <ReactMarkdown>{block.text}</ReactMarkdown>
+              </div>
             );
 
           case 'list':
@@ -41,7 +83,9 @@ export default function LessonRenderer({ blocks }) {
             return (
               <ListTag key={idx} className={listClass}>
                 {block.items.map((item, i) => (
-                  <li key={i} className="pl-2 text-slate-300 text-lg">{item}</li>
+                  <li key={i} className="pl-2 text-slate-300 text-lg prose prose-invert max-w-none">
+                    <ReactMarkdown>{item}</ReactMarkdown>
+                  </li>
                 ))}
               </ListTag>
             );
@@ -49,15 +93,7 @@ export default function LessonRenderer({ blocks }) {
           case 'code':
             return (
               <div key={idx} className="my-6 rounded-xl overflow-hidden border border-white/10 bg-[#0d1117] shadow-xl">
-                <div className="flex items-center px-4 py-2 bg-white/5 border-b border-white/5 text-xs font-mono text-slate-400">
-                  <Terminal className="w-3 h-3 mr-2" />
-                  {block.language || 'code'}
-                </div>
-                <div className="p-4 overflow-x-auto">
-                  <pre className="text-sm font-mono text-slate-200">
-                    <code>{block.code}</code>
-                  </pre>
-                </div>
+                <CodeBlockWithTabs codes={block.codes || { python: block.code }} />
               </div>
             );
 
@@ -71,7 +107,9 @@ export default function LessonRenderer({ blocks }) {
                   </div>
                   <div>
                     {block.title && <h4 className="font-bold text-white mb-1">{block.title}</h4>}
-                    <p className="text-slate-300">{block.text}</p>
+                    <div className="text-slate-300 prose prose-invert max-w-none">
+                      <ReactMarkdown>{block.text}</ReactMarkdown>
+                    </div>
                   </div>
                 </div>
               </div>

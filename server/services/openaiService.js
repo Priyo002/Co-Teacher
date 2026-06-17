@@ -9,12 +9,11 @@ function parseJson(value) {
   }
 }
 
-async function generateJson(systemPrompt, userPrompt, maxTokens = 4096) {
+async function generateJson(systemPrompt, userPrompt, maxTokens = 4096, modelName = "gpt-4o-mini") {
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
   const completion = await openai.chat.completions.create({
-    model,
+    model: modelName,
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt }
@@ -29,12 +28,11 @@ async function generateJson(systemPrompt, userPrompt, maxTokens = 4096) {
   return result;
 }
 
-async function* generateJsonStream(systemPrompt, userPrompt, maxTokens = 4096) {
+async function* generateJsonStream(systemPrompt, userPrompt, maxTokens = 4096, modelName = "gpt-4o-mini") {
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
   const stream = await openai.chat.completions.create({
-    model,
+    model: modelName,
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt }
@@ -50,12 +48,11 @@ async function* generateJsonStream(systemPrompt, userPrompt, maxTokens = 4096) {
   }
 }
 
-async function generateText(messages, maxTokens = 1024) {
+async function generateText(messages, maxTokens = 1024, modelName = "gpt-4o-mini") {
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
   const completion = await openai.chat.completions.create({
-    model,
+    model: modelName,
     messages,
     temperature: 0.7,
     max_tokens: maxTokens,

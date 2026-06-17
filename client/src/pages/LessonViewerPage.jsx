@@ -176,11 +176,18 @@ export default function LessonViewerPage() {
       </aside>
       )}
 
-      {/* Main Content Area Shell */}
       <main className="flex-1 bg-dark-950 overflow-y-auto relative">
         {loading || !lesson ? (
           <div className="flex h-full items-center justify-center">
-            <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
+            <div className="text-center">
+              <div className="relative w-24 h-24 mx-auto mb-8">
+                <div className="absolute inset-0 bg-brand-500/20 rounded-full animate-ping" style={{ animationDuration: '3s' }}></div>
+                <div className="relative flex items-center justify-center w-full h-full bg-dark-800 border border-brand-500/30 rounded-full shadow-[0_0_30px_rgba(34,211,238,0.2)]">
+                  <Sparkles className="w-10 h-10 text-brand-400 animate-pulse" />
+                </div>
+              </div>
+              <h3 className="text-2xl font-bold mb-4">Loading Lesson...</h3>
+            </div>
           </div>
         ) : error ? (
           <div className="p-8 text-center text-red-400">{error}</div>
@@ -195,10 +202,12 @@ export default function LessonViewerPage() {
                 <PanelRightOpen className="w-5 h-5" />
               </button>
             )}
-            <div className="max-w-4xl mx-auto p-6 md:p-10 pb-32">
+            <div className="w-full max-w-[1400px] mx-auto p-6 md:px-12 lg:px-16 pb-32">
               {/* Breadcrumb */}
               <div className="flex items-center gap-2 text-sm text-slate-500 mb-8">
-                <span className="truncate max-w-[150px] md:max-w-[300px]">{course.title}</span>
+                <Link to={`/course/${courseId}`} className="truncate max-w-[150px] md:max-w-[300px] hover:text-slate-300 transition-colors">
+                  {course.title}
+                </Link>
                 <ChevronRight className="w-4 h-4" />
                 <span className="text-brand-400">{lesson.title}</span>
               </div>

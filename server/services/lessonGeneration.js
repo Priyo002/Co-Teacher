@@ -35,8 +35,11 @@ function formatBlock(block) {
     case "code":
       return {
         type: "code",
-        language: String(block.language || "text").trim().slice(0, 40),
-        code: String(block.code || "").trim().slice(0, 10000),
+        codes: {
+          python: String(block.codes?.python || block.code || "").trim().slice(0, 10000),
+          cpp: String(block.codes?.cpp || "").trim().slice(0, 10000),
+          java: String(block.codes?.java || "").trim().slice(0, 10000),
+        }
       };
 
     case "list": {
@@ -91,10 +94,10 @@ const RICH_CONTENT_INSTRUCTIONS = `
 Allowed block types: "heading", "paragraph", "code", "list", "callout".
 - heading: { "type": "heading", "level": 2 or 3, "text": "..." }
 - paragraph: { "type": "paragraph", "text": "..." }
-- code: { "type": "code", "language": "python", "code": "..." }
+- code: { "type": "code", "codes": { "python": "...", "cpp": "...", "java": "..." } }
 - list: { "type": "list", "style": "bullet" or "numbered", "items": ["item1", "item2"] }
 - callout: { "type": "callout", "emoji": "💡", "title": "Key Insight", "text": "..." }
-Use a rich mix of these types for an engaging lesson. Include at least one code example with realistic, runnable code. Use callouts for key insights or warnings. Use lists for steps or comparisons.
+Use a rich mix of these types for an engaging lesson. Include at least one code example. ALWAYS provide realistic, runnable code implementations in Python, C++, and Java simultaneously for every code block. Use callouts for key insights. Use lists for steps.
 `.trim();
 
 async function createLessonContent({ lesson, moduleDoc, course, depth, language }) {
@@ -113,21 +116,16 @@ Course: ${course.title}
 Course description: ${course.description || "Not provided"}
   `.trim();
 
-  let blocks = formatBlocks(await generateJson(instructions, context, size.maxTokens));
+  const validator = (result) => {
+    const parsedBlocks = formatBlocks(result);
+    if (!isCompleteLesson(parsedBlocks, size)) {
+      const error = new Error("AI returned incomplete lesson content.");
+      error.statusCode = 502;
+      throw error;
+    }
+  };
 
-  if (!isCompleteLesson(blocks, size)) {
-    blocks = formatBlocks(await generateJson(
-      `${instructions}\nThe first draft was too short. Return a complete, detailed lesson.`,
-      context,
-      size.maxTokens,
-    ));
-  }
-
-  if (!isCompleteLesson(blocks, size)) {
-    const error = new Error("AI returned incomplete lesson content. Please try again.");
-    error.statusCode = 502;
-    throw error;
-  }
+  const blocks = formatBlocks(await generateJson(instructions, context, size.maxTokens, validator));
 
   return blocks;
 }

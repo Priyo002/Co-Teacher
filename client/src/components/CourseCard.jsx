@@ -5,8 +5,8 @@ export default function CourseCard({ course }) {
   const lessonCount = course.modules?.reduce((acc, mod) => acc + (mod.lessons?.length || 0), 0) || 0;
   
   return (
-    <div className="glass-panel group overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:shadow-brand-500/10">
-      <div className="p-6">
+    <div className="glass-panel group h-full flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:shadow-brand-500/10">
+      <div className="p-6 flex flex-col flex-1">
         <div className="flex items-start justify-between mb-4">
           <div className="bg-brand-500/10 rounded-xl p-3 text-brand-400 group-hover:scale-110 group-hover:bg-brand-500/20 transition-all">
             <BookOpen className="w-6 h-6" />
@@ -23,7 +23,7 @@ export default function CourseCard({ course }) {
           {course.description || "No description provided."}
         </p>
         
-        <div className="flex items-center justify-between text-sm pt-4 border-t border-white/5">
+        <div className="mt-auto flex items-center justify-between text-sm pt-4 border-t border-white/5">
           <div className="flex items-center gap-2 text-slate-400">
             <Clock className="w-4 h-4" />
             <span>{lessonCount} lessons</span>

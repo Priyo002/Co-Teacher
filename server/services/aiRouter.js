@@ -3,27 +3,42 @@ const groq = require("./groqService");
 const openai = require("./openaiService");
 
 gemini.name = "gemini";
+groq.name = "groq";
+openai.name = "openai";
 
-// Build a priority queue of available providers
-function getProviders() {
-  const available = [];
-  if (process.env.GEMINI_API_KEY) available.push(gemini);
-  if (process.env.GROQ_API_KEY) available.push(groq);
-  if (process.env.OPENAI_API_KEY) available.push(openai);
+const fallbackChain = [
+  // Tier 1: Pro Models
+  { provider: gemini, model: "gemini-2.5-pro", key: "GEMINI_API_KEY" },
+  { provider: groq, model: "llama-3.3-70b-versatile", key: "GROQ_API_KEY" },
+  { provider: openai, model: "gpt-4o", key: "OPENAI_API_KEY" },
   
-  // If absolutely none are configured, default to gemini which will naturally throw an error
-  return available.length > 0 ? available : [gemini];
+  // Tier 2: Lite Models
+  { provider: gemini, model: "gemini-2.5-flash", key: "GEMINI_API_KEY" },
+  { provider: groq, model: "llama-3.1-8b-instant", key: "GROQ_API_KEY" },
+  { provider: openai, model: "gpt-4o-mini", key: "OPENAI_API_KEY" },
+];
+
+function getProviderChain() {
+  const chain = fallbackChain.filter(item => !!process.env[item.key]);
+  return chain.length > 0 ? chain : [{ provider: gemini, model: "gemini-1.5-flash" }];
 }
 
-async function generateJson(systemPrompt, userPrompt, maxTokens = 4096) {
-  const providers = getProviders();
+async function generateJson(systemPrompt, userPrompt, maxTokens = 4096, validator = null) {
+  const chain = getProviderChain();
   let lastError;
   
-  for (const provider of providers) {
+  for (const { provider, model } of chain) {
     try {
-      return await provider.generateJson(systemPrompt, userPrompt, maxTokens);
+      const result = await provider.generateJson(systemPrompt, userPrompt, maxTokens, model);
+      
+      // If a validator is provided, it can throw an error to reject the payload and trigger a fallback
+      if (validator) {
+        await validator(result);
+      }
+      
+      return result;
     } catch (error) {
-      console.warn(`[AI Router] ${provider.name} failed to generateJson. Switching to next provider...`);
+      console.warn(`[AI Router] ${provider.name} (${model}) failed to generateJson. Switching to next...`);
       lastError = error;
     }
   }
@@ -32,19 +47,26 @@ async function generateJson(systemPrompt, userPrompt, maxTokens = 4096) {
 }
 
 async function* generateJsonStream(systemPrompt, userPrompt, maxTokens = 4096) {
-  const providers = getProviders();
+  const chain = getProviderChain();
   let lastError;
   
-  for (let i = 0; i < providers.length; i++) {
-    const provider = providers[i];
+  for (let i = 0; i < chain.length; i++) {
+    const { provider, model } = chain[i];
+    let yieldedChunk = false;
+    
     try {
-      const stream = await provider.generateJsonStream(systemPrompt, userPrompt, maxTokens);
+      const stream = await provider.generateJsonStream(systemPrompt, userPrompt, maxTokens, model);
       for await (const chunk of stream) {
+        yieldedChunk = true;
         yield chunk;
       }
       return; // Stream finished successfully
     } catch (error) {
-      console.warn(`[AI Router] ${provider.name} failed to generateJsonStream. Switching to next provider...`);
+      if (yieldedChunk) {
+        console.error(`[AI Router] ${provider.name} (${model}) stream failed midway. Cannot fallback.`);
+        throw error; // Cannot fallback if stream already started sending data to the client
+      }
+      console.warn(`[AI Router] ${provider.name} (${model}) failed before sending data. Switching to next...`);
       lastError = error;
     }
   }
@@ -53,14 +75,14 @@ async function* generateJsonStream(systemPrompt, userPrompt, maxTokens = 4096) {
 }
 
 async function generateText(messages, maxTokens = 1024) {
-  const providers = getProviders();
+  const chain = getProviderChain();
   let lastError;
   
-  for (const provider of providers) {
+  for (const { provider, model } of chain) {
     try {
-      return await provider.generateText(messages, maxTokens);
+      return await provider.generateText(messages, maxTokens, model);
     } catch (error) {
-      console.warn(`[AI Router] ${provider.name} failed to generateText. Switching to next provider...`);
+      console.warn(`[AI Router] ${provider.name} (${model}) failed to generateText. Switching to next...`);
       lastError = error;
     }
   }

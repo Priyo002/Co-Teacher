@@ -47,11 +47,15 @@ function formatQuiz(result) {
 }
 
 async function createLessonQuiz(lesson) {
-  const instructions = `
+const instructions = `
 Create 5 to 10 multiple-choice questions from the lesson, depending on the depth and difficulty of the lesson.
-Return JSON with a "questions" array.
-Each question needs "question", exactly 4 string "options", a zero-based
-"correctAnswer", and a short "explanation".
+You MUST return ONLY a JSON object containing a "questions" array.
+Do not include any explanation or markdown wrapping before or after the JSON.
+Each question object MUST strictly have:
+- "question" (string)
+- "options" (array of exactly 4 strings)
+- "correctAnswer" (number, 0-3)
+- "explanation" (string)
   `.trim();
   const questions = formatQuiz(await generateJson(instructions, requireLessonText(lesson), 2048));
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Send, Sparkles, Bot, PanelRightClose } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
+import ReactMarkdown from 'react-markdown';
 
 export default function AITutorChat({ courseId, lessonId, onClose }) {
   const [message, setMessage] = useState('');
@@ -65,9 +66,13 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
             <div className={`p-3 rounded-2xl max-w-[85%] ${
               msg.role === 'user' 
                 ? 'bg-brand-600 text-white rounded-tr-sm' 
-                : 'bg-dark-800 text-slate-300 border border-white/5 rounded-tl-sm'
+                : 'bg-dark-800 text-slate-300 border border-white/5 rounded-tl-sm prose prose-invert prose-sm max-w-none'
             }`}>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
+              {msg.role === 'user' ? (
+                <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
+              ) : (
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
+              )}
             </div>
           </div>
         ))}
