@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, BookOpen, Loader2, PlayCircle, BarChart3, TrendingUp, CheckCircle, Clock, Check, Bookmark } from 'lucide-react';
+import { Plus, BookOpen, Loader2, PlayCircle, BarChart3, TrendingUp, CheckCircle, Clock, Check, Bookmark, Search } from 'lucide-react';
 import CourseCard from '../components/CourseCard';
 import CreateCourseModal from '../components/CreateCourseModal';
 import { useApi } from '../hooks/useApi';
@@ -9,6 +9,7 @@ export default function HomePage() {
   const [courses, setCourses] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
   const [activeTab, setActiveTab] = useState('courses');
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const fetchApi = useApi();
@@ -85,13 +86,94 @@ export default function HomePage() {
           <p className="text-slate-400">Track your progress and continue learning.</p>
         </div>
         
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="btn-primary shadow-brand-500/20"
-        >
-          <Plus className="w-5 h-5" />
-          Generate Course
-        </button>
+        <div className="flex items-center gap-4 w-full sm:w-auto relative z-50">
+          <div className="relative flex-1 sm:w-96 md:w-[400px]">
+            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search courses & bookmarks..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-dark-800 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-white focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/50 transition-all"
+            />
+            
+            {/* Dynamic Search Dropdown */}
+            {searchQuery.trim().length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-dark-800 border border-white/10 rounded-xl shadow-2xl overflow-hidden max-h-[400px] overflow-y-auto custom-scrollbar flex flex-col z-[100]">
+                {(() => {
+                  const query = searchQuery.toLowerCase();
+                  const filteredCourses = allCourses.filter(c => 
+                    (c.title || '').toLowerCase().includes(query)
+                  );
+                  const filteredBookmarks = bookmarks.filter(b => 
+                    (b.title || '').toLowerCase().includes(query) || 
+                    (b.module?.course?.title || '').toLowerCase().includes(query)
+                  );
+
+                  if (filteredCourses.length === 0 && filteredBookmarks.length === 0) {
+                    return <div className="p-4 text-center text-slate-400 text-sm">No matches found.</div>;
+                  }
+
+                  return (
+                    <div className="flex flex-col py-2">
+                      {filteredCourses.length > 0 && (
+                        <div className="px-2 py-1">
+                          <h4 className="px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <BookOpen className="w-3 h-3" /> Courses
+                          </h4>
+                          <div className="flex flex-col">
+                            {filteredCourses.map(course => (
+                              <Link 
+                                key={course._id} 
+                                to={`/course/${course._id}`}
+                                className="px-3 py-2.5 rounded-lg hover:bg-white/5 flex items-center transition-colors group"
+                              >
+                                <span className="text-sm font-medium text-slate-200 group-hover:text-brand-400 transition-colors truncate">{course.title}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {filteredCourses.length > 0 && filteredBookmarks.length > 0 && (
+                        <div className="h-px bg-white/5 mx-4 my-1"></div>
+                      )}
+                      
+                      {filteredBookmarks.length > 0 && (
+                        <div className="px-2 py-1">
+                          <h4 className="px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <Bookmark className="w-3 h-3" /> Bookmarked Lessons
+                          </h4>
+                          <div className="flex flex-col">
+                            {filteredBookmarks.map(lesson => (
+                              <Link 
+                                key={lesson._id} 
+                                to={`/course/${lesson.module?.course?._id}/lesson/${lesson._id}`}
+                                className="px-3 py-2.5 rounded-lg hover:bg-white/5 flex flex-col justify-center transition-colors group"
+                              >
+                                <span className="text-sm font-medium text-slate-200 group-hover:text-brand-400 transition-colors truncate">{lesson.title}</span>
+                                <span className="text-[11px] text-slate-500 truncate flex items-center gap-1 mt-0.5">
+                                  <BookOpen className="w-2.5 h-2.5" /> {lesson.module?.course?.title}
+                                </span>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="btn-primary shadow-brand-500/20 whitespace-nowrap shrink-0"
+          >
+            <Plus className="w-5 h-5" />
+            Generate Course
+          </button>
+        </div>
       </div>
 
       {courses.length === 0 ? (
@@ -295,7 +377,7 @@ export default function HomePage() {
           </div>
 
           {/* Tabs for All Courses / Bookmarks */}
-          <div className="mt-6">
+          <div className="mt-6 relative z-0">
             <div className="flex items-center gap-6 border-b border-white/10 mb-6">
               <button
                 onClick={() => setActiveTab('courses')}
