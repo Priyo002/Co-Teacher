@@ -35,14 +35,14 @@ function formatCourse(result) {
   return course;
 }
 
-async function createCourseOutline(prompt) {
+async function createCourseOutline(prompt, language = "English") {
   const instructions = `
 Create a practical course outline.
 Return JSON with "title", "description", and "modules".
 Create 5-10 modules depending on the course topic. Each module needs a "title" and a "lessons" array.
 Each lesson must be an object with a "title".
 Do not include lesson content, quizzes, or videos.
-Use the same language as the user's request.
+The entire course outline MUST be generated completely in this language: ${language}.
   `.trim();
 
   const result = await generateJson(instructions, prompt, 8192);

@@ -5,10 +5,18 @@ import { useApi } from '../hooks/useApi';
 
 export default function CreateCourseModal({ isOpen, onClose }) {
   const [prompt, setPrompt] = useState('');
+  const [language, setLanguage] = useState('English');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const fetchApi = useApi();
   const navigate = useNavigate();
+
+  const SUPPORTED_LANGUAGES = [
+    "English", "Hindi", "Bengali", "Telugu", "Marathi", "Tamil", "Urdu", 
+    "Gujarati", "Kannada", "Odia", "Malayalam", "Punjabi", "Assamese",
+    "Spanish", "French", "German", "Mandarin", "Japanese", 
+    "Arabic", "Portuguese", "Russian", "Korean"
+  ];
 
   if (!isOpen) return null;
 
@@ -22,7 +30,7 @@ export default function CreateCourseModal({ isOpen, onClose }) {
     try {
       const newCourse = await fetchApi('/courses/generate', {
         method: 'POST',
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ prompt, language })
       });
       onClose();
       navigate(`/course/${newCourse._id}`);
@@ -73,6 +81,20 @@ export default function CreateCourseModal({ isOpen, onClose }) {
             <div className="absolute bottom-3 right-3 text-xs font-medium text-slate-500">
               {prompt.length} / 2000
             </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-slate-400 mb-2">Course Language</label>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              disabled={isGenerating}
+              className="input-field cursor-pointer appearance-none bg-dark-800"
+            >
+              {SUPPORTED_LANGUAGES.map(lang => (
+                <option key={lang} value={lang}>{lang}</option>
+              ))}
+            </select>
           </div>
 
           <button

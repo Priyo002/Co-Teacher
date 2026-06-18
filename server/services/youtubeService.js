@@ -3,10 +3,21 @@ const youtubeKeys = new KeyManager("YOUTUBE_API_KEY");
 
 const SEARCH_URL = "https://www.googleapis.com/youtube/v3/search";
 
-async function findLessonVideos({ lesson, moduleDoc, heading }) {
+const LANGUAGE_CODES = {
+  "English": "en", "Spanish": "es", "French": "fr", "German": "de", 
+  "Hindi": "hi", "Bengali": "bn", "Mandarin": "zh", "Japanese": "ja", 
+  "Arabic": "ar", "Portuguese": "pt", "Russian": "ru", "Korean": "ko",
+  "Telugu": "te", "Marathi": "mr", "Tamil": "ta", "Urdu": "ur", 
+  "Gujarati": "gu", "Kannada": "kn", "Odia": "or", "Malayalam": "ml", 
+  "Punjabi": "pa", "Assamese": "as"
+};
+
+async function findLessonVideos({ lesson, moduleDoc, course, heading }) {
+  const language = course?.language || "English";
+  const langCode = LANGUAGE_CODES[language] || "en";
   const query = heading 
-    ? `${lesson.title} ${heading} tutorial` 
-    : `${lesson.title} ${moduleDoc.title} tutorial`;
+    ? `${course?.title || ""} ${heading} tutorial` 
+    : `${course?.title || ""} ${lesson.title} tutorial`;
 
   for (let attempt = 0; attempt < 3; attempt++) {
     const apiKey = youtubeKeys.getKey();
@@ -23,6 +34,7 @@ async function findLessonVideos({ lesson, moduleDoc, heading }) {
       videoEmbeddable: "true",
       safeSearch: "moderate",
       maxResults: "10",
+      relevanceLanguage: langCode,
       q: query,
     });
 

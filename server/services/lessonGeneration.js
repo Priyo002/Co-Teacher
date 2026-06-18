@@ -99,7 +99,9 @@ Allowed block types: "heading", "paragraph", "code", "list", "callout".
 - code: { "type": "code", "codes": { "python": "...", "cpp": "...", "java": "..." } }
 - list: { "type": "list", "style": "bullet" or "numbered", "items": ["item1", "item2"] }
 - callout: { "type": "callout", "emoji": "💡", "title": "Key Insight", "text": "..." }
-Use a rich mix of these types for an engaging lesson. Include code examples ONLY IF the topic is related to programming or requires coding. If the topic specifies a particular language (e.g., "C++"), provide code ONLY in that language. If the topic is programming but language-agnostic, provide examples in Python, C++, and Java. Use callouts for key insights. Use lists for steps.
+Use a rich mix of these types for an engaging lesson. 
+CRITICAL RULE: DO NOT include "code" blocks UNLESS the course is specifically about Computer Science, Programming, or Software Engineering. If the course is about Physics, Mathematics, Biology, History, or general topics, ABSOLUTELY DO NOT generate code blocks. If you do generate code for a programming topic, use the requested language, or default to Python, C++, and Java.
+Use callouts for key insights. Use lists for steps.
 `.trim();
 
 async function createLessonContent({ lesson, moduleDoc, course, depth, language }) {
@@ -151,6 +153,7 @@ Return exactly a JSON object with an "outline" array containing 3 to 5 strings.
 Each string should be a logical heading for a section of the lesson.
 The first string should be an introductory heading. The last string should be a concluding or summary heading.
 Do not include quizzes in the outline.
+Write the outline entirely in the language: ${context.language || context.course?.language || "English"}.
   `.trim();
 
   const result = await generateJson(
@@ -170,7 +173,7 @@ ${previousContext ? `The student just read the previous section:\n"""\n${previou
 Use a rich mix of heading, paragraph, code, list, and callout blocks.
 Start with a heading block for "${heading}".
 Write in ${language || "English"}.
-Include realistic, runnable code examples ONLY if the topic involves programming. If a language is specified in the topic, use only that language. Otherwise, use Python, C++, and Java.
+CRITICAL RULE: DO NOT include code blocks UNLESS the course is specifically about Computer Science or Programming. For Mathematics, Physics, Chemistry, etc., NEVER use code blocks.
   `.trim();
 
   const result = await generateJson(
@@ -249,7 +252,7 @@ async function answerLessonQuestion({ lesson, moduleDoc, course, message, histor
 You are a tutor for "${lesson.title}" in "${moduleDoc.title}" from "${course.title}".
 Use this lesson when answering:
 ${lessonText(lesson, 2000) || "No detailed lesson content is available yet."}
-Answer clearly and in the same language as the student.
+Answer clearly and in the language of the course: ${context.course?.language || "English"}.
 Lead with a direct answer, then add only the detail needed to teach it well.
 Format longer answers with short Markdown paragraphs, bullets, or numbered steps.
 Use fenced code blocks for code. Avoid oversized headings and long walls of text.
@@ -318,6 +321,7 @@ You are an expert AI tutor for the course "${course.title}".
 You have access to the full course curriculum and the content of generated lessons below.
 If the student asks a question, use this context to answer accurately. 
 DO NOT regurgitate or output raw course content or markdown blocks. Be highly conversational, encouraging, and act like a human tutor. Provide concise, direct answers.
+IMPORTANT: You MUST answer strictly in the following language: ${course.language || "English"}.
 If the student just says "hello" or greets you, greet them back warmly and ask how you can help them with the course.
 
 Course Context:

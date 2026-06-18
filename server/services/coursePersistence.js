@@ -22,11 +22,12 @@ async function deleteCourseRecords(course) {
   await course.deleteOne();
 }
 
-async function saveGeneratedCourse(outline, userId) {
+async function saveGeneratedCourse(outline, userId, language = "English") {
   const course = await Course.create({
     title: outline.title,
     description: outline.description,
     creator: userId,
+    language,
   });
 
   try {

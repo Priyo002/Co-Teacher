@@ -15,20 +15,41 @@ async function verifyAuth0Token(req, res, next) {
     const cached = tokenCache.get(token);
     
     if (cached && cached.expiresAt > Date.now()) {
-      auth0Profile = cached.profile;
+      try {
+        auth0Profile = await cached.profilePromise;
+      } catch (err) {
+        tokenCache.delete(token);
+        throw err;
+      }
     } else {
-      const response = await fetch(`https://${process.env.AUTH0_DOMAIN}/userinfo`, {
+      const fetchPromise = fetch(`https://${process.env.AUTH0_DOMAIN}/userinfo`, {
         headers: { Authorization: `Bearer ${token}` },
         signal: AbortSignal.timeout(8000),
+      }).then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Auth0 rejected the access token");
+        }
+        return response.json();
       });
 
-      if (!response.ok) {
-        return res.status(401).json({ error: "Auth0 rejected the access token" });
+      let expiresAt = Date.now() + 5 * 60 * 1000; // fallback 5 mins
+      try {
+        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+        if (payload.exp) {
+          expiresAt = payload.exp * 1000;
+        }
+      } catch (e) {
+        // ignore decoding errors, use fallback
       }
 
-      auth0Profile = await response.json();
-      // Cache for 5 minutes to avoid rate limits
-      tokenCache.set(token, { profile: auth0Profile, expiresAt: Date.now() + 5 * 60 * 1000 });
+      tokenCache.set(token, { profilePromise: fetchPromise, expiresAt });
+
+      try {
+        auth0Profile = await fetchPromise;
+      } catch (err) {
+        tokenCache.delete(token);
+        throw err;
+      }
     }
 
     

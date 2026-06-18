@@ -11,13 +11,14 @@ const VALID_DEPTHS = new Set(["brief", "standard", "deep"]);
 async function generateCourseContent(req, res) {
   try {
     const prompt = String(req.body?.prompt || "").trim().slice(0, 2000);
+    const language = String(req.body?.language || "English").trim().slice(0, 80);
 
     if (prompt.length < 10) {
       return res.status(400).json({ error: "Describe the course in at least 10 characters" });
     }
 
-    const outline = await createCourseOutline(prompt);
-    const course = await saveGeneratedCourse(outline, req.user._id);
+    const outline = await createCourseOutline(prompt, language);
+    const course = await saveGeneratedCourse(outline, req.user._id, language);
 
     return res.status(201).json(course);
   } catch (error) {
@@ -31,7 +32,7 @@ async function enrichLesson(req, res) {
     const context = await getOwnedLesson(req.params.lessonId, req.user._id);
     const requestedDepth = String(req.body?.depth || "").trim().slice(0, 20);
     const depth = VALID_DEPTHS.has(requestedDepth) ? requestedDepth : "standard";
-    const language = String(req.body?.language || "").trim().slice(0, 80) || "English";
+    const language = context.course.language || "English";
 
     const blocks = await createLessonContent({ ...context, depth, language });
     
@@ -71,7 +72,7 @@ async function enrichLessonStream(req, res) {
   const context = await getOwnedLesson(req.params.lessonId, req.user._id);
   const requestedDepth = String(req.body?.depth || "").trim().slice(0, 20);
   const depth = VALID_DEPTHS.has(requestedDepth) ? requestedDepth : "standard";
-  const language = String(req.body?.language || "").trim().slice(0, 80) || "English";
+  const language = context.course.language || "English";
 
   // Set up SSE headers
   res.writeHead(200, {
@@ -196,7 +197,7 @@ async function generateLessonOutline(req, res) {
 
     const requestedDepth = String(req.body?.depth || "").trim().slice(0, 20);
     const depth = VALID_DEPTHS.has(requestedDepth) ? requestedDepth : "standard";
-    const language = String(req.body?.language || "").trim().slice(0, 80) || "English";
+    const language = context.course.language || "English";
     
     const outline = await createLessonOutline({ ...context, depth, language });
     context.lesson.outline = outline.length > 0 ? outline : ["Introduction", "Main Concepts", "Conclusion"];
@@ -224,7 +225,7 @@ async function generateLessonChunk(req, res) {
 
     const requestedDepth = String(req.body?.depth || "").trim().slice(0, 20);
     const depth = VALID_DEPTHS.has(requestedDepth) ? requestedDepth : "standard";
-    const language = context.lesson.language || "English";
+    const language = context.lesson.language || context.course.language || "English";
     
     const currentIndex = context.lesson.currentChunkIndex || 0;
     const outline = context.lesson.outline || [];
@@ -245,7 +246,7 @@ async function generateLessonChunk(req, res) {
       previousContext = lessonText(context.lesson, 1500);
     }
 
-    const blocks = await createLessonChunk({ ...context, depth, language }, currentHeading, previousContext);
+    const blocks = await createLessonChunk({ ...context, depth }, currentHeading, previousContext, language);
     
     // For the first chunk, maybe add videos
     if (currentIndex === 0) {

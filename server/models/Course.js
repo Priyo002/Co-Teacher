@@ -10,6 +10,7 @@ const courseSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    language: { type: String, default: "English" },
     modules: [{ type: mongoose.Schema.Types.ObjectId, ref: "Module" }],
     isPublic: { type: Boolean, default: false },
     shareId: { type: String, maxlength: 64 },
