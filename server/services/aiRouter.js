@@ -1,25 +1,27 @@
 const gemini = require("./geminiService");
 const groq = require("./groqService");
-const openai = require("./openaiService");
 
 gemini.name = "gemini";
 groq.name = "groq";
-openai.name = "openai";
 
 const fallbackChain = [
-  // Tier 1: Pro Models
+  // Tier 1: Heavyweight / High Intelligence
+  { provider: gemini, model: "gemini-3.1-pro", key: "GEMINI_API_KEY" },
   { provider: gemini, model: "gemini-2.5-pro", key: "GEMINI_API_KEY" },
+  { provider: groq, model: "openai/gpt-oss-120b", key: "GROQ_API_KEY" },
   { provider: groq, model: "llama-3.3-70b-versatile", key: "GROQ_API_KEY" },
-  { provider: openai, model: "gpt-4o", key: "OPENAI_API_KEY" },
   
-  // Tier 2: Lite Models
-  { provider: gemini, model: "gemini-2.5-flash", key: "GEMINI_API_KEY" },
+  // Tier 2: Fast & Capable (Flash / Mid-size)
+  { provider: gemini, model: "gemini-3.5-flash", key: "GEMINI_API_KEY" },
+  { provider: gemini, model: "gemini-3-flash", key: "GEMINI_API_KEY" },
+  { provider: groq, model: "meta-llama/llama-4-scout-17b-16e-instruct", key: "GROQ_API_KEY" },
+  { provider: groq, model: "qwen/qwen3.6-27b", key: "GROQ_API_KEY" },
+  { provider: groq, model: "groq/compound", key: "GROQ_API_KEY" },
+  
+  // Tier 3: Ultra-fast / Lite / High Quota
+  { provider: gemini, model: "gemini-3.1-flash-lite", key: "GEMINI_API_KEY" },
   { provider: groq, model: "llama-3.1-8b-instant", key: "GROQ_API_KEY" },
-  { provider: openai, model: "gpt-4o-mini", key: "OPENAI_API_KEY" },
-  
-  // Tier 3: High-Quota Fallbacks
-  { provider: gemini, model: "gemini-1.5-pro", key: "GEMINI_API_KEY" },
-  { provider: gemini, model: "gemini-1.5-flash", key: "GEMINI_API_KEY" },
+  { provider: groq, model: "groq/compound-mini", key: "GROQ_API_KEY" },
 ];
 
 function getProviderChain() {
