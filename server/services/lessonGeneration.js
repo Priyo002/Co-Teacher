@@ -145,6 +145,8 @@ async function createLessonOutline(context) {
   const { generateJson } = require("./aiRouter");
   const prompt = `
 Generate a structural outline for the lesson "${context.lesson.title}" in the module "${context.moduleDoc.title}" for the course "${context.course.title}".
+Other lessons in this module include: ${context.otherLessons && context.otherLessons.length > 0 ? context.otherLessons.map(l => l.title).join(", ") : "None"}.
+Make sure the outline is specifically tailored to THIS lesson and DOES NOT overlap with the other lessons in the module.
 Return exactly a JSON object with an "outline" array containing 3 to 5 strings. 
 Each string should be a logical heading for a section of the lesson.
 The first string should be an introductory heading. The last string should be a concluding or summary heading.
@@ -159,7 +161,7 @@ Do not include quizzes in the outline.
   return Array.isArray(result?.outline) ? result.outline : [];
 }
 
-async function createLessonChunk(context, heading, previousContext) {
+async function createLessonChunk(context, heading, previousContext, language) {
   const { generateJson } = require("./aiRouter");
   
   const prompt = `
@@ -167,6 +169,7 @@ Write the main body content for the section titled "${heading}" in the lesson "$
 ${previousContext ? `The student just read the previous section:\n"""\n${previousContext}\n"""\nContinue smoothly from there, but DO NOT repeat it.` : "This is the first section of the lesson. Write an engaging introduction."}
 Use a rich mix of heading, paragraph, code, list, and callout blocks.
 Start with a heading block for "${heading}".
+Write in ${language || "English"}.
 Include realistic, runnable code examples ONLY if the topic involves programming. If a language is specified in the topic, use only that language. Otherwise, use Python, C++, and Java.
   `.trim();
 
@@ -185,84 +188,52 @@ Include realistic, runnable code examples ONLY if the topic involves programming
  *
  * Returns the full array of formatted blocks when the stream finishes.
  */
-async function streamLessonContent({ lesson, moduleDoc, course, depth, language, onBlock }) {
-  const size = LESSON_DEPTHS[depth] || LESSON_DEPTHS.standard;
-  const instructions = `
-Write a complete standalone lesson as JSON with a "contentBlocks" array.
-${RICH_CONTENT_INSTRUCTIONS}
-Write roughly ${size.words} words using substantial paragraphs and useful examples.
-Teach the topic fully and end with a practical conclusion.
-Write in ${language}. Do not include quizzes, markdown, or videos.
-Return ONLY valid JSON. No explanation before or after the JSON.
-  `.trim();
-  const context = `
-Lesson: ${lesson.title}
-Module: ${moduleDoc.title}
-Course: ${course.title}
-Course description: ${course.description || "Not provided"}
-  `.trim();
-
-  const chunks = generateJsonStream(instructions, context, size.maxTokens);
-  let buffer = "";
-  const blocks = [];
-  let insideArray = false;
-  let braceDepth = 0;
-  let blockStart = -1;
-  let inString = false;
-  let escapeNext = false;
-
-  for await (const chunk of chunks) {
-    buffer += chunk;
-
-    // Scan character-by-character to find complete JSON objects inside the array
-    for (let i = buffer.length - chunk.length; i < buffer.length; i++) {
-      const char = buffer[i];
-
-      if (escapeNext) {
-        escapeNext = false;
-        continue;
-      }
-      if (char === "\\") {
-        if (inString) escapeNext = true;
-        continue;
-      }
-      if (char === '"') {
-        inString = !inString;
-        continue;
-      }
-      if (inString) continue;
-
-      if (!insideArray && char === "[") {
-        insideArray = true;
-        continue;
-      }
-      if (!insideArray) continue;
-
-      if (char === "{") {
-        if (braceDepth === 0) blockStart = i;
-        braceDepth++;
-      } else if (char === "}") {
-        braceDepth--;
-        if (braceDepth === 0 && blockStart >= 0) {
-          const raw = buffer.slice(blockStart, i + 1);
-          try {
-            const parsed = JSON.parse(raw);
-            const formatted = formatBlock(parsed);
-            if (formatted && (formatted.text || formatted.code || formatted.items?.length)) {
-              blocks.push(formatted);
-              if (onBlock) onBlock(formatted);
-            }
-          } catch {
-            // incomplete or malformed block, skip
-          }
-          blockStart = -1;
-        }
-      }
-    }
+async function streamLessonContent({ lesson, moduleDoc, course, depth, language, onBlock, otherLessons }) {
+  const { findLessonVideos } = require("./youtubeService");
+  
+  const outline = await createLessonOutline({ lesson, moduleDoc, course, otherLessons });
+  
+  if (!outline || outline.length === 0) {
+    outline.push("Introduction", "Main Concepts", "Summary");
   }
 
-  return blocks;
+  let previousContextText = "";
+  const allBlocks = [];
+  
+  for (const heading of outline) {
+    try {
+      const chunkBlocks = await createLessonChunk({ lesson }, heading, previousContextText, language);
+      
+      previousContextText = chunkBlocks
+        .filter(b => b.type === "paragraph" || b.type === "heading")
+        .map(b => b.text || "")
+        .join(" ")
+        .slice(-1500); 
+        
+      for (const block of chunkBlocks) {
+        allBlocks.push(block);
+        if (onBlock) onBlock(block);
+      }
+
+      try {
+        const videos = await findLessonVideos({ lesson, moduleDoc, heading });
+        if (videos && videos.length > 0) {
+          // We only take the first, highly-relevant video per section
+          allBlocks.push(videos[0]);
+          if (onBlock) onBlock(videos[0]);
+        }
+      } catch (err) {
+        // Ignore video errors (quota or 409 not found), keep course generation moving
+      }
+      
+    } catch (err) {
+      console.error(`Failed to generate chunk for heading: ${heading}`, err);
+    }
+  }
+  
+  return allBlocks;
 }
+
 
 async function answerLessonQuestion({ lesson, moduleDoc, course, message, history }) {
   const { generateText } = require("./aiRouter");

@@ -3,8 +3,10 @@ const youtubeKeys = new KeyManager("YOUTUBE_API_KEY");
 
 const SEARCH_URL = "https://www.googleapis.com/youtube/v3/search";
 
-async function findLessonVideos({ lesson, moduleDoc }) {
-  const query = `${lesson.title} ${moduleDoc.title} tutorial`;
+async function findLessonVideos({ lesson, moduleDoc, heading }) {
+  const query = heading 
+    ? `${lesson.title} ${heading} tutorial` 
+    : `${lesson.title} ${moduleDoc.title} tutorial`;
 
   for (let attempt = 0; attempt < 3; attempt++) {
     const apiKey = youtubeKeys.getKey();

@@ -90,8 +90,15 @@ async function enrichLessonStream(req, res) {
   }
 
   try {
+    const Lesson = require("../models/Lesson");
+    const siblingLessons = await Lesson.find({ 
+      module: context.moduleDoc._id, 
+      _id: { $ne: context.lesson._id } 
+    }).select('title');
+
     const blocks = await streamLessonContent({
       ...context,
+      otherLessons: siblingLessons,
       depth,
       language,
       onBlock(block) {
@@ -102,17 +109,7 @@ async function enrichLessonStream(req, res) {
     // Temporarily save text blocks to allow quiz generation to use them
     context.lesson.content = blocks;
 
-    const [videosResult, questionsResult] = await Promise.allSettled([
-      findLessonVideos(context),
-      createLessonQuiz(context.lesson)
-    ]);
-
-    if (videosResult.status === "fulfilled" && videosResult.value) {
-      for (const v of videosResult.value) {
-        blocks.push(v);
-        sendEvent("block", v);
-      }
-    }
+    const questionsResult = await createLessonQuiz(context.lesson);
 
     if (questionsResult.status === "fulfilled" && questionsResult.value) {
       const quizBlock = {
