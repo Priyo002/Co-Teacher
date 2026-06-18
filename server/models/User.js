@@ -19,6 +19,10 @@ const userSchema = new mongoose.Schema({
   },
   password: { type: String, maxlength: 128 },
   auth0Id: { type: String, maxlength: 255 },
+  bookmarkedLessons: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Lesson"
+  }],
 }, { timestamps: true });
 
 userSchema.index({ auth0Id: 1 }, { unique: true, sparse: true });

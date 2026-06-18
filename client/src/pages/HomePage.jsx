@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, BookOpen, Loader2, PlayCircle, BarChart3, TrendingUp, CheckCircle, Clock, Check } from 'lucide-react';
+import { Plus, BookOpen, Loader2, PlayCircle, BarChart3, TrendingUp, CheckCircle, Clock, Check, Bookmark } from 'lucide-react';
 import CourseCard from '../components/CourseCard';
 import CreateCourseModal from '../components/CreateCourseModal';
 import { useApi } from '../hooks/useApi';
@@ -7,22 +7,28 @@ import { Link } from 'react-router-dom';
 
 export default function HomePage() {
   const [courses, setCourses] = useState([]);
+  const [bookmarks, setBookmarks] = useState([]);
+  const [activeTab, setActiveTab] = useState('courses');
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const fetchApi = useApi();
   
   useEffect(() => {
-    async function loadCourses() {
+    async function loadData() {
       try {
-        const data = await fetchApi('/courses/mine');
-        setCourses(data || []);
+        const [coursesData, bookmarksData] = await Promise.all([
+          fetchApi('/courses/mine'),
+          fetchApi('/user/bookmarks')
+        ]);
+        setCourses(coursesData || []);
+        setBookmarks(bookmarksData.bookmarks || []);
       } catch (err) {
-        console.error('Failed to load courses', err);
+        console.error('Failed to load dashboard data', err);
       } finally {
         setLoading(false);
       }
     }
-    loadCourses();
+    loadData();
   }, []);
 
   const handleDeleteCourse = async (courseId) => {
@@ -30,8 +36,20 @@ export default function HomePage() {
     try {
       await fetchApi(`/courses/${courseId}`, { method: 'DELETE' });
       setCourses(prev => prev.filter(c => c._id !== courseId));
+      // Also remove any bookmarks that belonged to this course from local state
+      setBookmarks(prev => prev.filter(b => b.module?.course?._id !== courseId));
     } catch (err) {
       alert("Failed to delete course: " + err.message);
+    }
+  };
+
+  const handleRemoveBookmark = async (e, lessonId) => {
+    e.preventDefault(); // Prevent navigating to the lesson
+    try {
+      await fetchApi(`/user/bookmarks/${lessonId}`, { method: 'POST' });
+      setBookmarks(prev => prev.filter(b => b._id !== lessonId));
+    } catch (err) {
+      alert("Failed to remove bookmark: " + err.message);
     }
   };
 
@@ -276,20 +294,70 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* All Courses Grid */}
-          {allCourses.length > 0 && (
-            <div className="mt-6">
-              <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                <BookOpen className="w-6 h-6 text-brand-400" />
+          {/* Tabs for All Courses / Bookmarks */}
+          <div className="mt-6">
+            <div className="flex items-center gap-6 border-b border-white/10 mb-6">
+              <button
+                onClick={() => setActiveTab('courses')}
+                className={`pb-3 text-lg font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'courses' ? 'border-brand-500 text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-300'}`}
+              >
+                <BookOpen className="w-5 h-5" />
                 All Courses
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {allCourses.map(course => (
-                  <CourseCard key={course._id} course={course} onDelete={handleDeleteCourse} />
-                ))}
-              </div>
+              </button>
+              <button
+                onClick={() => setActiveTab('bookmarks')}
+                className={`pb-3 text-lg font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'bookmarks' ? 'border-brand-500 text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-300'}`}
+              >
+                <Bookmark className="w-5 h-5" />
+                Bookmarks ({bookmarks.length})
+              </button>
             </div>
-          )}
+
+            {activeTab === 'courses' ? (
+              allCourses.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {allCourses.map(course => (
+                    <CourseCard key={course._id} course={course} onDelete={handleDeleteCourse} />
+                  ))}
+                </div>
+              ) : null
+            ) : (
+              bookmarks.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {bookmarks.map(lesson => (
+                    <Link 
+                      key={lesson._id}
+                      to={`/course/${lesson.module?.course?._id}/lesson/${lesson._id}`}
+                      className="glass-panel p-5 border-white/5 hover:border-brand-500/50 transition-all hover:-translate-y-1 group"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="p-2 bg-brand-500/10 rounded-lg text-brand-400">
+                          <Bookmark className="w-5 h-5 fill-current" />
+                        </div>
+                        <button
+                          onClick={(e) => handleRemoveBookmark(e, lesson._id)}
+                          className="p-2 -mr-2 -mt-2 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all rounded-full hover:bg-red-400/10"
+                          title="Remove bookmark"
+                        >
+                          <Bookmark className="w-4 h-4 fill-current" />
+                        </button>
+                      </div>
+                      <h3 className="font-bold text-lg mb-2 line-clamp-2 group-hover:text-brand-400 transition-colors">{lesson.title}</h3>
+                      <p className="text-sm text-slate-400 mb-4 line-clamp-2">{lesson.description}</p>
+                      <div className="text-xs text-slate-500 flex items-center gap-2">
+                        <BookOpen className="w-3 h-3" />
+                        <span className="truncate">{lesson.module?.course?.title}</span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center border-dashed border-2 border-white/10 rounded-xl bg-dark-800/30 text-slate-400">
+                  You haven't bookmarked any lessons yet.
+                </div>
+              )
+            )}
+          </div>
         </>
       )}
 

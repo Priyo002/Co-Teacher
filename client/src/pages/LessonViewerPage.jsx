@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, Circle, Menu, ChevronRight, Loader2, Bot, PanelLeftClose, PanelLeftOpen, PanelRightOpen, AlertTriangle, Download, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Circle, Menu, ChevronRight, Loader2, Bot, PanelLeftClose, PanelLeftOpen, PanelRightOpen, AlertTriangle, Download, ChevronsLeft, ChevronsRight, Bookmark } from 'lucide-react';
 import LessonRenderer from '../components/LessonRenderer';
 import AITutorChat from '../components/AITutorChat';
 import { useApi } from '../hooks/useApi';
@@ -19,8 +19,26 @@ export default function LessonViewerPage() {
   const [generationError, setGenerationError] = useState(null);
   const [savingProgress, setSavingProgress] = useState(false);
   const [expandedModules, setExpandedModules] = useState({});
+  const [isBookmarked, setIsBookmarked] = useState(false);
   const fetchApi = useApi();
   const endOfContentRef = useRef(null);
+
+  useEffect(() => {
+    if (id) {
+      fetchApi(`/user/bookmarks/${id}`)
+        .then(res => setIsBookmarked(res.isBookmarked))
+        .catch(err => console.error("Failed to check bookmark", err));
+    }
+  }, [id, fetchApi]);
+
+  const toggleBookmark = async () => {
+    try {
+      const res = await fetchApi(`/user/bookmarks/${id}`, { method: 'POST' });
+      setIsBookmarked(res.isBookmarked);
+    } catch (err) {
+      console.error("Failed to toggle bookmark", err);
+    }
+  };
 
   const [leftWidth, setLeftWidth] = useState(288);
   const [rightWidth, setRightWidth] = useState(384);
@@ -392,7 +410,16 @@ export default function LessonViewerPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-6">
-                <h1 className="text-3xl md:text-4xl font-bold">{lesson.title}</h1>
+                <div className="flex items-center gap-4">
+                  <h1 className="text-3xl md:text-4xl font-bold">{lesson.title}</h1>
+                  <button 
+                    onClick={toggleBookmark}
+                    className={`flex items-center justify-center p-2 rounded-full transition-colors ${isBookmarked ? 'bg-brand-500/20 text-brand-400 hover:bg-brand-500/30' : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'}`}
+                    title={isBookmarked ? "Remove Bookmark" : "Bookmark Lesson"}
+                  >
+                    <Bookmark className={`w-5 h-5 ${isBookmarked ? 'fill-current' : ''}`} />
+                  </button>
+                </div>
                 
                 {(lesson.isEnriched || lesson.generationStatus === 'complete') && (
                   <div className="flex items-center gap-3 no-print shrink-0">
