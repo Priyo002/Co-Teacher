@@ -234,7 +234,7 @@ export default function LessonRenderer({ blocks }) {
                         <p className="font-bold text-slate-200 mb-4 print:text-black">{qIdx + 1}. {q.question}</p>
                         <div className="space-y-3">
                           {q.options.map((opt, oIdx) => {
-                            let btnClass = "w-full text-left p-4 rounded-lg border transition-all print:border-black/20 print:text-black print:bg-transparent print:block print:opacity-100 ";
+                            let btnClass = "w-full text-left p-4 rounded-lg border transition-all break-words whitespace-pre-wrap print:border-black/20 print:text-black print:bg-transparent print:block print:opacity-100 ";
                             if (isSubmitted) {
                               if (oIdx === q.correctAnswer) btnClass += "border-green-500 bg-green-500/10 text-white print:bg-green-100 print:text-green-900";
                               else if (oIdx === selectedAns) btnClass += "border-red-500 bg-red-500/10 text-slate-400 line-through print:bg-red-50 print:text-red-900";

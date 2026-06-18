@@ -36,8 +36,8 @@ export default {
         'glass-gradient': 'linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01))',
       },
       animation: {
-        'fade-in': 'fadeIn 0.5s ease-out forwards',
-        'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'fade-in': 'fadeIn 0.5s ease-out both',
+        'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'float': 'float 6s ease-in-out infinite',
       },

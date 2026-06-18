@@ -149,7 +149,7 @@ async function generateFinalTest(req, res) {
     }
 
     const totalLessonsInCourse = course.modules.reduce((sum, mod) => sum + (mod.lessons?.length || 0), 0);
-    const TARGET_TOTAL_QUESTIONS = 30;
+    const TARGET_TOTAL_QUESTIONS = 25;
 
     const modulePromises = course.modules.map(async (mod, idx) => {
       const lessonCount = mod.lessons?.length || 0;
@@ -187,7 +187,42 @@ Format each item exactly like this:
           else if (Array.isArray(mcqs.data)) mcqs = mcqs.data;
         }
         
-        return Array.isArray(mcqs) ? mcqs : [];
+        if (!Array.isArray(mcqs)) return [];
+
+        return mcqs
+          .filter(q => {
+            if (!q || typeof q.question !== 'string' || !Array.isArray(q.options)) return false;
+            const ans = Number(q.correctAnswer);
+            const validOptionsCount = q.options.filter(opt => String(opt || "").trim()).length;
+            return !isNaN(ans) && ans >= 0 && ans < validOptionsCount;
+          })
+          .map(q => {
+            const rawOptions = q.options.map(opt => String(opt || "").trim()).filter(Boolean);
+            let correctAnswer = Number(q.correctAnswer);
+
+            const options = [];
+            for (let i = 0; i < 4; i++) {
+              if (i < rawOptions.length) {
+                options.push(rawOptions[i]);
+              } else {
+                options.push("None of the above");
+              }
+            }
+
+            // If the correct answer is beyond the 4th option, we MUST preserve it
+            // by swapping it into the visible 4 options before truncating.
+            if (correctAnswer > 3) {
+              options[3] = rawOptions[correctAnswer];
+              correctAnswer = 3;
+            }
+
+            return {
+              question: String(q.question).trim() || "Question",
+              options,
+              correctAnswer,
+              explanation: String(q.explanation || "No explanation provided.").trim()
+            };
+          });
       } catch (err) {
         console.warn(`Failed to generate questions for module ${mod.title}:`, err);
         return [];

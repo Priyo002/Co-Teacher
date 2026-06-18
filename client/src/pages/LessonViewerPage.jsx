@@ -198,7 +198,7 @@ export default function LessonViewerPage() {
       document.title = lesson.title.replace(/^Module\s*\d+:\s*/i, '');
     }
     return () => {
-      document.title = 'AI Course App';
+      document.title = 'Co-Teacher';
     };
   }, [lesson?.title]);
 

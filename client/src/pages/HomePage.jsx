@@ -168,7 +168,7 @@ export default function HomePage() {
           </div>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="btn-primary shadow-brand-500/20 whitespace-nowrap shrink-0"
+            className="btn-primary whitespace-nowrap shrink-0"
           >
             <Plus className="w-5 h-5" />
             Generate Course

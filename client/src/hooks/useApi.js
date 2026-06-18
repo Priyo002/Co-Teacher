@@ -1,7 +1,7 @@
 import { useAuth } from './useAuth';
 
 export function useApi() {
-  const { getToken } = useAuth();
+  const { getToken, login } = useAuth();
 
   const fetchApi = async (endpoint, options = {}) => {
     let token = null;
@@ -9,6 +9,10 @@ export function useApi() {
       token = await getToken();
     } catch (err) {
       console.warn('Failed to get token for API request', err);
+      if (err.error === 'login_required' || err.error === 'consent_required') {
+        login();
+        throw new Error('Session expired. Redirecting to login...');
+      }
     }
 
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
@@ -21,6 +25,11 @@ export function useApi() {
         ...(token ? { Authorization: `Bearer ${token}` } : {})
       }
     });
+
+    if (res.status === 401) {
+      login();
+      throw new Error('Session expired. Please log in again.');
+    }
 
     if (!res.ok) {
       const errorText = await res.text();

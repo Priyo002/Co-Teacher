@@ -159,7 +159,7 @@ export default function FinalTestPage() {
                   </p>
                   <div className="space-y-3">
                     {q.options.map((opt, oIdx) => {
-                      let btnClass = "w-full text-left p-4 rounded-xl border transition-all ";
+                      let btnClass = "w-full text-left p-4 rounded-xl border transition-all break-words whitespace-pre-wrap ";
                       if (selectedAns === oIdx) {
                         btnClass += "border-brand-500 bg-brand-500/10 text-white shadow-[0_0_15px_rgba(34,211,238,0.15)]";
                       } else {

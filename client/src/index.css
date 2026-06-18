@@ -22,7 +22,7 @@
   
   /* Vibrant Buttons */
   .btn-primary {
-    @apply relative overflow-hidden inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-dark-900 transition-all hover:bg-brand-400 hover:shadow-[0_0_20px_rgba(45,212,191,0.4)] active:scale-95;
+    @apply relative overflow-hidden inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-dark-900 transition-all hover:bg-brand-400 active:scale-95;
   }
   
   .btn-secondary {
