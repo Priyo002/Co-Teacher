@@ -99,7 +99,7 @@ Allowed block types: "heading", "paragraph", "code", "list", "callout".
 - code: { "type": "code", "codes": { "python": "...", "cpp": "...", "java": "..." } }
 - list: { "type": "list", "style": "bullet" or "numbered", "items": ["item1", "item2"] }
 - callout: { "type": "callout", "emoji": "💡", "title": "Key Insight", "text": "..." }
-Use a rich mix of these types for an engaging lesson. Include at least one code example. ALWAYS provide realistic, runnable code implementations in Python, C++, and Java simultaneously for every code block. Use callouts for key insights. Use lists for steps.
+Use a rich mix of these types for an engaging lesson. Include code examples ONLY IF the topic is related to programming or requires coding. If the topic specifies a particular language (e.g., "C++"), provide code ONLY in that language. If the topic is programming but language-agnostic, provide examples in Python, C++, and Java. Use callouts for key insights. Use lists for steps.
 `.trim();
 
 async function createLessonContent({ lesson, moduleDoc, course, depth, language }) {
@@ -167,7 +167,7 @@ Write the main body content for the section titled "${heading}" in the lesson "$
 ${previousContext ? `The student just read the previous section:\n"""\n${previousContext}\n"""\nContinue smoothly from there, but DO NOT repeat it.` : "This is the first section of the lesson. Write an engaging introduction."}
 Use a rich mix of heading, paragraph, code, list, and callout blocks.
 Start with a heading block for "${heading}".
-Include realistic, runnable code examples in Python, C++, and Java if the topic allows it.
+Include realistic, runnable code examples ONLY if the topic involves programming. If a language is specified in the topic, use only that language. Otherwise, use Python, C++, and Java.
   `.trim();
 
   const result = await generateJson(
