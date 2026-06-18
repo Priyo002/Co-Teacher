@@ -13,6 +13,17 @@ const courseSchema = new mongoose.Schema(
     modules: [{ type: mongoose.Schema.Types.ObjectId, ref: "Module" }],
     isPublic: { type: Boolean, default: false },
     shareId: { type: String, maxlength: 64 },
+    finalTest: {
+      generatedAt: { type: Date },
+      questions: [
+        {
+          question: { type: String, required: true },
+          options: [{ type: String, required: true }],
+          correctAnswer: { type: Number, required: true },
+          explanation: { type: String, required: true }
+        }
+      ]
+    }
   },
   { timestamps: true }
 );

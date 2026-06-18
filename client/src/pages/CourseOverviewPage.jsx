@@ -10,6 +10,7 @@ export default function CourseOverviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [generatingTest, setGeneratingTest] = useState(false);
   const fetchApi = useApi();
   
   useEffect(() => {
@@ -49,11 +50,25 @@ export default function CourseOverviewPage() {
     return <div className="p-8 text-center text-red-400">{error || 'Course not found'}</div>;
   }
 
-  const totalLessons = course.modules?.reduce((acc, mod) => acc + (mod.lessons?.length || 0), 0) || 0;
-  const completedLessons = course.modules?.reduce(
-    (acc, mod) => acc + (mod.lessons?.filter(l => l.completedAt)?.length || 0), 0
-  ) || 0;
+  const lessonsArray = course.modules?.flatMap(mod => mod.lessons || []) || [];
+  const totalLessons = lessonsArray.length;
+  const completedLessons = lessonsArray.filter(l => l.completedAt).length;
   const progress = totalLessons === 0 ? 0 : Math.round((completedLessons / totalLessons) * 100);
+
+  const hasFinalTest = course.finalTest && course.finalTest.questions && course.finalTest.questions.length > 0;
+
+  const handleGenerateTest = async () => {
+    setGeneratingTest(true);
+    try {
+      const res = await fetchApi(`/courses/${id}/generate-test`, { method: 'POST' });
+      // Refresh course to get the new test
+      setCourse({ ...course, finalTest: res.finalTest });
+    } catch (err) {
+      alert(err.message || 'Failed to generate test. Please try again.');
+    } finally {
+      setGeneratingTest(false);
+    }
+  };
 
   return (
     <div className="p-4 sm:p-8 animate-fade-in max-w-4xl mx-auto">
@@ -109,13 +124,48 @@ export default function CourseOverviewPage() {
           </div>
         </div>
 
-        <div className="mt-8 pt-8 border-t border-white/10 flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full conic-gradient-progress relative flex items-center justify-center bg-dark-800 shrink-0 border border-white/5 shadow-inner">
-            <span className="text-sm font-bold text-white z-10">{progress}%</span>
+        <div className="mt-8 pt-8 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full conic-gradient-progress relative flex items-center justify-center bg-dark-800 shrink-0 border border-white/5 shadow-inner">
+              <span className="text-sm font-bold text-white z-10">{progress}%</span>
+            </div>
+            <div>
+              <h4 className="font-medium text-slate-200">Overall Progress</h4>
+              <p className="text-sm text-slate-400">{completedLessons} of {totalLessons} lessons completed</p>
+            </div>
           </div>
-          <div>
-            <h4 className="font-medium text-slate-200">Overall Progress</h4>
-            <p className="text-sm text-slate-400">{completedLessons} of {totalLessons} lessons completed</p>
+          
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <h4 className="font-medium text-slate-200">Final Certification</h4>
+              {!course?.earnedCertificateId && (
+                <p className="text-sm text-slate-400">Score 70%+ to unlock</p>
+              )}
+            </div>
+            
+            {course?.earnedCertificateId ? (
+              <button 
+                onClick={() => navigate(`/certificate/${course.earnedCertificateId}`)}
+                className="btn-primary shadow-[0_0_20px_rgba(34,211,238,0.3)] animate-pulse-glow whitespace-nowrap"
+              >
+                View Certificate
+              </button>
+            ) : hasFinalTest ? (
+              <button 
+                onClick={() => navigate(`/course/${id}/test`)}
+                className="btn-primary shadow-[0_0_20px_rgba(34,211,238,0.3)] animate-pulse-glow whitespace-nowrap"
+              >
+                Take Final Test
+              </button>
+            ) : (
+              <button 
+                onClick={handleGenerateTest}
+                disabled={generatingTest}
+                className="btn-secondary whitespace-nowrap"
+              >
+                {generatingTest ? <><Loader2 className="w-4 h-4 animate-spin inline mr-2" /> Generating...</> : 'Generate Test'}
+              </button>
+            )}
           </div>
         </div>
       </div>

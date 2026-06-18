@@ -6,7 +6,8 @@ const {
   getLessonView,
   getMyCourses,
   updateSharing,
-  updateLessonProgress
+  updateLessonProgress,
+  generateFinalTest
 } = require("../../controllers/courseController");
 const { verifyAuth0Token } = require("../../middlewares/auth0Auth");
 
@@ -24,6 +25,7 @@ router.post("/:courseId/lessons/:lessonId/generate/chunk", generateLessonChunk);
 router.post("/:courseId/lessons/:lessonId/generate/quiz", generateLessonQuizChunk);
 
 router.post("/:courseId/lessons/:lessonId/enrich", enrichLesson);
+router.post("/:courseId/generate-test", generateFinalTest);
 router.post("/:courseId/lessons/:lessonId/enrich-stream", enrichLessonStream);
 router.post("/:courseId/lessons/:lessonId/flashcards", generateFlashcards);
 router.post("/:courseId/lessons/:lessonId/lab", generatePracticeLab);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Lightbulb, Terminal, AlertTriangle, Info, CheckCircle2, XCircle, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
@@ -88,6 +88,7 @@ function CodeBlockWithTabs({ codes }) {
 export default function LessonRenderer({ blocks }) {
   const [quizAnswers, setQuizAnswers] = useState({});
   const [showResults, setShowResults] = useState({});
+  const [quizCompleted, setQuizCompleted] = useState({});
   if (!blocks || !blocks.length) {
     return <div className="text-slate-400 italic">No content available for this lesson yet.</div>;
   }
@@ -176,11 +177,50 @@ export default function LessonRenderer({ blocks }) {
               </div>
             );
 
-          case 'quiz':
+          case 'quiz': {
+            const isBlockCompleted = quizCompleted[idx];
+            let score = 0;
+            let totalQuestions = block.questions.length;
+
+            if (isBlockCompleted) {
+              block.questions.forEach((q, qIdx) => {
+                if (quizAnswers[`${idx}-${qIdx}`] === q.correctAnswer) {
+                  score++;
+                }
+              });
+            }
+
+            const checkQuizCompletion = (newShowResults) => {
+              // Check if all questions in this block have been answered and checked
+              const allAnswered = block.questions.every((_, qIdx) => newShowResults[`${idx}-${qIdx}`] === true);
+              if (allAnswered && !quizCompleted[idx]) {
+                setQuizCompleted(prev => ({ ...prev, [idx]: true }));
+                
+                // Save to backend
+                if (window.location.pathname.includes('/lesson/')) {
+                  const lessonId = window.location.pathname.split('/lesson/')[1];
+                  fetch(`/api/courses/lesson/${lessonId}/progress`, {
+                    method: 'PUT',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ 
+                      quizBestScore: currentScore,
+                      quizAttempts: 1
+                    })
+                  }).catch(err => console.error("Failed to save score:", err));
+                }
+              }
+            };
+
             return (
               <div key={idx} className="my-10 bg-dark-800 rounded-2xl border border-white/10 p-8 shadow-2xl relative overflow-hidden print:bg-transparent print:border-black/20 print:shadow-none print:p-0">
                 <div className="absolute top-0 right-0 p-32 bg-brand-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none print:hidden"></div>
-                <h3 className="text-2xl font-bold text-white mb-8 relative z-10 print:text-black">{block.title || 'Knowledge Check'}</h3>
+                <h3 className="text-2xl font-bold text-white mb-8 relative z-10 print:text-black flex items-center gap-3">
+                  {block.title || 'Knowledge Check'} 
+                  <span className="text-brand-400 text-sm font-medium bg-brand-500/10 px-3 py-1 rounded-full uppercase tracking-wider shadow-[0_0_15px_rgba(34,211,238,0.2)]">Quiz</span>
+                </h3>
                 
                 <div className="space-y-8 relative z-10">
                   {block.questions.map((q, qIdx) => {
@@ -200,7 +240,7 @@ export default function LessonRenderer({ blocks }) {
                               else if (oIdx === selectedAns) btnClass += "border-red-500 bg-red-500/10 text-slate-400 line-through print:bg-red-50 print:text-red-900";
                               else btnClass += "border-white/5 bg-white/5 text-slate-500 opacity-50";
                             } else {
-                              if (selectedAns === oIdx) btnClass += "border-brand-500 bg-brand-500/10 text-white print:bg-brand-50 print:border-brand-500";
+                              if (selectedAns === oIdx) btnClass += "border-brand-500 bg-brand-500/10 text-white shadow-[0_0_15px_rgba(34,211,238,0.2)] print:bg-brand-50 print:border-brand-500";
                               else btnClass += "border-white/5 bg-white/5 text-slate-300 hover:border-white/20 hover:bg-white/10";
                             }
 
@@ -221,8 +261,12 @@ export default function LessonRenderer({ blocks }) {
                         {!isSubmitted && selectedAns !== undefined && (
                           <div className="mt-4 flex justify-end print:hidden">
                             <button
-                              onClick={() => setShowResults(prev => ({ ...prev, [questionKey]: true }))}
-                              className="px-4 py-2 bg-brand-500 text-dark-900 font-bold rounded-lg hover:bg-brand-400 transition-colors"
+                              onClick={() => {
+                                const newResults = { ...showResults, [questionKey]: true };
+                                setShowResults(newResults);
+                                checkQuizCompletion(newResults);
+                              }}
+                              className="px-6 py-2.5 bg-brand-500 text-dark-900 font-bold rounded-lg hover:bg-brand-400 transition-colors shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_25px_rgba(34,211,238,0.5)] transform hover:-translate-y-0.5"
                             >
                               Check Answer
                             </button>
@@ -230,10 +274,10 @@ export default function LessonRenderer({ blocks }) {
                         )}
 
                         {isSubmitted && (
-                          <div className={`mt-4 p-4 rounded-lg flex gap-3 ${isCorrect ? 'bg-green-500/10 text-green-400' : 'bg-brand-500/10 text-brand-400'}`}>
+                          <div className={`mt-4 p-4 rounded-lg flex gap-3 ${isCorrect ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
                             {isCorrect ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <Info className="w-5 h-5 shrink-0" />}
                             <div>
-                              <p className="font-bold mb-1">{isCorrect ? 'Correct!' : 'Not quite.'}</p>
+                              <p className="font-bold mb-1">{isCorrect ? 'Correct! Well done.' : 'Not quite. Let\'s review.'}</p>
                               <p className="text-sm opacity-90">{q.explanation}</p>
                             </div>
                           </div>
@@ -242,8 +286,19 @@ export default function LessonRenderer({ blocks }) {
                     );
                   })}
                 </div>
+
+                {/* Final Results Card */}
+                {isBlockCompleted && (
+                  <div className="mt-8 p-6 bg-dark-900 border border-brand-500/30 rounded-xl text-center">
+                    <h4 className="text-xl font-bold text-white mb-2">Knowledge Check Completed</h4>
+                    <p className="text-slate-400">
+                      You scored <span className="text-lg font-bold text-brand-400 mx-1">{score}</span> out of <span className="font-bold text-white mx-1">{totalQuestions}</span>
+                    </p>
+                  </div>
+                )}
               </div>
             );
+          }
 
           default:
             return null;

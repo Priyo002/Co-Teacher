@@ -190,27 +190,34 @@ export default function HomePage() {
       ) : (
         <>
           {/* Metrics Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <div className="glass-panel p-6 border-brand-500/20 bg-brand-500/5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-10">
+            <div className="glass-panel p-5 sm:p-6 border-brand-500/20 bg-brand-500/5">
               <div className="flex items-center gap-2 text-brand-400 mb-2">
                 <BookOpen className="w-4 h-4" />
-                <h3 className="text-sm font-medium">Total Courses</h3>
+                <h3 className="text-xs sm:text-sm font-medium">Total Courses</h3>
               </div>
-              <p className="text-3xl font-bold text-white">{totalCourses}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-white">{totalCourses}</p>
             </div>
-            <div className="glass-panel p-6 border-blue-500/20 bg-blue-500/5">
+            <div className="glass-panel p-5 sm:p-6 border-purple-500/20 bg-purple-500/5">
+              <div className="flex items-center gap-2 text-purple-400 mb-2">
+                <Bookmark className="w-4 h-4" />
+                <h3 className="text-xs sm:text-sm font-medium">Saved Bookmarks</h3>
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-white">{bookmarks.length}</p>
+            </div>
+            <div className="glass-panel p-5 sm:p-6 border-blue-500/20 bg-blue-500/5">
               <div className="flex items-center gap-2 text-blue-400 mb-2">
                 <CheckCircle className="w-4 h-4" />
-                <h3 className="text-sm font-medium">Lessons Completed</h3>
+                <h3 className="text-xs sm:text-sm font-medium">Lessons Completed</h3>
               </div>
-              <p className="text-3xl font-bold text-white">{completedLessons} <span className="text-sm font-normal text-slate-500">/ {totalLessons}</span></p>
+              <p className="text-2xl sm:text-3xl font-bold text-white">{completedLessons} <span className="text-sm font-normal text-slate-500">/ {totalLessons}</span></p>
             </div>
-            <div className="glass-panel p-6 border-green-500/20 bg-green-500/5">
+            <div className="glass-panel p-5 sm:p-6 border-green-500/20 bg-green-500/5">
               <div className="flex items-center gap-2 text-green-400 mb-2">
                 <TrendingUp className="w-4 h-4" />
-                <h3 className="text-sm font-medium">Overall Progress</h3>
+                <h3 className="text-xs sm:text-sm font-medium">Overall Progress</h3>
               </div>
-              <p className="text-3xl font-bold text-white">{progressPercent}%</p>
+              <p className="text-2xl sm:text-3xl font-bold text-white">{progressPercent}%</p>
             </div>
           </div>
 
@@ -391,7 +398,7 @@ export default function HomePage() {
                 className={`pb-3 text-lg font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'bookmarks' ? 'border-brand-500 text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-300'}`}
               >
                 <Bookmark className="w-5 h-5" />
-                Bookmarks ({bookmarks.length})
+                Bookmarks
               </button>
             </div>
 
