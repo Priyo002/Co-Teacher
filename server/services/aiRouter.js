@@ -1,6 +1,17 @@
 const gemini = require("./geminiService");
 const groq = require("./groqService");
 const openrouter = require("./openrouterService");
+const AiTelemetry = require("../models/AiTelemetry");
+
+function logTelemetry(data) {
+  try {
+    AiTelemetry.create(data).catch(err => {
+      console.warn("[Telemetry] Failed to save log:", err.message);
+    });
+  } catch (e) {
+    // Ignore synchronous errors so it never blocks the main thread
+  }
+}
 
 gemini.name = "gemini";
 groq.name = "groq";
@@ -52,8 +63,10 @@ async function generateJson(systemPrompt, userPrompt, maxTokens = 4096, validato
           await validator(result);
         }
         
+        logTelemetry({ provider: provider.name, model, endpoint: 'generateJson', status: 'success' });
         return result;
       } catch (error) {
+        logTelemetry({ provider: provider.name, model, endpoint: 'generateJson', status: 'failure', reason: error.message || String(error) });
         console.warn(`[AI Router] ${provider.name} (${model}) failed to generateJson. Switching to next...`);
         lastError = error;
       }
@@ -86,8 +99,10 @@ async function* generateJsonStream(systemPrompt, userPrompt, maxTokens = 4096) {
           yieldedChunk = true;
           yield chunk;
         }
+        logTelemetry({ provider: provider.name, model, endpoint: 'generateJsonStream', status: 'success' });
         return; // Stream finished successfully
       } catch (error) {
+        logTelemetry({ provider: provider.name, model, endpoint: 'generateJsonStream', status: 'failure', reason: error.message || String(error) });
         if (yieldedChunk) {
           console.error(`[AI Router] ${provider.name} (${model}) stream failed midway. Cannot fallback.`);
           throw new Error("Our AI servers are currently experiencing high traffic. Please try again in a few moments.");
