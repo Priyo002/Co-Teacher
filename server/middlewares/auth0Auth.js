@@ -62,7 +62,7 @@ async function verifyAuth0Token(req, res, next) {
           authProviderId: auth0Profile.sub,
         }
       },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
+      { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
     );
 
     req.auth0User = auth0Profile;
