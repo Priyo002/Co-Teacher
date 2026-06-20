@@ -53,15 +53,17 @@ async function verifyAuth0Token(req, res, next) {
     }
 
     
-    // Find or create user in MongoDB
-    let user = await User.findOne({ email: auth0Profile.email });
-    if (!user) {
-      user = await User.create({
-        name: auth0Profile.name || auth0Profile.nickname || "Learner",
-        email: auth0Profile.email,
-        authProviderId: auth0Profile.sub, // The Auth0 user ID
-      });
-    }
+    // Find or create user in MongoDB (upsert to prevent race conditions on concurrent requests)
+    let user = await User.findOneAndUpdate(
+      { email: auth0Profile.email },
+      {
+        $setOnInsert: {
+          name: auth0Profile.name || auth0Profile.nickname || "Learner",
+          authProviderId: auth0Profile.sub,
+        }
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
 
     req.auth0User = auth0Profile;
     req.user = user; // Attach mongoose document for controllers
