@@ -35,6 +35,16 @@ const startServer = async () => {
     }
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
+      
+      // Self-ping mechanism to prevent Render free tier from sleeping (every 14 mins)
+      const RENDER_EXTERNAL_URL = process.env.RENDER_EXTERNAL_URL;
+      if (RENDER_EXTERNAL_URL) {
+        setInterval(() => {
+          fetch(RENDER_EXTERNAL_URL)
+            .then(res => console.log(`[Keep-Alive] Pinged self successfully: ${res.status}`))
+            .catch(err => console.error(`[Keep-Alive] Ping failed:`, err.message));
+        }, 14 * 60 * 1000);
+      }
     });
   } catch (error) {
     console.error('Failed to start server:', error);
