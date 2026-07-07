@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { BookOpen, CheckCircle, Circle, PlayCircle, ArrowLeft, MoreVertical, Share2, Loader2, Check, Trash2 } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
+import CourseSkeleton from '../components/skeletons/CourseSkeleton';
 
 export default function CourseOverviewPage() {
   const { id } = useParams();
@@ -39,11 +40,7 @@ export default function CourseOverviewPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
-      </div>
-    );
+    return <CourseSkeleton />;
   }
 
   if (error || !course) {

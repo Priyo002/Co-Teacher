@@ -17,8 +17,27 @@ async function generateCourseContent(req, res) {
       return res.status(400).json({ error: "Describe the course in at least 10 characters" });
     }
 
-    const outline = await createCourseOutline(prompt, language);
+    // Credit Limit Check
+    const user = req.user;
+    if (user.credits < 100) {
+      return res.status(403).json({ 
+        error: "Insufficient credits. Generating a course costs 100 credits. Please purchase more credits to continue." 
+      });
+    }
+
+    const personalization = {
+      educationLevel: user.educationLevel,
+      fieldOfStudy: user.fieldOfStudy,
+      learningStyle: user.learningStyle,
+      learningGoal: user.learningGoal
+    };
+
+    const outline = await createCourseOutline(prompt, language, personalization);
     const course = await saveGeneratedCourse(outline, req.user._id, language);
+
+    // Update usage
+    user.credits -= 100;
+    await user.save();
 
     return res.status(201).json(course);
   } catch (error) {

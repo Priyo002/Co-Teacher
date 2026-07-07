@@ -94,8 +94,43 @@ async function checkBookmark(req, res) {
   }
 }
 
+async function getProfile(req, res) {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) return res.status(404).json({ error: "User not found" });
+    return res.json(user);
+  } catch (error) {
+    console.error("Get Profile Error:", error);
+    return res.status(500).json({ error: "Failed to fetch profile" });
+  }
+}
+
+async function updateProfile(req, res) {
+  try {
+    const { educationLevel, fieldOfStudy, learningStyle, learningGoal } = req.body;
+    
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    if (educationLevel) user.educationLevel = educationLevel;
+    if (fieldOfStudy) user.fieldOfStudy = fieldOfStudy;
+    if (learningStyle) user.learningStyle = learningStyle;
+    if (learningGoal) user.learningGoal = learningGoal;
+    
+    user.hasCompletedOnboarding = true;
+
+    await user.save();
+    return res.json(user);
+  } catch (error) {
+    console.error("Update Profile Error:", error);
+    return res.status(500).json({ error: "Failed to update profile" });
+  }
+}
+
 module.exports = {
   toggleBookmark,
   getBookmarks,
-  checkBookmark
+  checkBookmark,
+  getProfile,
+  updateProfile
 };

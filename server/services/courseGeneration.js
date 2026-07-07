@@ -35,14 +35,26 @@ function formatCourse(result) {
   return course;
 }
 
-async function createCourseOutline(prompt, language = "English") {
+async function createCourseOutline(prompt, language = "English", personalization = {}) {
+  let userContext = "";
+  if (personalization.educationLevel || personalization.fieldOfStudy || (personalization.learningStyle && personalization.learningStyle.length > 0) || personalization.learningGoal) {
+    userContext = "TAILOR THE COURSE FOR THIS SPECIFIC USER:\n";
+    if (personalization.educationLevel) userContext += `- Education Level: ${personalization.educationLevel}\n`;
+    if (personalization.fieldOfStudy) userContext += `- Field of Study/Industry: ${personalization.fieldOfStudy}\n`;
+    if (personalization.learningStyle && personalization.learningStyle.length > 0) {
+      userContext += `- Learning Style Preferences: ${personalization.learningStyle.join(', ')}\n`;
+    }
+    if (personalization.learningGoal) userContext += `- Primary Goal: ${personalization.learningGoal}\n`;
+    userContext += "Adapt the curriculum difficulty, analogies, and pacing to perfectly match this user profile.\n\n";
+  }
+
   const instructions = `
 Create a practical course outline.
 Return JSON with "title", "description", and "modules".
 Create 5-10 modules depending on the course topic. Each module needs a "title" and a "lessons" array.
 Each lesson must be an object with a "title".
 Do not include lesson content, quizzes, or videos.
-The entire course outline MUST be generated completely in this language: ${language}.
+${userContext}The entire course outline MUST be generated completely in this language: ${language}.
   `.trim();
 
   const result = await generateJson(instructions, prompt, 8192);

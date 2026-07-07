@@ -19,6 +19,23 @@ const userSchema = new mongoose.Schema({
   },
   password: { type: String, maxlength: 128 },
   auth0Id: { type: String, maxlength: 255 },
+  
+  // --- Personalization Fields ---
+  hasCompletedOnboarding: { type: Boolean, default: false },
+  educationLevel: { 
+    type: String, 
+    enum: ['High School', 'College', 'Professional', 'Hobbyist'] 
+  },
+  fieldOfStudy: { type: String, maxlength: 100 },
+  learningStyle: [{ 
+    type: String, 
+    enum: ['Visual', 'Reading', 'Hands-on'] 
+  }],
+  learningGoal: { type: String, maxlength: 255 },
+  
+  // --- Wallet / Credits ---
+  credits: { type: Number, default: 500 },
+
   bookmarkedLessons: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "Lesson"

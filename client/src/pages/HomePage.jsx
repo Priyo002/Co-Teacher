@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plus, BookOpen, Loader2, PlayCircle, BarChart3, TrendingUp, CheckCircle, Clock, Check, Bookmark, Search } from 'lucide-react';
+import { Plus, BookOpen, PlayCircle, BarChart3, TrendingUp, CheckCircle, Clock, Check, Bookmark, Search } from 'lucide-react';
 import CourseCard from '../components/CourseCard';
 import CreateCourseModal from '../components/CreateCourseModal';
+import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
 import { useApi } from '../hooks/useApi';
 import { Link } from 'react-router-dom';
 
@@ -55,11 +56,7 @@ export default function HomePage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const totalCourses = courses.length;

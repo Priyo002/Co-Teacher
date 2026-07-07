@@ -7,6 +7,7 @@ dotenv.config();
 
 const connectDB = require('./config/db');
 const routes = require('./routes');
+const paymentRoutes = require('./routes/payment');
 
 // Initialize express app
 const app = express();
@@ -16,6 +17,7 @@ app.use(cors());
 app.use(express.json());
 // Routes
 app.use('/api', routes);
+app.use('/api/payment', paymentRoutes);
 
 // Base route
 app.get('/', (req, res) => {

@@ -3,18 +3,19 @@ import { Toaster } from 'react-hot-toast';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
-import LoadingSpinner from './components/LoadingSpinner';
+import AppSkeleton from './components/skeletons/AppSkeleton';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import CourseOverviewPage from './pages/CourseOverviewPage';
 import LessonViewerPage from './pages/LessonViewerPage';
 import CertificatePage from './pages/CertificatePage';
 import FinalTestPage from './pages/FinalTestPage';
+import OnboardingPage from './pages/OnboardingPage';
 
 function GuestRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
 
-  if (loading) return <LoadingSpinner text="Loading..." />;
+  if (loading) return <AppSkeleton />;
   if (isAuthenticated) return <Navigate to="/" replace />;
   return children;
 }
@@ -46,6 +47,7 @@ export default function App() {
       />
       <Routes>
         <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
+        <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
         <Route path="/" element={<DashboardPage><HomePage /></DashboardPage>} />
         <Route path="/course/:id" element={<DashboardPage><CourseOverviewPage /></DashboardPage>} />
         <Route path="/certificate/:id" element={<CertificatePage />} />

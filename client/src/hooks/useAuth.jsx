@@ -35,8 +35,23 @@ export function AuthProvider({ children }) {
           console.warn('Could not get token silently (this is normal if no API audience is configured):', tokenErr);
         }
         
+        let dbUser = null;
+        if (token) {
+          try {
+            const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+            const res = await fetch(`${baseUrl}/user/profile`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+              dbUser = await res.json();
+            }
+          } catch (e) {
+            console.error('Failed to fetch db profile', e);
+          }
+        }
+        
         // As long as Auth0 says we are authenticated, we let the user in.
-        setSessionUser({ ...user, token });
+        setSessionUser({ ...user, ...dbUser, token, dbId: dbUser?._id });
       } catch (err) {
         console.error('Session init failed:', err);
         setSessionUser(null);
@@ -57,6 +72,21 @@ export function AuthProvider({ children }) {
         login: loginWithRedirect,
         logout: () => logout({ logoutParams: { returnTo: window.location.origin } }),
         getToken: getAccessTokenSilently,
+        refreshProfile: async () => {
+          try {
+            const token = await getAccessTokenSilently();
+            const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+            const res = await fetch(`${baseUrl}/user/profile`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+              const dbUser = await res.json();
+              setSessionUser(prev => ({ ...prev, ...dbUser }));
+            }
+          } catch (e) {
+            console.error('Failed to refresh profile', e);
+          }
+        }
       }}
     >
       {children}
