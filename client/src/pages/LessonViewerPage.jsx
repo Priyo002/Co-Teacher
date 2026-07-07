@@ -263,7 +263,7 @@ export default function LessonViewerPage() {
       {!isSidebarOpen && (
         <button 
           onClick={() => setIsSidebarOpen(true)}
-          className="lg:hidden absolute top-4 left-4 z-20 bg-dark-800 p-2 rounded-lg border border-white/10 text-slate-300 hover:text-white transition-colors shadow-lg no-print"
+          className="lg:hidden absolute top-4 left-4 z-20 bg-white p-2 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-900 transition-colors shadow-sm no-print"
           title="Expand Curriculum"
         >
           <PanelLeftOpen className="w-5 h-5" />
@@ -273,7 +273,7 @@ export default function LessonViewerPage() {
       {/* Sidebar Navigation */}
       {isSidebarOpen && (
         <aside 
-          className="absolute lg:relative inset-y-0 left-0 z-30 bg-dark-900 border-r border-white/5 flex flex-col shadow-xl no-print shrink-0"
+          className="absolute lg:relative inset-y-0 left-0 z-30 bg-slate-50 border-r border-slate-200 flex flex-col shadow-sm no-print shrink-0"
           style={{ width: `${leftWidth}px` }}
         >
           <div 
@@ -284,23 +284,23 @@ export default function LessonViewerPage() {
             
             <button
               onClick={(e) => { e.stopPropagation(); setIsSidebarOpen(false); }}
-              className="absolute left-[2px] w-7 h-7 rounded-full bg-dark-800 border border-white/10 flex items-center justify-center text-slate-400 opacity-0 group-hover:opacity-100 group-hover:text-white group-hover:border-white/20 transition-all z-10"
+              className="absolute left-[2px] w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 opacity-0 group-hover:opacity-100 group-hover:text-slate-900 group-hover:border-slate-300 transition-all z-10 shadow-sm"
               title="Collapse"
             >
               <ChevronsLeft className="w-4 h-4 mr-0.5" />
             </button>
           </div>
           
-          <div className="flex items-center justify-between p-4 border-b border-white/5">
+          <div className="flex items-center justify-between p-4 border-b border-slate-200">
             <button 
               onClick={() => navigate(`/course/${courseId}`)}
-              className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
+              className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors font-medium"
             >
               <ArrowLeft className="w-4 h-4" /> Back to Course
             </button>
             <button 
               onClick={() => setIsSidebarOpen(false)}
-              className="lg:hidden text-slate-400 hover:text-white p-1 rounded hover:bg-white/5 transition-colors"
+              className="lg:hidden text-slate-500 hover:text-slate-900 p-1 rounded hover:bg-slate-100 transition-colors"
               title="Shrink Curriculum"
             >
               <PanelLeftClose className="w-5 h-5" />
@@ -317,26 +317,26 @@ export default function LessonViewerPage() {
                 <div key={module._id} className="mb-2">
                   <button 
                     onClick={() => toggleModule(module._id)}
-                    className="flex items-center justify-between w-full text-left font-semibold text-slate-300 mb-2 hover:text-white transition-colors"
+                    className="flex items-center justify-between w-full text-left font-semibold text-slate-700 mb-2 hover:text-brand-600 transition-colors"
                   >
                     <span className="pr-4 line-clamp-2">Module {mIdx + 1}: {module.title.replace(/^Module\s*\d+:\s*/i, '')}</span>
-                    <ChevronRight className={`w-4 h-4 shrink-0 transition-transform ${isExpanded ? 'rotate-90 text-brand-400' : ''}`} />
+                    <ChevronRight className={`w-4 h-4 shrink-0 transition-transform ${isExpanded ? 'rotate-90 text-brand-600' : ''}`} />
                   </button>
                   
                   {isExpanded && (
-                    <div className="space-y-1 border-l border-white/10 ml-2 pl-4">
+                    <div className="space-y-1 border-l border-slate-200 ml-2 pl-4">
                       {module.lessons.map((l) => {
                         const isActive = l._id === lesson._id;
                         return (
                           <Link
                             key={l._id}
                             to={`/course/${courseId}/lesson/${l._id}`}
-                            className={`flex items-start gap-3 p-2 rounded-lg transition-colors ${isActive ? 'bg-brand-500/10 text-brand-400' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}
+                            className={`flex items-start gap-3 p-2 rounded-lg transition-colors ${isActive ? 'bg-brand-50 text-brand-600 font-medium' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
                           >
                             {l.completedAt ? (
-                              <CheckCircle className={`w-4 h-4 mt-0.5 shrink-0 ${isActive ? 'text-brand-500' : 'text-slate-500'}`} />
+                              <CheckCircle className={`w-4 h-4 mt-0.5 shrink-0 ${isActive ? 'text-brand-600' : 'text-slate-500'}`} />
                             ) : (
-                              <Circle className={`w-4 h-4 mt-0.5 shrink-0 ${isActive ? 'text-brand-400' : 'text-slate-600'}`} />
+                              <Circle className={`w-4 h-4 mt-0.5 shrink-0 ${isActive ? 'text-brand-600' : 'text-slate-400'}`} />
                             )}
                             <span className="text-sm line-clamp-2">{l.title}</span>
                           </Link>
@@ -369,20 +369,20 @@ export default function LessonViewerPage() {
       {lesson && lesson.generationStatus !== 'none' && !isRightSidebarOpen && !error && (
         <button
           onClick={() => setIsRightSidebarOpen(true)}
-          className="lg:hidden absolute top-4 right-4 z-40 bg-dark-800 p-2 rounded-lg border border-white/10 text-slate-300 hover:text-white transition-colors shadow-lg no-print"
+          className="lg:hidden absolute top-4 right-4 z-40 bg-white p-2 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-900 transition-colors shadow-sm no-print"
           title="Expand AI Tutor"
         >
           <Bot className="w-5 h-5" />
         </button>
       )}
 
-      <main className="flex-1 bg-dark-950 overflow-y-auto relative print:overflow-visible print:block">
+      <main className="flex-1 bg-white overflow-y-auto relative print:overflow-visible print:block">
         {!lesson ? (
           <div className="flex h-full items-center justify-center">
             <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
           </div>
         ) : error ? (
-          <div className="p-8 text-center text-red-400">{error}</div>
+          <div className="p-8 text-center text-red-600">{error}</div>
         ) : (
           <>
             
@@ -392,8 +392,8 @@ export default function LessonViewerPage() {
               !isRightSidebarOpen ? 'lg:pr-24' : 'lg:pr-16'
             }`}>
               {/* Breadcrumb */}
-              <div className="flex items-center gap-2 text-sm text-slate-500 mb-8">
-                <Link to={`/course/${courseId}`} className="truncate max-w-[150px] md:max-w-[300px] hover:text-slate-300 transition-colors">
+              <div className="flex items-center gap-2 text-sm text-slate-500 mb-8 font-medium">
+                <Link to={`/course/${courseId}`} className="truncate max-w-[150px] md:max-w-[300px] hover:text-slate-900 transition-colors">
                   {course.title}
                 </Link>
                 <ChevronRight className="w-4 h-4" />
@@ -401,20 +401,20 @@ export default function LessonViewerPage() {
                   const activeModule = course.modules.find(m => m.lessons.some(l => l._id === lesson._id));
                   return activeModule ? (
                     <>
-                      <span className="truncate max-w-[150px] md:max-w-[200px]">{activeModule.title.replace(/^Module\s*\d+:\s*/i, '')}</span>
+                      <span className="truncate max-w-[150px] md:max-w-[200px] text-slate-700">{activeModule.title.replace(/^Module\s*\d+:\s*/i, '')}</span>
                       <ChevronRight className="w-4 h-4" />
                     </>
                   ) : null;
                 })()}
-                <span className="text-brand-400">{lesson.title}</span>
+                <span className="text-brand-600 font-semibold">{lesson.title}</span>
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-6">
                 <div className="flex items-center gap-4">
-                  <h1 className="text-3xl md:text-4xl font-bold">{lesson.title}</h1>
+                  <h1 className="text-3xl md:text-4xl font-bold text-slate-900">{lesson.title}</h1>
                   <button 
                     onClick={toggleBookmark}
-                    className={`flex items-center justify-center p-2 rounded-full transition-colors ${isBookmarked ? 'bg-brand-500/20 text-brand-400 hover:bg-brand-500/30' : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'}`}
+                    className={`flex items-center justify-center p-2 rounded-full transition-colors ${isBookmarked ? 'bg-brand-100 text-brand-600 hover:bg-brand-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900'}`}
                     title={isBookmarked ? "Remove Bookmark" : "Bookmark Lesson"}
                   >
                     <Bookmark className={`w-5 h-5 ${isBookmarked ? 'fill-current' : ''}`} />
@@ -426,7 +426,7 @@ export default function LessonViewerPage() {
                     <button
                       onClick={() => window.print()}
                       title="Download PDF"
-                      className="flex items-center justify-center w-10 h-10 rounded-lg font-medium transition-all bg-brand-500/10 text-brand-400 border border-brand-500/20 hover:bg-brand-500/20"
+                      className="flex items-center justify-center w-10 h-10 rounded-lg font-medium transition-all bg-brand-50 text-brand-600 border border-brand-100 hover:bg-brand-100"
                     >
                       <Download className="w-5 h-5" />
                     </button>
@@ -436,8 +436,8 @@ export default function LessonViewerPage() {
                       title={lesson.completedAt ? "Completed" : "Mark as Complete"}
                       className={`flex items-center justify-center w-10 h-10 rounded-lg font-medium transition-all ${
                         lesson.completedAt 
-                          ? 'bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20' 
-                          : 'bg-dark-800 text-slate-300 border border-white/10 hover:bg-dark-700'
+                          ? 'bg-green-50 text-green-600 border border-green-100 hover:bg-green-100' 
+                          : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
                       }`}
                     >
                       {savingProgress ? (
@@ -452,31 +452,31 @@ export default function LessonViewerPage() {
                 )}
               </div>
               
-              <div className="glass-panel p-6 md:p-8 mb-8">
+              <div className="glass-panel p-6 md:p-8 mb-8 bg-white border border-slate-200 shadow-sm">
                 {lesson.content && lesson.content.length > 0 && (
                   <LessonRenderer blocks={lesson.content} />
                 )}
 
                 {generatingChunk && (
-                  <div className="flex flex-col items-center justify-center py-16 border-t border-white/5 mt-8">
+                  <div className="flex flex-col items-center justify-center py-16 border-t border-slate-100 mt-8">
                     <div className="relative w-16 h-16 mx-auto mb-4">
-                      <div className="absolute inset-0 bg-brand-500/20 rounded-full animate-ping" style={{ animationDuration: '2s' }}></div>
-                      <div className="relative flex items-center justify-center w-full h-full bg-dark-800 border border-brand-500/30 rounded-full shadow-[0_0_30px_rgba(34,211,238,0.2)]">
-                        <Sparkles className="w-8 h-8 text-brand-400 animate-pulse" />
+                      <div className="absolute inset-0 bg-brand-100 rounded-full animate-ping" style={{ animationDuration: '2s' }}></div>
+                      <div className="relative flex items-center justify-center w-full h-full bg-white border border-brand-200 rounded-full shadow-md">
+                        <Sparkles className="w-8 h-8 text-brand-600 animate-pulse" />
                       </div>
                     </div>
-                    <p className="text-slate-400 text-sm font-medium">
+                    <p className="text-slate-500 text-sm font-medium">
                       Generating lesson content...
                     </p>
                   </div>
                 )}
 
                 {generationError && (
-                  <div className="text-center py-8 border-t border-white/5 mt-8">
-                    <div className="w-12 h-12 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="text-center py-8 border-t border-slate-100 mt-8">
+                    <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
                       <AlertTriangle className="w-6 h-6" />
                     </div>
-                    <p className="text-slate-400 mb-6">{generationError}</p>
+                    <p className="text-slate-500 mb-6">{generationError}</p>
                     <button 
                       onClick={() => {
                         const nextChunk = lesson.generationStatus === 'none' ? 'intro' : (lesson.generationStatus === 'intro' ? 'content' : 'quiz');
@@ -501,7 +501,7 @@ export default function LessonViewerPage() {
       {/* Right Sidebar AI Tutor */}
       {lesson.generationStatus !== 'none' && isRightSidebarOpen && (
         <aside 
-          className="absolute lg:relative inset-y-0 right-0 z-30 flex flex-col shrink-0 border-l border-white/5 bg-dark-900 shadow-xl no-print w-full sm:w-[384px] lg:w-auto"
+          className="absolute lg:relative inset-y-0 right-0 z-30 flex flex-col shrink-0 border-l border-slate-200 bg-slate-50 shadow-sm no-print w-full sm:w-[384px] lg:w-auto"
           style={{ width: typeof window !== 'undefined' && window.innerWidth >= 1024 ? `${rightWidth}px` : undefined }}
         >
           <div 
@@ -512,7 +512,7 @@ export default function LessonViewerPage() {
             
             <button
               onClick={(e) => { e.stopPropagation(); setIsRightSidebarOpen(false); }}
-              className="absolute right-[2px] w-7 h-7 rounded-full bg-dark-800 border border-white/10 flex items-center justify-center text-slate-400 opacity-0 group-hover:opacity-100 group-hover:text-white group-hover:border-white/20 transition-all z-10"
+              className="absolute right-[2px] w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 opacity-0 group-hover:opacity-100 group-hover:text-slate-900 group-hover:border-slate-300 transition-all z-10 shadow-sm"
               title="Collapse"
             >
               <ChevronsRight className="w-4 h-4 ml-0.5" />

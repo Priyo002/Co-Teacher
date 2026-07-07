@@ -12,28 +12,27 @@ export default {
       },
       colors: {
         brand: {
-          50: '#f0fdfa',
-          100: '#ccfbf1',
-          200: '#99f6e4',
-          300: '#5eead4',
-          400: '#2dd4bf',
-          500: '#14b8a6', // teal/cyan mix
-          600: '#0d9488',
-          700: '#0f766e',
-          800: '#115e59',
-          900: '#134e4a',
-          950: '#042f2e',
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6', // primary blue
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+          950: '#172554',
         },
         dark: {
-          900: '#0B0D17', // Very deep blue/black
-          800: '#151828', // Slightly lighter deep blue
-          700: '#1A1E30', // Panel backgrounds
-          600: '#232840', // Borders/Hovers
+          900: '#0f172a', // standard slate-900 instead of deep blue/black
+          800: '#1e293b',
+          700: '#334155',
+          600: '#475569',
         }
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'glass-gradient': 'linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01))',
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-out both',

@@ -79,11 +79,11 @@ export default function HomePage() {
   const allCourses = coursesWithLatestOpen;
 
   return (
-    <div className="p-8 animate-fade-in max-w-[1400px] mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 gap-4">
+    <div className="p-8 md:p-12 animate-fade-in max-w-[1400px] mx-auto">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-12 gap-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">My Dashboard</h1>
-          <p className="text-slate-400">Track your progress and continue learning.</p>
+          <h1 className="text-4xl md:text-5xl font-extrabold mb-3 text-slate-900 tracking-tight">My Dashboard</h1>
+          <p className="text-lg text-slate-500">Track your progress and continue learning.</p>
         </div>
         
         <div className="flex items-center gap-4 w-full sm:w-auto relative z-50">
@@ -94,12 +94,12 @@ export default function HomePage() {
               placeholder="Search courses & bookmarks..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-dark-800 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-white focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/50 transition-all"
+              className="w-full bg-white border border-slate-200 rounded-xl py-2 pl-10 pr-4 text-slate-900 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all shadow-sm"
             />
             
             {/* Dynamic Search Dropdown */}
             {searchQuery.trim().length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-dark-800 border border-white/10 rounded-xl shadow-2xl overflow-hidden max-h-[400px] overflow-y-auto custom-scrollbar flex flex-col z-[100]">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden max-h-[400px] overflow-y-auto custom-scrollbar flex flex-col z-[100]">
                 {(() => {
                   const query = searchQuery.toLowerCase();
                   const filteredCourses = allCourses.filter(c => 
@@ -111,14 +111,14 @@ export default function HomePage() {
                   );
 
                   if (filteredCourses.length === 0 && filteredBookmarks.length === 0) {
-                    return <div className="p-4 text-center text-slate-400 text-sm">No matches found.</div>;
+                    return <div className="p-4 text-center text-slate-500 text-sm">No matches found.</div>;
                   }
 
                   return (
                     <div className="flex flex-col py-2">
                       {filteredCourses.length > 0 && (
                         <div className="px-2 py-1">
-                          <h4 className="px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                          <h4 className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                             <BookOpen className="w-3 h-3" /> Courses
                           </h4>
                           <div className="flex flex-col">
@@ -126,9 +126,9 @@ export default function HomePage() {
                               <Link 
                                 key={course._id} 
                                 to={`/course/${course._id}`}
-                                className="px-3 py-2.5 rounded-lg hover:bg-white/5 flex items-center transition-colors group"
+                                className="px-3 py-2.5 rounded-lg hover:bg-slate-50 flex items-center transition-colors group"
                               >
-                                <span className="text-sm font-medium text-slate-200 group-hover:text-brand-400 transition-colors truncate">{course.title}</span>
+                                <span className="text-sm font-medium text-slate-700 group-hover:text-brand-600 transition-colors truncate">{course.title}</span>
                               </Link>
                             ))}
                           </div>
@@ -136,12 +136,12 @@ export default function HomePage() {
                       )}
                       
                       {filteredCourses.length > 0 && filteredBookmarks.length > 0 && (
-                        <div className="h-px bg-white/5 mx-4 my-1"></div>
+                        <div className="h-px bg-slate-100 mx-4 my-1"></div>
                       )}
                       
                       {filteredBookmarks.length > 0 && (
                         <div className="px-2 py-1">
-                          <h4 className="px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                          <h4 className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                             <Bookmark className="w-3 h-3" /> Bookmarked Lessons
                           </h4>
                           <div className="flex flex-col">
@@ -149,9 +149,9 @@ export default function HomePage() {
                               <Link 
                                 key={lesson._id} 
                                 to={`/course/${lesson.module?.course?._id}/lesson/${lesson._id}`}
-                                className="px-3 py-2.5 rounded-lg hover:bg-white/5 flex flex-col justify-center transition-colors group"
+                                className="px-3 py-2.5 rounded-lg hover:bg-slate-50 flex flex-col justify-center transition-colors group"
                               >
-                                <span className="text-sm font-medium text-slate-200 group-hover:text-brand-400 transition-colors truncate">{lesson.title}</span>
+                                <span className="text-sm font-medium text-slate-700 group-hover:text-brand-600 transition-colors truncate">{lesson.title}</span>
                                 <span className="text-[11px] text-slate-500 truncate flex items-center gap-1 mt-0.5">
                                   <BookOpen className="w-2.5 h-2.5" /> {lesson.module?.course?.title}
                                 </span>
@@ -168,7 +168,7 @@ export default function HomePage() {
           </div>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="btn-primary whitespace-nowrap shrink-0"
+            className="px-6 py-3 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all flex items-center gap-2 whitespace-nowrap shrink-0"
           >
             <Plus className="w-5 h-5" />
             Generate Course
@@ -177,65 +177,93 @@ export default function HomePage() {
       </div>
 
       {courses.length === 0 ? (
-        <div className="glass-panel p-12 text-center flex flex-col items-center border-dashed border-2 border-white/10 bg-dark-800/30">
-          <div className="bg-dark-700 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 text-slate-400">
+        <div className="glass-panel p-12 text-center flex flex-col items-center bg-slate-50">
+          <div className="bg-white w-16 h-16 rounded-2xl flex items-center justify-center mb-4 text-brand-500 shadow-sm border border-slate-100">
             <BookOpen className="w-8 h-8" />
           </div>
-          <h3 className="text-xl font-semibold mb-2">No courses yet</h3>
-          <p className="text-slate-400 max-w-md mb-6">You haven't generated any courses. Use the AI course generator to start learning anything.</p>
-          <button onClick={() => setIsModalOpen(true)} className="btn-secondary">
+          <h3 className="text-xl font-semibold mb-2 text-slate-900">No courses yet</h3>
+          <p className="text-slate-500 max-w-md mb-6">You haven't generated any courses. Use the AI course generator to start learning anything.</p>
+          <button onClick={() => setIsModalOpen(true)} className="btn-primary">
             Create Your First Course
           </button>
         </div>
       ) : (
         <>
           {/* Metrics Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-10">
-            <div className="glass-panel p-5 sm:p-6 border-brand-500/20 bg-brand-500/5">
-              <div className="flex items-center gap-2 text-brand-400 mb-2">
-                <BookOpen className="w-4 h-4" />
-                <h3 className="text-xs sm:text-sm font-medium">Total Courses</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
+            <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden flex flex-col justify-center">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-brand-50 rounded-full blur-2xl -mr-8 -mt-8 transition-transform group-hover:scale-125"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 text-brand-600 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center">
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Total Courses</h3>
+                </div>
+                <p className="text-5xl font-extrabold text-slate-900">{totalCourses}</p>
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-white">{totalCourses}</p>
             </div>
-            <div className="glass-panel p-5 sm:p-6 border-purple-500/20 bg-purple-500/5">
-              <div className="flex items-center gap-2 text-purple-400 mb-2">
-                <Bookmark className="w-4 h-4" />
-                <h3 className="text-xs sm:text-sm font-medium">Saved Bookmarks</h3>
+            
+            <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden flex flex-col justify-center">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-50 rounded-full blur-2xl -mr-8 -mt-8 transition-transform group-hover:scale-125"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 text-purple-600 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
+                    <Bookmark className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Saved Bookmarks</h3>
+                </div>
+                <p className="text-5xl font-extrabold text-slate-900">{bookmarks.length}</p>
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-white">{bookmarks.length}</p>
             </div>
-            <div className="glass-panel p-5 sm:p-6 border-blue-500/20 bg-blue-500/5">
-              <div className="flex items-center gap-2 text-blue-400 mb-2">
-                <CheckCircle className="w-4 h-4" />
-                <h3 className="text-xs sm:text-sm font-medium">Lessons Completed</h3>
+
+            <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden flex flex-col justify-center">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-2xl -mr-8 -mt-8 transition-transform group-hover:scale-125"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 text-blue-600 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Lessons Completed</h3>
+                </div>
+                <p className="text-5xl font-extrabold text-slate-900 flex items-baseline gap-2">
+                  {completedLessons} 
+                  <span className="text-xl font-medium text-slate-400">/ {totalLessons}</span>
+                </p>
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-white">{completedLessons} <span className="text-sm font-normal text-slate-500">/ {totalLessons}</span></p>
             </div>
-            <div className="glass-panel p-5 sm:p-6 border-green-500/20 bg-green-500/5">
-              <div className="flex items-center gap-2 text-green-400 mb-2">
-                <TrendingUp className="w-4 h-4" />
-                <h3 className="text-xs sm:text-sm font-medium">Overall Progress</h3>
+
+            <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden flex flex-col justify-center">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-green-50 rounded-full blur-2xl -mr-8 -mt-8 transition-transform group-hover:scale-125"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 text-green-600 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Overall Progress</h3>
+                </div>
+                <p className="text-5xl font-extrabold text-slate-900">{progressPercent}%</p>
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-white">{progressPercent}%</p>
             </div>
           </div>
 
           {/* Continue Learning & Study Activity */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-10">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-12">
             {/* Continue Learning */}
             <div className="xl:col-span-2 flex flex-col h-full">
-              <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                <PlayCircle className="w-6 h-6 text-brand-400" />
+              <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-slate-900 tracking-tight">
+                <div className="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center">
+                  <PlayCircle className="w-5 h-5 text-brand-600" />
+                </div>
                 Continue Learning
               </h2>
               <div className="flex-1">
                 {recentCourse ? (
                   <CourseCard course={recentCourse} onDelete={handleDeleteCourse} />
                 ) : (
-                  <div className="glass-panel h-full p-8 flex flex-col items-center justify-center text-center border-dashed border-2 border-white/10 bg-dark-800/30">
-                    <p className="text-slate-400 mb-4">You haven't started any courses yet.</p>
-                    <button onClick={() => setIsModalOpen(true)} className="btn-secondary">
+                  <div className="bg-white rounded-3xl h-full p-12 flex flex-col items-center justify-center text-center border-dashed border-2 border-slate-200 shadow-sm">
+                    <p className="text-slate-500 mb-6 text-lg">You haven't started any courses yet.</p>
+                    <button onClick={() => setIsModalOpen(true)} className="px-6 py-3 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl shadow-lg transition-all">
                       Generate a Course
                     </button>
                   </div>
@@ -245,14 +273,16 @@ export default function HomePage() {
 
             {/* Study Activity Heatmap */}
             <div className="xl:col-span-1 flex flex-col h-full">
-              <h2 className="text-xl font-bold mb-6 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-6 h-6 text-purple-400" />
+              <h2 className="text-2xl font-bold mb-6 flex items-center justify-between text-slate-900 tracking-tight">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-purple-600" />
+                  </div>
                   Study Activity
                 </div>
               </h2>
               
-              <div className="glass-panel p-6 border-purple-500/20 bg-purple-500/5 flex-1 flex flex-col">
+              <div className="glass-panel p-6 border-slate-200 bg-white flex-1 flex flex-col shadow-sm">
                 {(() => {
                   const activityCounts = new Map();
                   courses.forEach(c => {
@@ -319,14 +349,14 @@ export default function HomePage() {
                     <div className="flex flex-col h-full justify-between">
                       <div className="flex items-center justify-between mb-6">
                         <div>
-                          <span className="text-slate-400 font-medium text-sm block mb-1">Current Streak</span>
-                          <span className="text-2xl font-bold text-white flex items-center gap-2">
-                            {streak} <span className="text-sm font-normal text-brand-400">Days 🔥</span>
+                          <span className="text-slate-500 font-medium text-sm block mb-1">Current Streak</span>
+                          <span className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                            {streak} <span className="text-sm font-normal text-brand-600">Days 🔥</span>
                           </span>
                         </div>
                         <div className="text-right">
-                          <span className="text-slate-400 font-medium text-sm block mb-1">This Month</span>
-                          <span className="text-xl font-bold text-white">
+                          <span className="text-slate-500 font-medium text-sm block mb-1">This Month</span>
+                          <span className="text-xl font-bold text-slate-900">
                             {today.toLocaleDateString('en-US', { month: 'long' })}
                           </span>
                         </div>
@@ -350,15 +380,15 @@ export default function HomePage() {
                             return (
                               <div key={i} className="relative flex flex-col items-center justify-center h-8 group cursor-default">
                                 {isActive ? (
-                                  <div className={`w-7 h-7 flex items-center justify-center rounded-full z-10 ${dayObj.isToday ? 'bg-brand-500 shadow-[0_0_15px_rgba(34,211,238,0.4)]' : ''}`}>
-                                    <CheckCircle className={`w-5 h-5 ${dayObj.isToday ? 'text-dark-900' : 'text-brand-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]'}`} strokeWidth={2.5} />
+                                  <div className={`w-7 h-7 flex items-center justify-center rounded-full z-10 ${dayObj.isToday ? 'bg-brand-500 shadow-md' : 'bg-brand-100'}`}>
+                                    <CheckCircle className={`w-5 h-5 ${dayObj.isToday ? 'text-white' : 'text-brand-600'}`} strokeWidth={2.5} />
                                   </div>
                                 ) : (
                                   <div 
                                     className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-medium transition-colors z-10 ${
                                       dayObj.isToday 
-                                        ? 'bg-brand-500 text-dark-900 font-bold shadow-[0_0_15px_rgba(34,211,238,0.4)]' 
-                                        : 'text-slate-400 hover:text-slate-200'
+                                        ? 'bg-brand-500 text-white font-bold shadow-md' 
+                                        : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                                     }`}
                                   >
                                     {dayObj.day}
@@ -367,7 +397,7 @@ export default function HomePage() {
                                 
                                 {/* Tooltip */}
                                 {isActive && (
-                                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-dark-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 border border-white/10 shadow-xl">
+                                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-white text-xs text-slate-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 border border-slate-200 shadow-xl">
                                     {dayObj.count} activities
                                   </div>
                                 )}
@@ -385,17 +415,17 @@ export default function HomePage() {
 
           {/* Tabs for All Courses / Bookmarks */}
           <div className="mt-6 relative z-0">
-            <div className="flex items-center gap-6 border-b border-white/10 mb-6">
+            <div className="flex items-center gap-6 border-b border-slate-200 mb-6">
               <button
                 onClick={() => setActiveTab('courses')}
-                className={`pb-3 text-lg font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'courses' ? 'border-brand-500 text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-300'}`}
+                className={`pb-3 text-lg font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'courses' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
               >
                 <BookOpen className="w-5 h-5" />
                 All Courses
               </button>
               <button
                 onClick={() => setActiveTab('bookmarks')}
-                className={`pb-3 text-lg font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'bookmarks' ? 'border-brand-500 text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-300'}`}
+                className={`pb-3 text-lg font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'bookmarks' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
               >
                 <Bookmark className="w-5 h-5" />
                 Bookmarks
@@ -417,31 +447,31 @@ export default function HomePage() {
                     <Link 
                       key={lesson._id}
                       to={`/course/${lesson.module?.course?._id}/lesson/${lesson._id}`}
-                      className="glass-panel p-5 border-white/5 hover:border-brand-500/50 transition-all hover:-translate-y-1 group"
+                      className="glass-panel p-5 border-slate-200 hover:border-brand-500 transition-all hover:-translate-y-1 group bg-white shadow-sm hover:shadow-md"
                     >
                       <div className="flex items-start justify-between mb-3">
-                        <div className="p-2 bg-brand-500/10 rounded-lg text-brand-400">
+                        <div className="p-2 bg-brand-50 rounded-lg text-brand-600">
                           <Bookmark className="w-5 h-5 fill-current" />
                         </div>
                         <button
                           onClick={(e) => handleRemoveBookmark(e, lesson._id)}
-                          className="p-2 -mr-2 -mt-2 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all rounded-full hover:bg-red-400/10"
+                          className="p-2 -mr-2 -mt-2 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all rounded-full hover:bg-red-50"
                           title="Remove bookmark"
                         >
                           <Bookmark className="w-4 h-4 fill-current" />
                         </button>
                       </div>
-                      <h3 className="font-bold text-lg mb-2 line-clamp-2 group-hover:text-brand-400 transition-colors">{lesson.title}</h3>
-                      <p className="text-sm text-slate-400 mb-4 line-clamp-2">{lesson.description}</p>
-                      <div className="text-xs text-slate-500 flex items-center gap-2">
-                        <BookOpen className="w-3 h-3" />
+                      <h3 className="font-bold text-lg mb-2 line-clamp-2 text-slate-900 group-hover:text-brand-600 transition-colors">{lesson.title}</h3>
+                      <p className="text-sm text-slate-500 mb-4 line-clamp-2">{lesson.description}</p>
+                      <div className="text-xs text-slate-500 flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <BookOpen className="w-3 h-3 text-slate-400" />
                         <span className="truncate">{lesson.module?.course?.title}</span>
                       </div>
                     </Link>
                   ))}
                 </div>
               ) : (
-                <div className="p-8 text-center border-dashed border-2 border-white/10 rounded-xl bg-dark-800/30 text-slate-400">
+                <div className="p-8 text-center border-dashed border-2 border-slate-200 rounded-xl bg-slate-50 text-slate-500 shadow-sm">
                   You haven't bookmarked any lessons yet.
                 </div>
               )

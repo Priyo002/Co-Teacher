@@ -96,24 +96,24 @@ export default function FinalTestPage() {
     <div className="p-4 sm:p-8 animate-fade-in max-w-4xl mx-auto">
       <button 
         onClick={() => navigate(`/course/${id}`)}
-        className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6"
+        className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors mb-6 font-medium"
       >
         <ArrowLeft className="w-4 h-4" /> Back to Course
       </button>
 
       {result ? (
-        <div className="mt-10 p-8 bg-dark-900 border border-brand-500/30 rounded-2xl text-center relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-r from-brand-500/10 via-purple-500/10 to-brand-500/10 opacity-50"></div>
+        <div className="mt-10 p-8 bg-white border border-brand-200 rounded-2xl text-center relative overflow-hidden group shadow-sm">
+          <div className="absolute inset-0 bg-gradient-to-r from-brand-50 via-purple-50 to-brand-50 opacity-50"></div>
           <div className="relative z-10 flex flex-col items-center">
-            <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 border-4 shadow-2xl ${result.passed ? 'bg-dark-800 border-brand-500 text-brand-400 shadow-[0_0_30px_rgba(34,211,238,0.4)]' : 'bg-dark-800 border-red-500 text-red-400 shadow-[0_0_30px_rgba(239,68,68,0.4)]'}`}>
+            <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 border-4 shadow-sm ${result.passed ? 'bg-brand-50 border-brand-500 text-brand-600' : 'bg-red-50 border-red-500 text-red-600'}`}>
               {result.passed ? <Trophy className="w-12 h-12" /> : <RotateCcw className="w-12 h-12" />}
             </div>
             
-            <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+            <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
               {result.passed ? 'Congratulations!' : 'Keep Learning!'}
             </h1>
             
-            <p className="text-xl text-slate-300 mb-8 max-w-lg">
+            <p className="text-xl text-slate-700 mb-8 max-w-lg">
               {result.passed 
                 ? `You passed the Final Certification Test with a score of ${result.score}%!` 
                 : `You scored ${result.score !== null ? result.score : 'under 70'}%, which didn't quite hit the 70% mark. Review the course material and try again!`}
@@ -123,7 +123,7 @@ export default function FinalTestPage() {
               {result.passed ? (
                 <button 
                   onClick={() => navigate(`/certificate/${result.certificateId}`)}
-                  className="btn-primary shadow-[0_0_20px_rgba(34,211,238,0.3)] animate-pulse-glow"
+                  className="btn-primary shadow-md shadow-brand-500/20 transform hover:-translate-y-0.5"
                 >
                   <Sparkles className="w-5 h-5 mr-2 inline" /> View Certificate
                 </button>
@@ -142,9 +142,9 @@ export default function FinalTestPage() {
       ) : (
         <>
           <div className="mb-10">
-            <h1 className="text-3xl sm:text-4xl font-bold mb-4">Final Certification Test</h1>
-            <p className="text-slate-300 text-lg">{course.title}</p>
-            <p className="text-slate-400 mt-2">Answer all {questions.length} questions. You need at least 70% to pass and earn your certificate.</p>
+            <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">Final Certification Test</h1>
+            <p className="text-slate-700 text-lg">{course.title}</p>
+            <p className="text-slate-600 mt-2">Answer all {questions.length} questions. You need at least 70% to pass and earn your certificate.</p>
           </div>
 
           <div className="space-y-10">
@@ -152,18 +152,18 @@ export default function FinalTestPage() {
               const selectedAns = answers[qIdx];
 
               return (
-                <div key={qIdx} className="bg-dark-900 p-6 sm:p-8 rounded-2xl border border-white/5 shadow-xl">
-                  <p className="text-xl font-bold text-slate-200 mb-6 flex gap-4">
-                    <span className="text-brand-400">{qIdx + 1}.</span> 
+                <div key={qIdx} className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
+                  <p className="text-xl font-bold text-slate-900 mb-6 flex gap-4">
+                    <span className="text-brand-600">{qIdx + 1}.</span> 
                     <span>{q.question}</span>
                   </p>
                   <div className="space-y-3">
                     {q.options.map((opt, oIdx) => {
                       let btnClass = "w-full text-left p-4 rounded-xl border transition-all break-words whitespace-pre-wrap ";
                       if (selectedAns === oIdx) {
-                        btnClass += "border-brand-500 bg-brand-500/10 text-white shadow-[0_0_15px_rgba(34,211,238,0.15)]";
+                        btnClass += "border-brand-500 bg-brand-50 text-brand-700 shadow-sm";
                       } else {
-                        btnClass += "border-white/5 bg-white/5 text-slate-300 hover:border-white/20 hover:bg-white/10";
+                        btnClass += "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50";
                       }
 
                       return (
@@ -186,7 +186,7 @@ export default function FinalTestPage() {
             <button 
               onClick={handleSubmit}
               disabled={submitting}
-              className="btn-primary px-10 py-4 text-lg shadow-[0_0_20px_rgba(34,211,238,0.3)] animate-pulse-glow"
+              className="btn-primary px-10 py-4 text-lg shadow-md shadow-brand-500/20 transform hover:-translate-y-0.5"
             >
               {submitting ? <Loader2 className="w-6 h-6 animate-spin inline mr-2" /> : <CheckCircle2 className="w-6 h-6 inline mr-2" />}
               {submitting ? 'Submitting...' : 'Submit Final Test'}

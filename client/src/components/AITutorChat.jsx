@@ -78,16 +78,16 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-dark-900 border-l border-white/10 relative z-10 overflow-hidden">
-      <div className="flex items-center justify-between p-4 border-b border-white/5 shrink-0">
-        <div className="flex items-center gap-2 text-sm text-brand-400 font-semibold">
+    <div className="flex flex-col h-full bg-slate-50 border-l border-slate-200 relative z-10 overflow-hidden">
+      <div className="flex items-center justify-between p-4 border-b border-slate-200 shrink-0">
+        <div className="flex items-center gap-2 text-sm text-brand-600 font-semibold">
           <Bot className="w-4 h-4" /> AI Tutor
         </div>
         <div className="flex items-center gap-1">
           {chatHistory.length > 1 && (
             <button
               onClick={handleClearHistory}
-              className="text-slate-400 hover:text-red-400 p-1.5 rounded hover:bg-white/5 transition-colors"
+              className="text-slate-500 hover:text-red-600 p-1.5 rounded hover:bg-slate-100 transition-colors"
               title="Clear Chat History"
             >
               <Trash2 className="w-4 h-4" />
@@ -96,7 +96,7 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
           {onClose && (
             <button 
               onClick={onClose} 
-              className="lg:hidden text-slate-400 hover:text-white p-1.5 rounded hover:bg-white/5 transition-colors" 
+              className="lg:hidden text-slate-500 hover:text-slate-900 p-1.5 rounded hover:bg-slate-100 transition-colors" 
               title="Shrink AI Tutor"
             >
               <PanelRightClose className="w-5 h-5" />
@@ -109,14 +109,14 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
         {chatHistory.map((msg, idx) => (
           <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'assistant' && (
-              <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center shrink-0 border border-brand-500/30">
-                <Sparkles className="w-4 h-4 text-brand-400" />
+              <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center shrink-0 border border-brand-200">
+                <Sparkles className="w-4 h-4 text-brand-600" />
               </div>
             )}
             <div className={`p-3 rounded-2xl max-w-[85%] ${
               msg.role === 'user' 
                 ? 'bg-brand-600 text-white rounded-tr-sm' 
-                : 'bg-dark-800 text-slate-300 border border-white/5 rounded-tl-sm prose prose-invert prose-sm max-w-none'
+                : 'bg-white text-slate-700 border border-slate-200 rounded-tl-sm prose prose-sm max-w-none'
             }`}>
               {msg.role === 'user' ? (
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
@@ -128,10 +128,10 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
         ))}
         {isTyping && (
           <div className="flex gap-3 justify-start">
-            <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center shrink-0 border border-brand-500/30">
-              <Sparkles className="w-4 h-4 text-brand-400" />
+            <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center shrink-0 border border-brand-200">
+              <Sparkles className="w-4 h-4 text-brand-600" />
             </div>
-            <div className="p-4 rounded-2xl bg-dark-800 border border-white/5 rounded-tl-sm flex items-center gap-2">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 rounded-tl-sm flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-brand-500 animate-bounce" />
               <div className="w-2 h-2 rounded-full bg-brand-500 animate-bounce" style={{ animationDelay: '0.2s' }} />
               <div className="w-2 h-2 rounded-full bg-brand-500 animate-bounce" style={{ animationDelay: '0.4s' }} />
@@ -140,19 +140,19 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
         )}
       </div>
 
-      <div className="p-4 bg-dark-950 border-t border-white/10 shrink-0">
+      <div className="p-4 bg-white border-t border-slate-200 shrink-0">
         <form onSubmit={handleSendMessage} className="relative flex items-center">
           <input
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Ask your AI tutor..."
-            className="w-full bg-dark-800 border border-white/10 rounded-xl py-3 pl-4 pr-12 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500/50 transition-colors"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-4 pr-12 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500/50 transition-colors"
           />
           <button 
             type="submit" 
             disabled={!message.trim() || isTyping}
-            className="absolute right-2 p-2 bg-brand-500 text-dark-900 rounded-lg hover:bg-brand-400 transition-colors disabled:opacity-50"
+            className="absolute right-2 p-2 bg-brand-500 text-white rounded-lg hover:bg-brand-400 transition-colors disabled:opacity-50"
           >
             <Send className="w-4 h-4" />
           </button>

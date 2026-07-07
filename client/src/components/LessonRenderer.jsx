@@ -24,12 +24,12 @@ function CodeBlockWithTabs({ codes }) {
       <div className="relative p-4 overflow-x-auto">
         <button
           onClick={handleCopy}
-          className="absolute top-2 right-2 p-2 bg-white/5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+          className="absolute top-2 right-2 p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-slate-900 transition-colors"
           title="Copy code"
         >
-          {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+          {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
         </button>
-        <pre className="text-sm font-mono text-slate-200 mt-2">
+        <pre className="text-sm font-mono text-slate-800 mt-2">
           <code>{cleanCode(codes?.python || "No code available")}</code>
         </pre>
       </div>
@@ -38,7 +38,7 @@ function CodeBlockWithTabs({ codes }) {
 
   return (
     <>
-      <div className="flex items-center justify-between bg-white/5 border-b border-white/5 print:hidden">
+      <div className="flex items-center justify-between bg-slate-50 border-b border-slate-200 print:hidden">
         <div className="flex overflow-x-auto custom-scrollbar">
           {availableLangs.map(lang => (
             <button
@@ -46,8 +46,8 @@ function CodeBlockWithTabs({ codes }) {
               onClick={() => setActiveTab(lang)}
               className={`px-4 py-3 text-xs font-mono transition-colors border-b-2 whitespace-nowrap ${
                 activeTab === lang 
-                  ? 'border-brand-500 text-brand-400 bg-brand-500/10' 
-                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                  ? 'border-brand-600 text-brand-700 bg-brand-50' 
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100'
               }`}
             >
               <Terminal className="w-3 h-3 inline-block mr-2" />
@@ -57,14 +57,14 @@ function CodeBlockWithTabs({ codes }) {
         </div>
         <button
           onClick={handleCopy}
-          className="p-2 mr-2 bg-dark-800/50 hover:bg-dark-700 rounded-lg text-slate-400 hover:text-white transition-colors border border-white/5"
+          className="p-2 mr-2 bg-white hover:bg-slate-50 rounded-lg text-slate-500 hover:text-slate-900 transition-colors border border-slate-200 shadow-sm"
           title="Copy code"
         >
-          {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+          {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
         </button>
       </div>
       <div className="p-4 overflow-x-auto custom-scrollbar print:hidden">
-        <pre className="text-sm font-mono text-slate-200">
+        <pre className="text-sm font-mono text-slate-800">
           <code>{cleanCode(codes[activeTab])}</code>
         </pre>
       </div>
@@ -90,11 +90,11 @@ export default function LessonRenderer({ blocks }) {
   const [showResults, setShowResults] = useState({});
   const [quizCompleted, setQuizCompleted] = useState({});
   if (!blocks || !blocks.length) {
-    return <div className="text-slate-400 italic">No content available for this lesson yet.</div>;
+    <div className="text-slate-500 italic">No content available for this lesson yet.</div>;
   }
 
   return (
-    <div className="space-y-6 text-slate-300 leading-relaxed max-w-none">
+    <div className="space-y-6 text-slate-700 leading-relaxed max-w-none">
       {blocks.map((block, idx) => {
         switch (block.type) {
           case 'heading':
@@ -102,7 +102,7 @@ export default function LessonRenderer({ blocks }) {
             return (
               <HeadingTag 
                 key={idx} 
-                className={`text-white font-bold tracking-tight first:mt-0 ${
+                className={`text-slate-900 font-bold tracking-tight first:mt-0 ${
                   block.level === 2 ? 'text-2xl mt-10 mb-4' : 'text-xl mt-8 mb-3'
                 }`}
               >
@@ -112,7 +112,7 @@ export default function LessonRenderer({ blocks }) {
 
           case 'paragraph':
             return (
-              <div key={idx} className="mb-4 text-slate-300 text-lg prose prose-invert max-w-none">
+              <div key={idx} className="mb-4 text-slate-700 text-lg prose max-w-none">
                 <ReactMarkdown>{block.text}</ReactMarkdown>
               </div>
             );
@@ -121,12 +121,12 @@ export default function LessonRenderer({ blocks }) {
             const ListTag = block.style === 'numbered' ? 'ol' : 'ul';
             const listClass = block.style === 'numbered' 
               ? 'list-decimal list-outside ml-6 space-y-2 mb-6' 
-              : 'list-disc list-outside ml-6 space-y-2 mb-6 marker:text-brand-500';
+              : 'list-disc list-outside ml-6 space-y-2 mb-6 marker:text-brand-600';
             
             return (
               <ListTag key={idx} className={listClass}>
                 {block.items.map((item, i) => (
-                  <li key={i} className="pl-2 text-slate-300 text-lg prose prose-invert max-w-none">
+                  <li key={i} className="pl-2 text-slate-700 text-lg prose max-w-none">
                     <ReactMarkdown>{item}</ReactMarkdown>
                   </li>
                 ))}
@@ -135,22 +135,22 @@ export default function LessonRenderer({ blocks }) {
 
           case 'code':
             return (
-              <div key={idx} className="my-6 rounded-xl overflow-hidden border border-white/10 bg-[#0d1117] shadow-xl">
+              <div key={idx} className="my-6 rounded-xl overflow-hidden border border-slate-200 bg-[#f6f8fa] shadow-sm">
                 <CodeBlockWithTabs codes={block.codes || { python: block.code }} />
               </div>
             );
 
           case 'callout':
             return (
-              <div key={idx} className="my-8 glass-panel p-6 border-l-4 border-l-brand-500 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-16 bg-brand-500/5 rounded-full blur-2xl -mr-10 -mt-10 transition-opacity group-hover:opacity-100 opacity-50"></div>
+              <div key={idx} className="my-8 bg-brand-50 p-6 border-l-4 border-l-brand-600 relative overflow-hidden group shadow-sm rounded-r-xl">
+                <div className="absolute top-0 right-0 p-16 bg-white rounded-full blur-2xl -mr-10 -mt-10 transition-opacity group-hover:opacity-100 opacity-50"></div>
                 <div className="flex items-start gap-4 relative z-10">
-                  <div className="text-2xl bg-dark-900/50 p-2 rounded-xl shadow-inner border border-white/5">
+                  <div className="text-2xl bg-white p-2 rounded-xl shadow-sm border border-brand-100">
                     {block.emoji || '💡'}
                   </div>
                   <div>
-                    {block.title && <h4 className="font-bold text-white mb-1">{block.title}</h4>}
-                    <div className="text-slate-300 prose prose-invert max-w-none">
+                    {block.title && <h4 className="font-bold text-slate-900 mb-1">{block.title}</h4>}
+                    <div className="text-slate-700 prose max-w-none">
                       <ReactMarkdown>{block.text}</ReactMarkdown>
                     </div>
                   </div>
@@ -161,7 +161,7 @@ export default function LessonRenderer({ blocks }) {
           case 'video':
             return (
               <div key={idx} className="my-8 relative">
-                <div className="aspect-video w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl print:hidden">
+                <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 shadow-md print:hidden">
                   <iframe
                     src={block.url.replace('watch?v=', 'embed/')}
                     title={block.title || 'Video Player'}
@@ -215,11 +215,11 @@ export default function LessonRenderer({ blocks }) {
             };
 
             return (
-              <div key={idx} className="my-10 bg-dark-800 rounded-2xl border border-white/10 p-8 shadow-2xl relative overflow-hidden print:bg-transparent print:border-black/20 print:shadow-none print:p-0">
-                <div className="absolute top-0 right-0 p-32 bg-brand-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none print:hidden"></div>
-                <h3 className="text-2xl font-bold text-white mb-8 relative z-10 print:text-black flex items-center gap-3">
+              <div key={idx} className="my-10 bg-white rounded-2xl border border-slate-200 p-8 shadow-sm relative overflow-hidden print:bg-transparent print:border-black/20 print:shadow-none print:p-0">
+                <div className="absolute top-0 right-0 p-32 bg-brand-50 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none print:hidden"></div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-8 relative z-10 print:text-black flex items-center gap-3">
                   {block.title || 'Knowledge Check'} 
-                  <span className="text-brand-400 text-sm font-medium bg-brand-500/10 px-3 py-1 rounded-full uppercase tracking-wider shadow-[0_0_15px_rgba(34,211,238,0.2)]">Quiz</span>
+                  <span className="text-brand-700 text-sm font-semibold bg-brand-100 px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">Quiz</span>
                 </h3>
                 
                 <div className="space-y-8 relative z-10">
@@ -230,18 +230,18 @@ export default function LessonRenderer({ blocks }) {
                     const isCorrect = selectedAns === q.correctAnswer;
 
                     return (
-                      <div key={qIdx} className="bg-dark-950 p-6 rounded-xl border border-white/5 print:bg-transparent print:border-black/20 print:p-4">
-                        <p className="font-bold text-slate-200 mb-4 print:text-black">{qIdx + 1}. {q.question}</p>
+                      <div key={qIdx} className="bg-slate-50 p-6 rounded-xl border border-slate-200 print:bg-transparent print:border-black/20 print:p-4">
+                        <p className="font-bold text-slate-900 mb-4 print:text-black">{qIdx + 1}. {q.question}</p>
                         <div className="space-y-3">
                           {q.options.map((opt, oIdx) => {
                             let btnClass = "w-full text-left p-4 rounded-lg border transition-all break-words whitespace-pre-wrap print:border-black/20 print:text-black print:bg-transparent print:block print:opacity-100 ";
                             if (isSubmitted) {
-                              if (oIdx === q.correctAnswer) btnClass += "border-green-500 bg-green-500/10 text-white print:bg-green-100 print:text-green-900";
-                              else if (oIdx === selectedAns) btnClass += "border-red-500 bg-red-500/10 text-slate-400 line-through print:bg-red-50 print:text-red-900";
-                              else btnClass += "border-white/5 bg-white/5 text-slate-500 opacity-50";
+                              if (oIdx === q.correctAnswer) btnClass += "border-green-500 bg-green-100 text-green-900 print:bg-green-100 print:text-green-900";
+                              else if (oIdx === selectedAns) btnClass += "border-red-300 bg-red-50 text-slate-500 line-through print:bg-red-50 print:text-red-900";
+                              else btnClass += "border-slate-200 bg-slate-100 text-slate-400 opacity-50";
                             } else {
-                              if (selectedAns === oIdx) btnClass += "border-brand-500 bg-brand-500/10 text-white shadow-[0_0_15px_rgba(34,211,238,0.2)] print:bg-brand-50 print:border-brand-500";
-                              else btnClass += "border-white/5 bg-white/5 text-slate-300 hover:border-white/20 hover:bg-white/10";
+                              if (selectedAns === oIdx) btnClass += "border-brand-500 bg-brand-50 text-brand-700 shadow-sm print:bg-brand-50 print:border-brand-500";
+                              else btnClass += "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50";
                             }
 
                             return (
@@ -266,7 +266,7 @@ export default function LessonRenderer({ blocks }) {
                                 setShowResults(newResults);
                                 checkQuizCompletion(newResults);
                               }}
-                              className="px-6 py-2.5 bg-brand-500 text-dark-900 font-bold rounded-lg hover:bg-brand-400 transition-colors shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_25px_rgba(34,211,238,0.5)] transform hover:-translate-y-0.5"
+                              className="px-6 py-2.5 bg-brand-600 text-white font-bold rounded-lg hover:bg-brand-500 transition-colors shadow-md shadow-brand-500/20 transform hover:-translate-y-0.5"
                             >
                               Check Answer
                             </button>
@@ -274,7 +274,7 @@ export default function LessonRenderer({ blocks }) {
                         )}
 
                         {isSubmitted && (
-                          <div className={`mt-4 p-4 rounded-lg flex gap-3 ${isCorrect ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                          <div className={`mt-4 p-4 rounded-lg flex gap-3 ${isCorrect ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
                             {isCorrect ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <Info className="w-5 h-5 shrink-0" />}
                             <div>
                               <p className="font-bold mb-1">{isCorrect ? 'Correct! Well done.' : 'Not quite. Let\'s review.'}</p>
@@ -289,10 +289,10 @@ export default function LessonRenderer({ blocks }) {
 
                 {/* Final Results Card */}
                 {isBlockCompleted && (
-                  <div className="mt-8 p-6 bg-dark-900 border border-brand-500/30 rounded-xl text-center">
-                    <h4 className="text-xl font-bold text-white mb-2">Knowledge Check Completed</h4>
-                    <p className="text-slate-400">
-                      You scored <span className="text-lg font-bold text-brand-400 mx-1">{score}</span> out of <span className="font-bold text-white mx-1">{totalQuestions}</span>
+                  <div className="mt-8 p-6 bg-slate-50 border border-brand-200 rounded-xl text-center">
+                    <h4 className="text-xl font-bold text-slate-900 mb-2">Knowledge Check Completed</h4>
+                    <p className="text-slate-600">
+                      You scored <span className="text-lg font-bold text-brand-600 mx-1">{score}</span> out of <span className="font-bold text-slate-900 mx-1">{totalQuestions}</span>
                     </p>
                   </div>
                 )}
