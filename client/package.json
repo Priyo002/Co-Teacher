@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.18.0",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "@vladmandic/face-api": "^1.7.15",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
