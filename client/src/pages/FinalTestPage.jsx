@@ -21,13 +21,37 @@ export default function FinalTestPage() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null); // { score, passed, certificateId }
   const [missedQuestions, setMissedQuestions] = useState([]);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [attemptKey, setAttemptKey] = useState(0);
 
-  const questions = course?.finalTest?.questions || [];
+  const [shuffledQuestions, setShuffledQuestions] = useState([]);
+
+  const questions = shuffledQuestions.length > 0 ? shuffledQuestions : (course?.finalTest?.questions || []);
+
+  const handleRetry = () => {
+    setAnswers({});
+    setResult(null);
+    setShowExplanation(false);
+    setAttemptKey(prev => prev + 1);
+    setShuffledQuestions(prev => {
+      const shuffled = prev.map(q => {
+        const newOptions = [...q.shuffledOptions].sort(() => Math.random() - 0.5);
+        return { ...q, shuffledOptions: newOptions };
+      });
+      return shuffled.sort(() => Math.random() - 0.5);
+    });
+  };
+
+  const handleSelectOption = (qIdx, oIdx) => {
+    if (result) return;
+    setAnswers(prev => ({ ...prev, [qIdx]: oIdx }));
+  };
 
   const handleAutoFill = () => {
     const newAnswers = {};
     questions.forEach((q, idx) => {
-      newAnswers[idx] = q.correctAnswer;
+      const correctIdx = q.shuffledOptions.findIndex(o => o.originalIndex === q.correctAnswer);
+      newAnswers[idx] = correctIdx;
     });
     setAnswers(newAnswers);
     setMissedQuestions([]);
@@ -45,6 +69,54 @@ export default function FinalTestPage() {
             throw new Error('Failed to generate final test.');
           }
         }
+        if (data.finalTest?.questions) {
+          const sQuestions = data.finalTest.questions.map((q, i) => {
+            const optionsWithIndex = q.options.map((opt, idx) => ({ text: opt, originalIndex: idx }));
+            optionsWithIndex.sort(() => Math.random() - 0.5);
+            return {
+              ...q,
+              originalIndex: i,
+              shuffledOptions: optionsWithIndex
+            };
+          });
+          sQuestions.sort(() => Math.random() - 0.5);
+          setShuffledQuestions(sQuestions);
+        }
+        
+        if (data.finalTest?.attempts && data.finalTest.attempts.length > 0) {
+          const attempts = data.finalTest.attempts;
+          const passed = attempts.some(a => a.passed);
+          const isMaxAttempts = attempts.length >= 3;
+          
+          if (passed || isMaxAttempts) {
+            const lastAttempt = attempts[attempts.length - 1];
+            setResult({
+              score: lastAttempt.score,
+              passed: lastAttempt.passed,
+              certificateId: data.earnedCertificateId,
+              attemptsCount: attempts.length,
+              isMaxAttempts: isMaxAttempts,
+              creditsEarned: 0
+            });
+            if (lastAttempt.answers) {
+              const mappedAnswers = {};
+              lastAttempt.answers.forEach((originalSelectedOption, originalQIdx) => {
+                if (originalSelectedOption !== -1 && originalSelectedOption !== null) {
+                  const shuffledQIdx = sQuestions.findIndex(q => q.originalIndex === originalQIdx);
+                  if (shuffledQIdx !== -1) {
+                    const shuffledOIdx = sQuestions[shuffledQIdx].shuffledOptions.findIndex(o => o.originalIndex === originalSelectedOption);
+                    if (shuffledOIdx !== -1) {
+                      mappedAnswers[shuffledQIdx] = shuffledOIdx;
+                    }
+                  }
+                }
+              });
+              setAnswers(mappedAnswers);
+            }
+            setShowExplanation(true);
+          }
+        }
+        
         setCourse(data);
       } catch (err) {
         setError(err.message || 'Failed to load test');
@@ -53,13 +125,12 @@ export default function FinalTestPage() {
       }
     }
     loadTest();
-  }, [id, fetchApi]);
+  }, [id]);
 
-  const handleSubmit = async (isViolation = false) => {
+  const handleSubmit = async (isViolation = false, isNavigateAway = false) => {
     const isForcedFail = isViolation === true;
-    const questions = course.finalTest.questions;
     
-    if (!isForcedFail) {
+    if (!isForcedFail && !isNavigateAway) {
       const missing = [];
       questions.forEach((_, idx) => {
         if (answers[idx] === undefined) {
@@ -80,23 +151,34 @@ export default function FinalTestPage() {
 
     setSubmitting(true);
     try {
-      const answersArray = isForcedFail 
-        ? questions.map(() => -1) 
-        : questions.map((_, idx) => answers[idx] !== undefined ? answers[idx] : -1);
+      const answersArray = new Array(course.finalTest.questions.length).fill(-1);
+      if (!isForcedFail && !isNavigateAway) {
+        questions.forEach((q, idx) => {
+          if (answers[idx] !== undefined) {
+            answersArray[q.originalIndex] = q.shuffledOptions[answers[idx]].originalIndex;
+          }
+        });
+      }
       
       const res = await fetchApi(`/certificates/claim/${id}`, {
         method: 'POST',
-        body: JSON.stringify({ answers: answersArray })
+        body: JSON.stringify({ 
+          answers: answersArray,
+          cheated: isForcedFail,
+          navigatedAway: isNavigateAway
+        })
       });
 
-      // The response returns 200 OK whether they pass or fail
+      setShowExplanation(true);
       setResult({
         score: res.averageScore,
         passed: res.passed,
-        certificateId: res.certificateId
+        certificateId: res.certificateId,
+        attemptsCount: res.attemptsCount,
+        isMaxAttempts: res.isMaxAttempts,
+        creditsEarned: res.creditsEarned
       });
     } catch (err) {
-      // Real API errors
       setResult({
         score: null,
         passed: false,
@@ -129,7 +211,15 @@ export default function FinalTestPage() {
     <div className="p-4 sm:p-8 animate-fade-in max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <button 
-          onClick={() => navigate(`/course/${id}`)}
+          onClick={() => {
+            if (!result) {
+              if (confirm("If you leave the test now, it will be marked as a failed attempt and you will not get credit points. Are you sure?")) {
+                handleSubmit(false, true).then(() => navigate(`/course/${id}`));
+              }
+            } else {
+              navigate(`/course/${id}`);
+            }
+          }}
           className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors font-medium"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Course
@@ -162,8 +252,10 @@ export default function FinalTestPage() {
             
             <p className="text-xl text-slate-700 mb-8 max-w-lg">
               {result.passed 
-                ? `You passed the Final Certification Test with a score of ${result.score}%!` 
-                : `You scored ${result.score !== null ? result.score : 'under 70'}%, which didn't quite hit the 70% mark. Review the course material and try again!`}
+                ? `You passed the Final Certification Test with a score of ${result.score}%!${result.creditsEarned ? ` You earned ${result.creditsEarned} credit points!` : ''}` 
+                : result.isMaxAttempts
+                  ? `You scored ${result.score}%. You didn't pass and have exhausted your 3 attempts. You will not receive a certificate. Please review the correct answers below.`
+                  : `You scored ${result.score !== null ? result.score : 'under 70'}%, which didn't quite hit the 70% mark. Review the course material and try again! (${3 - (result.attemptsCount || 1)} attempts left)`}
             </p>
 
             <div className="flex gap-4">
@@ -174,9 +266,16 @@ export default function FinalTestPage() {
                 >
                   <Sparkles className="w-5 h-5 mr-2 inline" /> View Certificate
                 </button>
+              ) : result.isMaxAttempts ? (
+                <button 
+                  onClick={() => navigate(`/course/${id}`)}
+                  className="btn-primary"
+                >
+                  Back to Course
+                </button>
               ) : (
                 <button 
-                  onClick={() => { setResult(null); setAnswers({}); }}
+                  onClick={handleRetry}
                   className="btn-primary"
                 >
                   Try Again
@@ -187,17 +286,15 @@ export default function FinalTestPage() {
           {result.passed && <Confetti width={width} height={height} recycle={false} numberOfPieces={800} />}
         </div>
       ) : (
-        <ProctoringWrapper onForceSubmit={handleSubmit} timeLimitMinutes={30}>
+        <ProctoringWrapper key={attemptKey} onForceSubmit={handleSubmit} timeLimitMinutes={30} isSubmitted={!!result}>
           <div className="mb-10">
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">Final Certification Test</h1>
             <p className="text-slate-700 text-lg">{course.title}</p>
-            <p className="text-slate-600 mt-2">Answer all {questions.length} questions. You need at least 70% to pass and earn your certificate.</p>
+            <p className="text-slate-600 mt-2">Answer the following questions to verify your understanding. You have 3 attempts to pass. Earn 20 credit points by passing on your first attempt!</p>
           </div>
 
           <div className="space-y-10">
             {questions.map((q, qIdx) => {
-              const selectedAns = answers[qIdx];
-
               return (
                 <div key={qIdx} id={`question-${qIdx}`} className={`bg-white p-6 sm:p-8 rounded-2xl border shadow-sm transition-colors ${missedQuestions.includes(qIdx) ? 'border-red-300 bg-red-50/30' : 'border-slate-200'}`}>
                   <div className="flex items-start justify-between mb-6 gap-4">
@@ -212,25 +309,48 @@ export default function FinalTestPage() {
                     )}
                   </div>
                   <div className="space-y-3">
-                    {q.options.map((opt, oIdx) => {
-                      let btnClass = "w-full text-left p-4 rounded-xl border transition-all break-words whitespace-pre-wrap ";
-                      if (selectedAns === oIdx) {
-                        btnClass += "border-brand-500 bg-brand-50 text-brand-700 shadow-sm";
-                      } else {
-                        btnClass += "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50";
-                      }
+                        {q.shuffledOptions && q.shuffledOptions.map((optObj, optIdx) => {
+                          const originalIdx = optObj.originalIndex;
+                          const isSelected = answers[qIdx] === optIdx;
+                          const isActualCorrect = showExplanation && originalIdx === q.correctAnswer;
+                          const isWrongSelection = showExplanation && isSelected && originalIdx !== q.correctAnswer;
 
-                      return (
-                        <button
-                          key={oIdx}
-                          onClick={() => setAnswers(prev => ({ ...prev, [qIdx]: oIdx }))}
-                          className={btnClass}
-                        >
-                          {opt}
-                        </button>
-                      );
-                    })}
-                  </div>
+                          let borderClass = 'border-slate-200';
+                          let bgClass = 'bg-white hover:bg-slate-50';
+                          if (isSelected) {
+                            borderClass = 'border-brand-500';
+                            bgClass = 'bg-brand-50';
+                          }
+
+                          if (showExplanation) {
+                            if (isActualCorrect) {
+                              borderClass = 'border-green-500';
+                              bgClass = 'bg-green-50';
+                            } else if (isWrongSelection) {
+                              borderClass = 'border-red-300';
+                              bgClass = 'bg-red-50 opacity-50';
+                            } else {
+                              bgClass = 'bg-slate-50 opacity-50 cursor-default hover:bg-slate-50';
+                            }
+                          }
+
+                          return (
+                            <button
+                              key={optIdx}
+                              onClick={() => handleSelectOption(qIdx, optIdx)}
+                              disabled={!!result}
+                              className={`w-full text-left p-4 md:p-5 rounded-xl border-2 transition-all ${borderClass} ${bgClass}`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className={`text-base md:text-lg ${showExplanation && isActualCorrect ? 'text-green-700 font-medium' : isSelected ? 'text-brand-700 font-medium' : 'text-slate-700'}`}>
+                                  {optObj.text}
+                                </span>
+                                {showExplanation && isActualCorrect && <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 ml-4" />}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
                 </div>
               );
             })}

@@ -19,6 +19,7 @@ export default function LessonTestPage() {
   const [result, setResult] = useState(null);
   const [showResultModal, setShowResultModal] = useState(false);
   const [missedQuestions, setMissedQuestions] = useState([]);
+  const [attemptKey, setAttemptKey] = useState(0);
   const [error, setError] = useState(null);
   const fetchApi = useApi();
   const { user } = useAuth();
@@ -26,7 +27,8 @@ export default function LessonTestPage() {
   const handleAutoFill = () => {
     const newAnswers = {};
     questions.forEach((q, idx) => {
-      newAnswers[idx] = q.correctAnswer;
+      const correctIdx = q.shuffledOptions.findIndex(o => o.originalIndex === q.correctAnswer);
+      newAnswers[idx] = correctIdx;
     });
     setAnswers(newAnswers);
     setMissedQuestions([]);
@@ -45,23 +47,40 @@ export default function LessonTestPage() {
       });
       
       let testQs = res.testQuestions || [];
-      if (!isReviewMode) {
-        testQs = testQs.map((q, idx) => ({ ...q, originalIndex: idx })).sort(() => Math.random() - 0.5);
-      } else {
-        testQs = testQs.map((q, idx) => ({ ...q, originalIndex: idx }));
-      }
-      setQuestions(testQs);
-      
       if (res.testQuestions) {
-        setQuestions(res.testQuestions.map((q, idx) => ({ ...q, originalIndex: idx })));
+        const shuffledQuestions = res.testQuestions.map((q, i) => {
+          const optionsWithIndex = q.options.map((opt, idx) => ({ text: opt, originalIndex: idx }));
+          if (!isReviewMode) optionsWithIndex.sort(() => Math.random() - 0.5);
+          return {
+            ...q,
+            originalIndex: i,
+            shuffledOptions: optionsWithIndex
+          };
+        });
+        if (!isReviewMode) shuffledQuestions.sort(() => Math.random() - 0.5);
+        setQuestions(shuffledQuestions);
       }
-      if (isReviewMode && res.previousResult) {
+      
+      if (res.previousResult && (isReviewMode || res.previousResult.isMaxAttempts || res.previousResult.passed)) {
         setResult(res.previousResult);
         const mappedAnswers = {};
         res.previousResult.answers.forEach(a => {
-          if (a.questionIndex !== undefined) mappedAnswers[a.questionIndex] = a.selectedOption;
+          if (a && typeof a === 'object' && a.questionIndex !== undefined) {
+            // We need to map from original question index and original option index 
+            // back to the shuffled question index and shuffled option index.
+            const shuffledQIdx = shuffledQuestions.findIndex(q => q.originalIndex === a.questionIndex);
+            if (shuffledQIdx !== -1) {
+              const shuffledOIdx = shuffledQuestions[shuffledQIdx].shuffledOptions.findIndex(o => o.originalIndex === a.selectedOption);
+              if (shuffledOIdx !== -1) {
+                mappedAnswers[shuffledQIdx] = shuffledOIdx;
+              }
+            }
+          }
         });
         setAnswers(mappedAnswers);
+        if (!isReviewMode) {
+          setShowResultModal(true);
+        }
       }
     } catch (err) {
       setError(err.message || 'Failed to load test questions.');
@@ -79,10 +98,10 @@ export default function LessonTestPage() {
     setMissedQuestions(prev => prev.filter(id => id !== qIdx));
   };
 
-  const handleSubmit = async (isViolation = false) => {
+  const handleSubmit = async (isViolation = false, isNavigateAway = false) => {
     const isForcedFail = isViolation === true;
     
-    if (!isForcedFail) {
+    if (!isForcedFail && !isNavigateAway) {
       const missing = [];
       questions.forEach((_, idx) => {
         if (answers[idx] === undefined) {
@@ -104,14 +123,24 @@ export default function LessonTestPage() {
 
     setSubmitting(true);
     try {
-      const submission = questions.map((q, idx) => ({
-        questionIndex: q.originalIndex !== undefined ? q.originalIndex : idx,
-        selectedOption: isForcedFail ? -1 : (answers[idx] ?? -1)
-      }));
+      const submission = questions.map((q, idx) => {
+        let originalSelectedOption = -1;
+        if (!isForcedFail && !isNavigateAway && answers[idx] !== undefined) {
+          originalSelectedOption = q.shuffledOptions[answers[idx]].originalIndex;
+        }
+        return {
+          questionIndex: q.originalIndex,
+          selectedOption: originalSelectedOption
+        };
+      });
 
       const res = await fetchApi(`/courses/${courseId}/lessons/${lessonId}/test/submit`, {
         method: 'POST',
-        body: JSON.stringify({ answers: submission })
+        body: JSON.stringify({ 
+          answers: submission,
+          cheated: isForcedFail,
+          navigatedAway: isNavigateAway
+        })
       });
 
       setResult(res);
@@ -127,14 +156,23 @@ export default function LessonTestPage() {
     setAnswers({});
     setResult(null);
     setShowResultModal(false);
-    setQuestions(prev => [...prev].sort(() => Math.random() - 0.5));
+    setAttemptKey(prev => prev + 1);
+    loadTest();
   };
 
   const content = (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in duration-500">
       <div className="mb-6 flex items-center justify-between">
         <button 
-          onClick={() => navigate(`/course/${courseId}/lesson/${lessonId}`)}
+          onClick={() => {
+            if (!result) {
+              if (confirm("If you leave the test now, it will be marked as a failed attempt and you will not get credit points. Are you sure?")) {
+                handleSubmit(false, true).then(() => navigate(`/course/${courseId}/lesson/${lessonId}`));
+              }
+            } else {
+              navigate(`/course/${courseId}/lesson/${lessonId}`);
+            }
+          }}
           className="flex items-center text-slate-500 hover:text-brand-600 transition-colors font-medium"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -155,7 +193,7 @@ export default function LessonTestPage() {
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-8 border-b border-slate-100 bg-slate-50">
           <h1 className="text-3xl font-bold text-slate-900">{isReviewMode ? 'Review Test' : 'Lesson Test'}</h1>
-          <p className="text-slate-500 mt-2">{isReviewMode ? 'Review the questions and correct answers for this lesson.' : 'Pass this test with 70% or higher to unlock the next lesson. AI proctoring will be enabled here soon.'}</p>
+          <p className="text-slate-500 mt-2">{isReviewMode ? 'Review the questions and correct answers for this lesson.' : 'Pass this test with 70% or higher to unlock the next lesson.'}</p>
         </div>
 
         <div className="p-8">
@@ -212,10 +250,11 @@ export default function LessonTestPage() {
                         {missedQuestions.includes(qIdx) && <span className="text-sm font-bold text-red-500 bg-red-50 px-3 py-1 rounded-full whitespace-nowrap ml-4">Required</span>}
                       </div>
                       <div className="space-y-3">
-                        {q.options.map((opt, optIdx) => {
+                        {q.shuffledOptions.map((optObj, optIdx) => {
+                          const originalIdx = optObj.originalIndex;
                           const isSelected = answers[qIdx] === optIdx;
-                          const isActualCorrect = showExplanation && optIdx === q.correctAnswer;
-                          const isWrongSelection = showExplanation && isSelected && optIdx !== q.correctAnswer;
+                          const isActualCorrect = showExplanation && originalIdx === q.correctAnswer;
+                          const isWrongSelection = showExplanation && isSelected && originalIdx !== q.correctAnswer;
 
                           let borderClass = 'border-slate-200';
                           let bgClass = 'bg-white hover:bg-slate-50';
@@ -245,7 +284,7 @@ export default function LessonTestPage() {
                             >
                               <div className="flex items-center justify-between">
                                 <span className={`text-base md:text-lg ${showExplanation && isActualCorrect ? 'text-green-700 font-medium' : isSelected ? 'text-brand-700 font-medium' : 'text-slate-700'}`}>
-                                  {opt}
+                                  {optObj.text}
                                 </span>
                                 {showExplanation && isActualCorrect && <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 ml-4" />}
                                 {showExplanation && isWrongSelection && <XCircle className="w-5 h-5 text-red-500 shrink-0 ml-4" />}
@@ -327,7 +366,7 @@ export default function LessonTestPage() {
   if (isReviewMode) return content;
 
   return (
-    <ProctoringWrapper onForceSubmit={handleSubmit} timeLimitMinutes={10}>
+    <ProctoringWrapper key={attemptKey} onForceSubmit={handleSubmit} timeLimitMinutes={10} isSubmitted={!!result}>
       {content}
     </ProctoringWrapper>
   );

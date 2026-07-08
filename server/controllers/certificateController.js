@@ -18,9 +18,13 @@ async function claimCertificate(req, res) {
       return res.status(400).json({ error: "Final test has not been generated for this course yet." });
     }
 
-    const { answers } = req.body; // Array of selected option indices
+    const { answers, cheated, navigatedAway } = req.body; // Array of selected option indices
     if (!Array.isArray(answers) || answers.length !== course.finalTest.questions.length) {
       return res.status(400).json({ error: "Invalid answers submitted." });
+    }
+
+    if (course.finalTest.attempts && course.finalTest.attempts.length >= 3) {
+      return res.status(400).json({ error: "Maximum 3 attempts reached." });
     }
 
     // Calculate score
@@ -33,13 +37,51 @@ async function claimCertificate(req, res) {
       }
     });
 
-    const percentage = Math.round((correctCount / totalQuestions) * 100);
+    let percentage = Math.round((correctCount / totalQuestions) * 100);
 
-    if (percentage < 70) {
+    if (cheated || navigatedAway) {
+      percentage = 0;
+      correctCount = 0;
+    }
+
+    const passed = percentage >= 70;
+
+    const isFirstAttempt = !course.finalTest.attempts || course.finalTest.attempts.length === 0;
+    let creditsEarned = 0;
+
+    if (isFirstAttempt && passed && !cheated && !navigatedAway) {
+      req.user.credits = (req.user.credits || 0) + 20;
+      await req.user.save();
+      creditsEarned = 20;
+      
+      const CreditHistory = require("../models/CreditHistory");
+      await CreditHistory.create({
+        user: req.user._id,
+        amount: 20,
+        reason: `Passed Final Test on First Attempt: ${course.title}`
+      });
+    }
+
+    if (!course.finalTest.attempts) {
+      course.finalTest.attempts = [];
+    }
+
+    course.finalTest.attempts.push({
+      score: percentage,
+      passed,
+      date: new Date(),
+      answers: answers.map(String)
+    });
+
+    await course.save();
+
+    if (!passed) {
       return res.json({
         passed: false,
         averageScore: percentage,
-        message: "Average score must be at least 70% to claim a certificate."
+        attemptsCount: course.finalTest.attempts.length,
+        isMaxAttempts: course.finalTest.attempts.length >= 3,
+        message: "Score must be at least 70% to claim a certificate."
       });
     }
 
@@ -67,7 +109,10 @@ async function claimCertificate(req, res) {
     res.json({
       passed: true,
       certificateId: certificate.certificateId,
-      averageScore: percentage
+      averageScore: percentage,
+      attemptsCount: course.finalTest.attempts.length,
+      isMaxAttempts: course.finalTest.attempts.length >= 3,
+      creditsEarned
     });
   } catch (error) {
     console.error("Error claiming certificate:", error);

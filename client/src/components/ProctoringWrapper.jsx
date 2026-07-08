@@ -3,15 +3,15 @@ import * as faceapi from '@vladmandic/face-api';
 import { Camera, Mic, Maximize, AlertTriangle, ShieldCheck, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMinutes }) {
+export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMinutes, isSubmitted }) {
   const [hasStarted, setHasStarted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [strikes, setStrikes] = useState(0);
   const [warningMessage, setWarningMessage] = useState(null);
   const [timeLeft, setTimeLeft] = useState(timeLimitMinutes ? timeLimitMinutes * 60 : null);
   
-  // Drag state for PIP
-  const [pipPosition, setPipPosition] = useState({ x: 16, y: 16 });
+  // Drag state for PIP (now top-right relative)
+  const [pipPosition, setPipPosition] = useState({ x: 16, y: 150 });
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 });
   
@@ -21,6 +21,7 @@ export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMi
   const analyserRef = useRef(null);
   const intervalRef = useRef(null);
   const strikesRef = useRef(0);
+  const lastStrikeTimeRef = useRef(0);
   
   const MAX_STRIKES = 3;
 
@@ -85,8 +86,13 @@ export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMi
   };
 
   const issueStrike = (reason) => {
+    const now = Date.now();
+    // Prevent multiple strikes within 5 seconds
+    if (now - lastStrikeTimeRef.current < 5000) return;
+    
     if (strikesRef.current >= MAX_STRIKES) return; // Already failed
 
+    lastStrikeTimeRef.current = now;
     const currentStrikes = strikesRef.current + 1;
     strikesRef.current = currentStrikes;
     setStrikes(currentStrikes);
@@ -172,7 +178,7 @@ export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMi
 
   // Countdown Timer logic
   useEffect(() => {
-    if (hasStarted && timeLeft !== null && timeLeft > 0) {
+    if (hasStarted && timeLeft !== null && timeLeft > 0 && !isSubmitted) {
       const timer = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1) {
@@ -209,7 +215,13 @@ export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMi
     }
   };
 
-  // Cleanup on unmount
+  // Cleanup on unmount or when submitted
+  useEffect(() => {
+    if (isSubmitted) {
+      cleanup();
+    }
+  }, [isSubmitted]);
+
   useEffect(() => {
     return cleanup;
   }, []);
@@ -226,18 +238,30 @@ export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMi
             This test is strictly monitored by AI. To begin, you must grant access to your <b>Camera</b> and <b>Microphone</b>, and remain in <b>Fullscreen mode</b>.
           </p>
           
-          <div className="space-y-4 mb-8 text-left bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <div className="flex items-center gap-3 text-slate-700">
-              <Camera className="w-5 h-5 text-brand-500" />
-              <span>Face must be visible at all times</span>
+          <div className="space-y-4 mb-8 text-left bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm md:text-base">
+            <div className="flex items-start gap-3 text-slate-700">
+              <Camera className="w-5 h-5 text-brand-500 shrink-0 mt-0.5" />
+              <span><b>Camera:</b> Face must be visible at all times</span>
             </div>
-            <div className="flex items-center gap-3 text-slate-700">
-              <Mic className="w-5 h-5 text-brand-500" />
-              <span>No talking or loud background noise</span>
+            <div className="flex items-start gap-3 text-slate-700">
+              <Mic className="w-5 h-5 text-brand-500 shrink-0 mt-0.5" />
+              <span><b>Microphone:</b> No talking or loud background noise</span>
             </div>
-            <div className="flex items-center gap-3 text-slate-700">
-              <Maximize className="w-5 h-5 text-brand-500" />
-              <span>Do not exit fullscreen or switch tabs</span>
+            <div className="flex items-start gap-3 text-slate-700">
+              <Maximize className="w-5 h-5 text-brand-500 shrink-0 mt-0.5" />
+              <span><b>Fullscreen:</b> Do not exit fullscreen or switch tabs</span>
+            </div>
+            <div className="flex items-start gap-3 text-slate-700">
+              <ShieldCheck className="w-5 h-5 text-brand-500 shrink-0 mt-0.5" />
+              <span><b>3 Attempts Max:</b> You have a maximum of 3 attempts to pass this test.</span>
+            </div>
+            <div className="flex items-start gap-3 text-slate-700">
+              <div className="w-5 h-5 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-xs shrink-0 mt-0.5">★</div>
+              <span><b>First Try Bonus:</b> You will earn credit points ONLY if you pass on your first attempt.</span>
+            </div>
+            <div className="flex items-start gap-3 text-slate-700">
+              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <span><b>Strict Rules:</b> You must complete the test in one sitting. Navigating away or receiving 3 AI warnings will automatically fail your attempt.</span>
             </div>
           </div>
           
@@ -275,8 +299,8 @@ export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMi
     const dx = e.clientX - dragRef.current.startX;
     const dy = e.clientY - dragRef.current.startY;
     setPipPosition({
-      x: dragRef.current.initialX + dx,
-      y: dragRef.current.initialY - dy // Subtract dy because y is measured from the bottom
+      x: dragRef.current.initialX - dx,
+      y: dragRef.current.initialY + dy
     });
   };
 
@@ -300,7 +324,7 @@ export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMi
       {/* Floating PIP Webcam */}
       <div 
         className={`fixed z-[9999] w-48 aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border-2 border-brand-500/50 touch-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab hover:scale-105'} transition-transform`}
-        style={{ left: `${pipPosition.x}px`, bottom: `${pipPosition.y}px` }}
+        style={{ right: `${pipPosition.x}px`, top: `${pipPosition.y}px` }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

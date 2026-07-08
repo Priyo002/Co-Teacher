@@ -384,8 +384,12 @@ async function submitLessonTest(req, res) {
 
     if (!currentLesson) return res.status(404).json({ error: "Lesson not found" });
 
-    const { answers } = req.body; // Array of { questionIndex: Number, selectedOption: Number }
+    const { answers, cheated, navigatedAway } = req.body; // Array of { questionIndex: Number, selectedOption: Number }
     if (!Array.isArray(answers)) return res.status(400).json({ error: "Invalid answers array" });
+
+    if (currentLesson.testAttempts.length >= 3) {
+      return res.status(400).json({ error: "Maximum 3 attempts reached." });
+    }
 
     let correctCount = 0;
     const testQuestions = currentLesson.testQuestions || [];
@@ -398,11 +402,30 @@ async function submitLessonTest(req, res) {
     }
 
     const totalQuestions = testQuestions.length || 1;
-    const score = Math.round((correctCount / totalQuestions) * 100);
+    let score = Math.round((correctCount / totalQuestions) * 100);
+    
+    // Penalize if cheated or navigated away
+    if (cheated || navigatedAway) {
+      score = 0;
+      correctCount = 0;
+    }
+
     const passed = score >= 70;
 
-    if (currentLesson.isPassed || currentLesson.testAttempts.length >= 3) {
-      return res.status(400).json({ error: "Maximum attempts reached or already passed." });
+    // Give credits if this is their first attempt AND they passed AND didn't cheat
+    const isFirstAttempt = currentLesson.testAttempts.length === 0;
+    let creditsEarned = 0;
+    if (isFirstAttempt && passed && !cheated && !navigatedAway) {
+      req.user.credits = (req.user.credits || 0) + 5;
+      await req.user.save();
+      creditsEarned = 5;
+      
+      const CreditHistory = require("../models/CreditHistory");
+      await CreditHistory.create({
+        user: req.user._id,
+        amount: 5,
+        reason: `Passed Lesson Test on First Attempt: ${currentLesson.title}`
+      });
     }
 
     currentLesson.testAttempts.push({
@@ -412,15 +435,13 @@ async function submitLessonTest(req, res) {
       answers: answers.map(a => JSON.stringify(a))
     });
 
-    const passedOrMaxed = passed || currentLesson.testAttempts.length >= 3;
-
-    if (score >= 70) {
+    if (passed) {
       currentLesson.isPassed = true;
       currentLesson.completedAt = new Date();
       checkAndSendCourseCompletionEmail(course._id, req.user);
     }
     
-    if (nextLesson && !nextLesson.isUnlocked && passedOrMaxed) {
+    if (nextLesson && !nextLesson.isUnlocked && (passed || currentLesson.testAttempts.length >= 3)) {
         nextLesson.isUnlocked = true;
         await nextLesson.save();
     }
@@ -429,13 +450,14 @@ async function submitLessonTest(req, res) {
 
     return res.json({ 
        score, 
-       passed: passedOrMaxed,
+       passed,
        isMaxAttempts: currentLesson.testAttempts.length >= 3,
        correctCount,
        totalQuestions,
        attemptsCount: currentLesson.testAttempts.length,
        nextLessonUnlocked: !!nextLesson?.isUnlocked,
-       nextLessonId: nextLesson ? nextLesson._id : null
+       nextLessonId: nextLesson ? nextLesson._id : null,
+       creditsEarned
     });
 
   } catch (err) {

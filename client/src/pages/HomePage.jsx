@@ -474,7 +474,7 @@ export default function HomePage() {
                       </div>
                       <div className="flex items-center justify-between w-full mt-4">
                         <span className="text-sm font-medium text-amber-600">View Certificate</span>
-                        <span className="text-xs text-slate-400 font-mono">Score: {cert.score}%</span>
+                        <span className="text-xs text-slate-400 font-mono">Score: {cert.averageScore}%</span>
                       </div>
                     </Link>
                   ))}

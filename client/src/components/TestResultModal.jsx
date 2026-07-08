@@ -28,16 +28,17 @@ export default function TestResultModal({ isOpen, onClose, result, onRetry, onCo
     Icon = CheckCircle2;
     iconColor = 'text-green-500 bg-green-100';
     title = 'Awesome Job!';
+    const creditText = result.creditsEarned ? ` You earned ${result.creditsEarned} credit points!` : '';
     description = isLastLesson 
-      ? `You scored ${result.score}% and passed the final lesson! Take the final test to earn your certificate.`
-      : `You scored ${result.score}% and passed the test. The next lesson is now unlocked!`;
+      ? `You scored ${result.score}% and passed the final lesson! Take the final test to earn your certificate.${creditText}`
+      : `You scored ${result.score}% and passed the test. The next lesson is now unlocked!${creditText}`;
   } else if (isMaxAttempts) {
     Icon = ShieldCheck;
-    iconColor = 'text-brand-500 bg-brand-100';
+    iconColor = 'text-red-500 bg-red-100';
     title = 'Maximum Attempts Reached';
     description = isLastLesson 
-      ? `You scored ${result.score}%. You didn't pass and have exhausted your attempts, but you've completed all lessons. Take the final test to finish the course or review material to reinforce your knowledge.`
-      : `You scored ${result.score}%. You didn't pass and have exhausted your attempts, but we've unlocked the next lesson. Review this lesson's material to reinforce your knowledge.`;
+      ? `You scored ${result.score}%. You didn't pass and have exhausted your 3 attempts. You will not receive a certificate. Please review the correct answers below.`
+      : `You scored ${result.score}%. You didn't pass and have exhausted your 3 attempts, but we've unlocked the next lesson for you. Please review the correct answers below.`;
   } else {
     const attemptsLeft = 3 - (result.attemptsCount || 1);
     const attemptsText = attemptsLeft === 1 ? '1 attempt left' : `${attemptsLeft} attempts left`;
@@ -68,10 +69,10 @@ export default function TestResultModal({ isOpen, onClose, result, onRetry, onCo
           <div className="w-full space-y-3">
             {(isPass || isMaxAttempts) ? (
               <button
-                onClick={isLastLesson ? onTakeFinalTest : (isMaxAttempts ? onReviewMaterial : onContinue)}
+                onClick={isPass ? (isLastLesson ? onTakeFinalTest : onContinue) : onClose}
                 className="w-full flex items-center justify-center gap-2 py-4 px-6 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-brand-500/30 transition-all hover:-translate-y-0.5"
               >
-                {isLastLesson ? 'Take Final Test' : (isMaxAttempts ? 'Review Lesson' : 'Continue Learning')}
+                {isPass ? (isLastLesson ? 'Take Final Test' : 'Continue Learning') : 'Close'}
                 <ChevronRight className="w-5 h-5" />
               </button>
             ) : (

@@ -18,6 +18,14 @@ const courseSchema = new mongoose.Schema(
     shareId: { type: String, maxlength: 64 },
     finalTest: {
       generatedAt: { type: Date },
+      attempts: [
+        {
+          score: { type: Number, required: true },
+          passed: { type: Boolean, required: true },
+          date: { type: Date, default: Date.now },
+          answers: [{ type: String }]
+        }
+      ],
       questions: [
         {
           question: { type: String, required: true },
