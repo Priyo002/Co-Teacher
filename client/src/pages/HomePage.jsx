@@ -463,7 +463,7 @@ export default function HomePage() {
                   {certificates.map(cert => (
                     <Link
                       key={cert._id}
-                      to={`/certificate/${cert._id}`}
+                      to={`/certificate/${cert.certificateId}`}
                       className="glass-panel p-6 border-slate-200 hover:border-amber-500 transition-all hover:-translate-y-1 group bg-white shadow-sm hover:shadow-md flex flex-col justify-between min-h-[220px]"
                     >
                       <div>

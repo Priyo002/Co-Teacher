@@ -149,10 +149,6 @@ export default function LessonTestPage() {
               Admin Auto-Fill
             </button>
           )}
-          <div className="flex items-center gap-2 text-brand-600 bg-brand-50 px-3 py-1.5 rounded-full text-sm font-medium">
-            <ShieldCheck className="w-4 h-4" />
-            AI Proctoring Ready
-          </div>
         </div>
       </div>
 

@@ -57,15 +57,15 @@ export default function LoginPage() {
               <Sparkles className="w-5 h-5" />
             </button>
             <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-brand-50 border border-brand-100 rounded-full text-sm font-bold text-brand-700">
-              <Zap className="w-4 h-4" /> 5 Free Courses Every Day
+              <Zap className="w-4 h-4" /> Get 5 Free Courses
             </div>
             
             {/* Social Proof */}
             <div className="flex items-center gap-4 text-sm font-medium text-slate-500">
               <div className="flex -space-x-3">
-                <img className="w-8 h-8 rounded-full border-2 border-white object-cover" src="https://i.pravatar.cc/100?img=1" alt="User 1" />
-                <img className="w-8 h-8 rounded-full border-2 border-white object-cover" src="https://i.pravatar.cc/100?img=2" alt="User 2" />
-                <img className="w-8 h-8 rounded-full border-2 border-white object-cover" src="https://i.pravatar.cc/100?img=3" alt="User 3" />
+                <img className="w-8 h-8 rounded-full border-2 border-white object-cover" src="https://randomuser.me/api/portraits/women/44.jpg" alt="User 1" />
+                <img className="w-8 h-8 rounded-full border-2 border-white object-cover" src="https://randomuser.me/api/portraits/men/32.jpg" alt="User 2" />
+                <img className="w-8 h-8 rounded-full border-2 border-white object-cover" src="https://randomuser.me/api/portraits/women/68.jpg" alt="User 3" />
                 <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-xs text-slate-600 font-bold">+2k</div>
               </div>
               <p>Trusted by thousands of learners</p>
@@ -383,9 +383,9 @@ export default function LoginPage() {
               {/* Interactive Visual/Avatars */}
               <div className="relative z-10 shrink-0 flex flex-col items-center gap-4">
                 <div className="flex -space-x-4">
-                  <img className="w-16 h-16 rounded-full border-4 border-indigo-700 object-cover shadow-lg transform group-hover:-translate-y-2 transition-transform duration-500" src="https://i.pravatar.cc/150?img=11" alt="Mentor 1" />
-                  <img className="w-16 h-16 rounded-full border-4 border-indigo-700 object-cover shadow-lg relative -top-3 transform group-hover:-translate-y-4 transition-transform duration-500 delay-75" src="https://i.pravatar.cc/150?img=32" alt="Mentor 2" />
-                  <img className="w-16 h-16 rounded-full border-4 border-indigo-700 object-cover shadow-lg transform group-hover:-translate-y-2 transition-transform duration-500 delay-150" src="https://i.pravatar.cc/150?img=47" alt="Mentor 3" />
+                  <img className="w-16 h-16 rounded-full border-4 border-indigo-700 object-cover shadow-lg transform group-hover:-translate-y-2 transition-transform duration-500" src="https://randomuser.me/api/portraits/men/46.jpg" alt="Mentor 1" />
+                  <img className="w-16 h-16 rounded-full border-4 border-indigo-700 object-cover shadow-lg relative -top-3 transform group-hover:-translate-y-4 transition-transform duration-500 delay-75" src="https://randomuser.me/api/portraits/women/65.jpg" alt="Mentor 2" />
+                  <img className="w-16 h-16 rounded-full border-4 border-indigo-700 object-cover shadow-lg transform group-hover:-translate-y-2 transition-transform duration-500 delay-150" src="https://randomuser.me/api/portraits/women/90.jpg" alt="Mentor 3" />
                 </div>
                 <button className="px-8 py-3 bg-white text-indigo-700 font-bold rounded-xl shadow-xl hover:shadow-2xl hover:-translate-y-1 hover:bg-brand-50 transition-all w-full">
                   Find a Mentor
