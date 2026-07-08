@@ -147,11 +147,22 @@ exports.verifyPayment = async (req, res) => {
 
 exports.getUserTransactions = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const total = await Transaction.countDocuments({ userId: req.user._id });
     const transactions = await Transaction.find({ userId: req.user._id })
       .sort({ createdAt: -1 })
-      .limit(50);
+      .skip(skip)
+      .limit(limit);
     
-    res.json({ transactions });
+    res.json({ 
+      transactions, 
+      total, 
+      page, 
+      totalPages: Math.ceil(total / limit) 
+    });
   } catch (error) {
     console.error('Fetch Transactions Error:', error);
     res.status(500).json({ error: "Failed to fetch transactions" });

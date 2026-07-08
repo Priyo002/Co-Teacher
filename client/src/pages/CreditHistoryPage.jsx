@@ -7,12 +7,16 @@ export default function CreditHistoryPage() {
   const fetchApi = useApi();
   const [loading, setLoading] = useState(true);
   const [creditHistory, setCreditHistory] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     async function loadData() {
+      setLoading(true);
       try {
-        const historyData = await fetchApi('/user/credit-history');
+        const historyData = await fetchApi(`/user/credit-history?page=${page}&limit=10`);
         setCreditHistory(historyData.history || []);
+        setTotalPages(historyData.totalPages || 1);
       } catch (err) {
         console.error('Failed to load credit history', err);
         toast.error('Failed to load credit history');
@@ -21,11 +25,7 @@ export default function CreditHistoryPage() {
       }
     }
     loadData();
-  }, []);
-
-  if (loading) {
-    return <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-brand-600" /></div>;
-  }
+  }, [page]);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-fade-in">
@@ -76,6 +76,28 @@ export default function CreditHistoryPage() {
                 </div>
               </div>
             ))}
+
+            {totalPages > 1 && (
+              <div className="flex justify-between items-center pt-6 mt-4 border-t border-slate-100">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1 || loading}
+                  className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+                <span className="text-sm font-medium text-slate-500">
+                  Page {page} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages || loading}
+                  className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-16 text-slate-500 flex flex-col items-center bg-slate-50 rounded-2xl border border-slate-100">

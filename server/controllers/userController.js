@@ -296,8 +296,22 @@ async function verifyOtp(req, res) {
 
 async function getCreditHistory(req, res) {
   try {
-    const history = await CreditHistory.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(50);
-    return res.json({ history });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const total = await CreditHistory.countDocuments({ user: req.user._id });
+    const history = await CreditHistory.find({ user: req.user._id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+      
+    return res.json({ 
+      history, 
+      total, 
+      page, 
+      totalPages: Math.ceil(total / limit) 
+    });
   } catch (error) {
     console.error("Failed to fetch credit history:", error);
     return res.status(500).json({ error: "Failed to fetch credit history" });
