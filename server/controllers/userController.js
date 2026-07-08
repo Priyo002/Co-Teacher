@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const Lesson = require("../models/Lesson");
 const CreditHistory = require("../models/CreditHistory");
+const Certificate = require("../models/Certificate");
 const { sendEmail } = require("../services/emailService");
 const twilio = require('twilio');
 
@@ -277,6 +278,16 @@ async function getCreditHistory(req, res) {
   }
 }
 
+async function getCertificates(req, res) {
+  try {
+    const certificates = await Certificate.find({ user: req.user._id }).sort({ issuedAt: -1 }).populate('course');
+    return res.json({ certificates });
+  } catch (error) {
+    console.error("Failed to fetch certificates:", error);
+    return res.status(500).json({ error: "Failed to fetch certificates" });
+  }
+}
+
 module.exports = {
   toggleBookmark,
   getBookmarks,
@@ -285,5 +296,6 @@ module.exports = {
   updateProfile,
   sendOtp,
   verifyOtp,
-  getCreditHistory
+  getCreditHistory,
+  getCertificates
 };

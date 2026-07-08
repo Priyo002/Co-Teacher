@@ -1,5 +1,5 @@
 const express = require("express");
-const { toggleBookmark, getBookmarks, checkBookmark, getProfile, updateProfile, sendOtp, verifyOtp, getCreditHistory } = require("../controllers/userController");
+const { toggleBookmark, getBookmarks, checkBookmark, getProfile, updateProfile, sendOtp, verifyOtp, getCreditHistory, getCertificates } = require("../controllers/userController");
 const { verifyAuth0Token } = require("../middlewares/auth0Auth");
 
 const router = express.Router();
@@ -16,5 +16,7 @@ router.get("/credit-history", getCreditHistory);
 router.get("/bookmarks", getBookmarks);
 router.get("/bookmarks/:lessonId", checkBookmark);
 router.post("/bookmarks/:lessonId", toggleBookmark);
+
+router.get("/certificates", getCertificates);
 
 module.exports = router;

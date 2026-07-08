@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 export default function HomePage() {
   const [courses, setCourses] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
+  const [certificates, setCertificates] = useState([]);
   const [activeTab, setActiveTab] = useState('courses');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -18,12 +19,14 @@ export default function HomePage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [coursesData, bookmarksData] = await Promise.all([
+        const [coursesRes, bookmarksRes, certificatesRes] = await Promise.all([
           fetchApi('/courses/mine'),
-          fetchApi('/user/bookmarks')
+          fetchApi('/user/bookmarks'),
+          fetchApi('/user/certificates')
         ]);
-        setCourses(coursesData || []);
-        setBookmarks(bookmarksData.bookmarks || []);
+        setCourses(coursesRes || []);
+        setBookmarks(bookmarksRes.bookmarks || []);
+        setCertificates(certificatesRes.certificates || []);
       } catch (err) {
         console.error('Failed to load dashboard data', err);
       } finally {
@@ -74,12 +77,6 @@ export default function HomePage() {
 
   const recentCourse = coursesWithLatestOpen[0];
   const allCourses = coursesWithLatestOpen;
-
-  const completedCourses = allCourses.filter(course => {
-    const lessonCount = course.modules?.reduce((acc, mod) => acc + (mod.lessons?.length || 0), 0) || 0;
-    const completedLessons = course.modules?.reduce((acc, mod) => acc + (mod.lessons?.filter(l => l.completedAt)?.length || 0), 0) || 0;
-    return lessonCount > 0 && completedLessons === lessonCount;
-  });
 
   return (
     <div className="p-8 md:p-12 animate-fade-in max-w-[1400px] mx-auto">
@@ -461,22 +458,23 @@ export default function HomePage() {
                 </div>
               ) : null
             ) : activeTab === 'certificates' ? (
-              completedCourses.length > 0 ? (
+              certificates.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {completedCourses.map(course => (
+                  {certificates.map(cert => (
                     <Link
-                      key={course._id}
-                      to={`/certificate/${course._id}`}
+                      key={cert._id}
+                      to={`/certificate/${cert._id}`}
                       className="glass-panel p-6 border-slate-200 hover:border-amber-500 transition-all hover:-translate-y-1 group bg-white shadow-sm hover:shadow-md flex flex-col justify-between min-h-[220px]"
                     >
                       <div>
                         <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 mb-4 group-hover:scale-110 transition-transform">
                           <Award className="w-6 h-6" />
                         </div>
-                        <h3 className="font-bold text-lg mb-2 line-clamp-2 text-slate-900 group-hover:text-amber-600 transition-colors">{course.title}</h3>
+                        <h3 className="font-bold text-lg mb-2 line-clamp-2 text-slate-900 group-hover:text-amber-600 transition-colors">{cert.courseTitle}</h3>
                       </div>
                       <div className="flex items-center justify-between w-full mt-4">
                         <span className="text-sm font-medium text-amber-600">View Certificate</span>
+                        <span className="text-xs text-slate-400 font-mono">Score: {cert.score}%</span>
                       </div>
                     </Link>
                   ))}
