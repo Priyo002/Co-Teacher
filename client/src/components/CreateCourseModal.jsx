@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Sparkles, X, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Sparkles, X, Loader2, Mic, ArrowUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../hooks/useAuth';
@@ -14,6 +14,54 @@ export default function CreateCourseModal({ isOpen, onClose }) {
   const [answers, setAnswers] = useState({});
   const [score, setScore] = useState(0);
   
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = false;
+      
+      recognitionRef.current.onresult = (event) => {
+        let newTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            newTranscript += event.results[i][0].transcript + ' ';
+          }
+        }
+        if (newTranscript) {
+          setPrompt(prev => (prev ? prev + ' ' + newTranscript.trim() : newTranscript.trim()));
+        }
+      };
+      
+      recognitionRef.current.onerror = (event) => {
+        console.error("Speech recognition error", event.error);
+        if (event.error !== 'no-speech') {
+          setIsListening(false);
+        }
+      };
+      
+      recognitionRef.current.onend = () => {
+        // Continuous mode might still end automatically after a pause in some browsers,
+        // we keep the UI in sync. The user will have to press start again if it times out.
+        setIsListening(false);
+      };
+    }
+  }, []);
+
+  const toggleListening = (e) => {
+    e.preventDefault();
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current?.start();
+      setIsListening(true);
+    }
+  };
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const fetchApi = useApi();
@@ -167,16 +215,53 @@ export default function CreateCourseModal({ isOpen, onClose }) {
               {error && <div className="text-red-600 bg-red-50 p-3 rounded-lg text-sm border border-red-100">{error}</div>}
               
               <div className="relative">
-                <textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="e.g. I want to learn the fundamentals of Quantum Computing..."
-                  className="input-field min-h-[120px] resize-none pb-12"
-                  disabled={isGenerating}
-                />
-                <div className="absolute bottom-3 right-3 text-xs font-medium text-slate-500">
-                  {prompt.length} / 2000
-                </div>
+                {isListening ? (
+                  <div className="w-full min-h-[120px] bg-brand-50/50 border border-brand-200 rounded-2xl flex items-center justify-between px-6 shadow-inner animate-in fade-in zoom-in-95 duration-200">
+                    <div className="flex-1 flex items-center gap-1.5 overflow-hidden pr-4 opacity-80 justify-start">
+                      {[...Array(40)].map((_, i) => (
+                        <div 
+                          key={i} 
+                          className="w-1.5 bg-brand-500 rounded-full animate-[pulse_1s_ease-in-out_infinite]" 
+                          style={{ 
+                            height: `${Math.max(4, Math.random() * 24)}px`, 
+                            animationDelay: `${i * 0.05}s` 
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <button 
+                        type="button"
+                        onClick={toggleListening}
+                        className="w-12 h-12 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center transition-colors shadow-sm"
+                        title="Stop Listening"
+                      >
+                        <div className="w-4 h-4 bg-red-600 rounded-[3px]" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <textarea
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      placeholder="e.g. I want to learn the fundamentals of Quantum Computing..."
+                      className="input-field min-h-[120px] resize-none pb-12 pr-12 transition-colors"
+                      disabled={isGenerating}
+                    />
+                    <button
+                      type="button"
+                      onClick={toggleListening}
+                      className="absolute right-3 top-3 p-2 rounded-xl transition-all text-slate-400 hover:text-brand-600 hover:bg-brand-50"
+                      title="Start voice input"
+                    >
+                      <Mic className="w-5 h-5" />
+                    </button>
+                    <div className="absolute bottom-3 right-3 text-xs font-medium text-slate-500">
+                      {prompt.length} / 2000
+                    </div>
+                  </>
+                )}
               </div>
               
               <div className="grid grid-cols-2 gap-4">

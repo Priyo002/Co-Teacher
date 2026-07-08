@@ -25,24 +25,41 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
   
   const fetchApi = useApi();
   const recognitionRef = useRef(null);
+  const textareaRef = useRef(null);
+
+  // Auto-resize textarea when message changes
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  }, [message]);
 
   // Initialize Speech Recognition
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false; // Listen for a single utterance
+      recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = false;
       
       recognitionRef.current.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setMessage(prev => (prev ? prev + ' ' + transcript : transcript));
-        setIsListening(false);
+        let newTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            newTranscript += event.results[i][0].transcript + ' ';
+          }
+        }
+        if (newTranscript) {
+          setMessage(prev => (prev ? prev + ' ' + newTranscript.trim() : newTranscript.trim()));
+        }
       };
       
       recognitionRef.current.onerror = (event) => {
         console.error("Speech recognition error", event.error);
-        setIsListening(false);
+        if (event.error !== 'no-speech') {
+          setIsListening(false);
+        }
       };
       
       recognitionRef.current.onend = () => {
@@ -200,7 +217,7 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
                 : 'bg-white text-slate-700 border border-slate-200 rounded-tl-sm prose prose-sm max-w-none shadow-sm'
             }`}>
               {msg.role === 'user' ? (
-                <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
+                <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{msg.content}</p>
               ) : (
                 <div className="pr-6">
                   <ReactMarkdown>{msg.content}</ReactMarkdown>
@@ -237,41 +254,69 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
       </div>
 
       <div className="p-4 bg-white border-t border-slate-200 shrink-0">
-        <form onSubmit={handleSendMessage} className="relative flex items-center">
-          <input
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder={isListening ? "Listening..." : "Ask your AI tutor..."}
-            className={`w-full bg-slate-50 border rounded-xl py-3 pl-4 pr-20 text-slate-900 placeholder-slate-400 focus:outline-none transition-colors ${
-              isListening ? "border-red-300 ring-2 ring-red-100" : "border-slate-200 focus:border-brand-500/50"
-            }`}
-          />
-          
-          <div className="absolute right-2 flex items-center gap-1">
-            {/* Voice Input Button */}
-            <button
-              type="button"
-              onClick={toggleListening}
-              className={`p-2 rounded-lg transition-colors flex items-center justify-center ${
-                isListening 
-                  ? "bg-red-100 text-red-500 animate-pulse hover:bg-red-200" 
-                  : "text-slate-400 hover:text-brand-500 hover:bg-slate-100"
-              }`}
-              title={isListening ? "Stop Listening" : "Speak your question"}
-            >
-              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-            </button>
-            
-            {/* Send Button */}
-            <button 
-              type="submit" 
-              disabled={!message.trim() || isTyping}
-              className="p-2 bg-brand-500 text-white rounded-lg hover:bg-brand-400 transition-colors disabled:opacity-50"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </div>
+        <form onSubmit={handleSendMessage} className="relative flex flex-col justify-center min-h-[48px]">
+          {isListening ? (
+             <div className="w-full bg-brand-50/50 border border-brand-200 rounded-xl flex items-center justify-between px-4 py-2 shadow-inner animate-in fade-in zoom-in-95 duration-200">
+               <div className="flex-1 flex items-center gap-1.5 overflow-hidden pr-4 opacity-80 justify-start">
+                 {[...Array(30)].map((_, i) => (
+                   <div 
+                     key={i} 
+                     className="w-1.5 bg-brand-500 rounded-full animate-[pulse_1s_ease-in-out_infinite]" 
+                     style={{ 
+                       height: `${Math.max(4, Math.random() * 20)}px`, 
+                       animationDelay: `${i * 0.05}s` 
+                     }}
+                   />
+                 ))}
+               </div>
+               <div className="flex items-center gap-2 shrink-0">
+                 <button 
+                   type="button"
+                   onClick={toggleListening}
+                   className="w-10 h-10 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center transition-colors shadow-sm"
+                   title="Stop Listening"
+                 >
+                   <div className="w-3.5 h-3.5 bg-red-600 rounded-[3px]" />
+                 </button>
+               </div>
+             </div>
+          ) : (
+            <div className="relative w-full">
+              <textarea
+                ref={textareaRef}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (message.trim() && !isTyping) handleSendMessage(e);
+                  }
+                }}
+                placeholder="Ask your AI tutor..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-4 pr-24 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500/50 transition-colors shadow-sm resize-none overflow-y-auto block"
+                rows={1}
+                style={{ minHeight: '48px', maxHeight: '120px' }}
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  className="p-2 rounded-lg transition-colors flex items-center justify-center text-slate-400 hover:text-brand-500 hover:bg-slate-100"
+                  title="Speak your question"
+                >
+                  <Mic className="w-4 h-4" />
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={!message.trim() || isTyping}
+                  className="p-2 bg-brand-500 text-white rounded-lg hover:bg-brand-400 transition-colors disabled:opacity-50 shadow-sm"
+                  title="Send message"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </form>
       </div>
     </div>

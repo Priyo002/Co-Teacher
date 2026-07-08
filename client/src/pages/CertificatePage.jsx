@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { Award, Download, ArrowLeft, Loader2, ShieldCheck } from 'lucide-react';
-import { useApi } from '../hooks/useApi';
 
 export default function CertificatePage() {
   const { id } = useParams();
@@ -14,10 +13,17 @@ export default function CertificatePage() {
   const [certificate, setCertificate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const fetchApi = useApi();
 
   useEffect(() => {
-    fetchApi(`/certificates/${id}`)
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+    fetch(`${baseUrl}/certificates/${id}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Certificate not found');
+        }
+        return res.json();
+      })
       .then(data => {
         if (!data || data.error) throw new Error(data?.error || 'Certificate not found');
         setCertificate(data);
@@ -27,7 +33,7 @@ export default function CertificatePage() {
         setError(err.message);
         setLoading(false);
       });
-  }, [id, fetchApi]);
+  }, [id]);
 
   const handleExportPDF = async () => {
     if (!certificateRef.current) return;
