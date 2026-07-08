@@ -15,6 +15,15 @@ const lessonSchema = new mongoose.Schema(
     lastOpenedAt: { type: Date, default: null },
     quizBestScore: { type: Number, default: 0, min: 0, max: 5 },
     quizAttempts: { type: Number, default: 0, min: 0 },
+    isUnlocked: { type: Boolean, default: false },
+    isPassed: { type: Boolean, default: false },
+    testAttempts: [{
+      score: Number,
+      passed: Boolean,
+      date: { type: Date, default: Date.now },
+      answers: [String] // Optional tracking of what they submitted
+    }],
+    testQuestions: { type: [mongoose.Schema.Types.Mixed], default: [] },
     module: { type: mongoose.Schema.Types.ObjectId, ref: "Module", required: true },
   },
   { timestamps: true }

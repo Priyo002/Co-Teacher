@@ -1,6 +1,6 @@
 import { useAuth } from '../../hooks/useAuth';
-import { Link } from 'react-router-dom';
-import { GraduationCap, Zap } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { GraduationCap, Zap, User } from 'lucide-react';
 import { useState } from 'react';
 import PaymentModal from '../PaymentModal';
 
@@ -29,7 +29,14 @@ export default function DashboardLayout({ children }) {
               <Zap className="w-4 h-4 fill-amber-500 text-amber-500" />
               <span className="font-bold">{user?.credits ?? 0}</span>
             </button>
-            <div className="text-sm font-semibold text-slate-600 hidden sm:block">{user?.name}</div>
+            <Link 
+              to="/profile"
+              className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 hover:border-brand-300 hover:bg-brand-50 text-slate-700 rounded-full transition-colors shadow-sm"
+              title="Profile Settings"
+            >
+              <User className="w-4 h-4 text-brand-600" />
+              <span className="text-sm font-semibold hidden sm:block">{user?.name}</span>
+            </Link>
             <button onClick={logout} className="px-5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-full text-sm font-bold shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
               Log Out
             </button>

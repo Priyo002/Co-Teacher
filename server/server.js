@@ -8,6 +8,7 @@ dotenv.config();
 const connectDB = require('./config/db');
 const routes = require('./routes');
 const paymentRoutes = require('./routes/payment');
+const startRetentionCron = require('./jobs/retentionCron');
 
 // Initialize express app
 const app = express();
@@ -23,6 +24,9 @@ app.use('/api/payment', paymentRoutes);
 app.get('/', (req, res) => {
   res.send('Text-to-Learn API is running...');
 });
+
+// Start Background Jobs
+startRetentionCron();
 
 const PORT = process.env.PORT || 5001;
 

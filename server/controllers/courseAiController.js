@@ -1,10 +1,12 @@
 const Course = require("../models/Course");
-const { createCourseOutline } = require("../services/courseGeneration");
+const { createCourseOutline, generatePreAssessmentQuestions } = require("../services/courseGeneration");
 const { streamLessonContent, createLessonContent, answerLessonQuestion, createLessonIntro, createLessonMainContent } = require("../services/lessonGeneration");
 const { saveGeneratedCourse } = require("../services/coursePersistence");
 const { getOwnedLesson } = require("../services/lessonAccessService");
 const { findLessonVideos } = require("../services/youtubeService");
 const { createLessonFlashcards, createPracticeLab, createLessonQuiz } = require("../services/studyGeneration");
+const { sendEmail } = require("../services/emailService");
+const CreditHistory = require("../models/CreditHistory");
 
 const VALID_DEPTHS = new Set(["brief", "standard", "deep"]);
 
@@ -12,6 +14,7 @@ async function generateCourseContent(req, res) {
   try {
     const prompt = String(req.body?.prompt || "").trim().slice(0, 2000);
     const language = String(req.body?.language || "English").trim().slice(0, 80);
+    const level = String(req.body?.level || "Beginner").trim().slice(0, 50);
 
     if (prompt.length < 10) {
       return res.status(400).json({ error: "Describe the course in at least 10 characters" });
@@ -32,17 +35,101 @@ async function generateCourseContent(req, res) {
       learningGoal: user.learningGoal
     };
 
-    const outline = await createCourseOutline(prompt, language, personalization);
+    const outline = await createCourseOutline(prompt, language, personalization, level);
+    outline.level = level; // Pass the level down to be saved
     const course = await saveGeneratedCourse(outline, req.user._id, language);
+    course.level = level;
+    await course.save();
 
     // Update usage
     user.credits -= 100;
     await user.save();
 
+    await CreditHistory.create({
+      user: user._id,
+      amount: -100,
+      reason: "Course Generation"
+    });
+
+    // 1. Course Generation Success Email
+    if (user.email) {
+      sendEmail({
+        to: user.email,
+        subject: "⚡ Your course is ready!",
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+            <h1 style="color: #4F46E5;">Course Ready!</h1>
+            <p>Hi ${user.name || 'Student'},</p>
+            <p>Your AI-generated course on <strong>"${course.title}"</strong> is complete and ready for you.</p>
+            <p><a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/course/${course._id}">Click here to start learning!</a></p>
+          </div>
+        `
+      });
+    }
+
+    // 2. Low Credits Warning
+    if (user.credits < 20 && !user.lowCreditEmailSent && user.email) {
+      user.lowCreditEmailSent = true;
+      await user.save();
+      sendEmail({
+        to: user.email,
+        subject: "⚠️ Low Credits Warning",
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+            <h1 style="color: #eab308;">Running Low on Credits! 🪙</h1>
+            <p>Hi ${user.name || 'Student'},</p>
+            <p>You only have <strong>${user.credits} credits</strong> remaining in your Co-Teacher account. You have enough for a few more individual lessons, but you won't be able to generate full courses.</p>
+            <p>Top up now to ensure your learning isn't interrupted!</p>
+            <p><a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/profile">Go to your Profile to Top Up</a></p>
+          </div>
+        `
+      });
+    }
+
     return res.status(201).json(course);
   } catch (error) {
     console.error("Generate Course Error:", error);
     return res.status(error.statusCode || 500).json({ error: error.message || "Failed to generate course" });
+  }
+}
+
+async function generatePreAssessmentCourse(req, res) {
+  try {
+    const prompt = String(req.body?.prompt || "").trim().slice(0, 2000);
+    const language = String(req.body?.language || "English").trim().slice(0, 80);
+    const level = String(req.body?.level || "Beginner").trim().slice(0, 50);
+
+    if (prompt.length < 10) {
+      return res.status(400).json({ error: "Describe the course in at least 10 characters" });
+    }
+
+    if (level === "Beginner") {
+      return res.status(400).json({ error: "Beginner level does not require pre-assessment." });
+    }
+
+    // Small credit charge for pre-assessment
+    const user = req.user;
+    if (user.credits < 10) {
+      return res.status(403).json({ 
+        error: "Insufficient credits for pre-assessment test. Needs 10 credits." 
+      });
+    }
+
+    const questions = await generatePreAssessmentQuestions(prompt, level, language);
+
+    user.credits -= 10;
+    await user.save();
+
+    await CreditHistory.create({
+      user: user._id,
+      amount: -10,
+      reason: "Pre-Assessment Test"
+    });
+
+    return res.status(200).json({ questions });
+  } catch (error) {
+    console.error("Generate Pre-assessment Error:", error);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Failed to generate pre-assessment" });
   }
 }
 
@@ -68,11 +155,7 @@ async function enrichLesson(req, res) {
     }
 
     if (questionsResult.status === "fulfilled" && questionsResult.value) {
-      blocks.push({
-        type: 'quiz',
-        title: 'Knowledge Check',
-        questions: questionsResult.value
-      });
+      context.lesson.testQuestions = questionsResult.value;
     }
 
     context.lesson.content = blocks;
@@ -131,14 +214,8 @@ async function enrichLessonStream(req, res) {
 
     const questionsResult = await createLessonQuiz(context.lesson);
 
-    if (questionsResult.status === "fulfilled" && questionsResult.value) {
-      const quizBlock = {
-        type: 'quiz',
-        title: 'Knowledge Check',
-        questions: questionsResult.value
-      };
-      blocks.push(quizBlock);
-      sendEvent("block", quizBlock);
+    if (questionsResult) {
+      context.lesson.testQuestions = questionsResult;
     }
 
     // Save final enriched content to database
@@ -309,12 +386,7 @@ async function generateLessonQuizChunk(req, res) {
 
     const questions = await createLessonQuiz(context.lesson);
     if (questions && questions.length > 0) {
-      context.lesson.content.push({
-        type: 'quiz',
-        title: 'Knowledge Check',
-        questions: questions
-      });
-      context.lesson.markModified('content');
+      context.lesson.testQuestions = questions;
     }
 
     context.lesson.generationStatus = 'complete';
@@ -360,6 +432,7 @@ async function chatAboutCourse(req, res) {
 
 module.exports = {
   generateCourseContent,
+  generatePreAssessmentCourse,
   enrichLesson,
   enrichLessonStream,
   generateFlashcards,

@@ -1,5 +1,5 @@
 const { Router } = require("express");
-const { generateCourseContent, enrichLessonStream, enrichLesson, generateFlashcards, generatePracticeLab, chatAboutLesson, chatAboutCourse, generateLessonOutline, generateLessonChunk, generateLessonQuizChunk } = require("../../controllers/courseAiController");
+const { generateCourseContent, generatePreAssessmentCourse, enrichLessonStream, enrichLesson, generateFlashcards, generatePracticeLab, chatAboutLesson, chatAboutCourse, generateLessonOutline, generateLessonChunk, generateLessonQuizChunk } = require("../../controllers/courseAiController");
 const {
   deleteCourse,
   getCourseById,
@@ -7,7 +7,9 @@ const {
   getMyCourses,
   updateSharing,
   updateLessonProgress,
-  generateFinalTest
+  generateFinalTest,
+  startLessonTest,
+  submitLessonTest
 } = require("../../controllers/courseController");
 const { verifyAuth0Token } = require("../../middlewares/auth0Auth");
 
@@ -16,6 +18,7 @@ const router = Router();
 router.use(verifyAuth0Token); // Ensure user is authenticated via Auth0
 
 router.post("/generate", generateCourseContent);
+router.post("/pre-assessment", generatePreAssessmentCourse);
 router.get("/mine", getMyCourses);
 router.post("/:courseId/chat", chatAboutCourse);
 
@@ -31,6 +34,8 @@ router.post("/:courseId/lessons/:lessonId/flashcards", generateFlashcards);
 router.post("/:courseId/lessons/:lessonId/lab", generatePracticeLab);
 router.post("/:courseId/lessons/:lessonId/chat", chatAboutLesson);
 router.put("/:courseId/lessons/:lessonId/progress", updateLessonProgress);
+router.post("/:courseId/lessons/:lessonId/test/start", startLessonTest);
+router.post("/:courseId/lessons/:lessonId/test/submit", submitLessonTest);
 router.patch("/:courseId/sharing", updateSharing);
 
 router.route("/:courseId")

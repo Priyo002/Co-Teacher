@@ -11,8 +11,10 @@ const courseSchema = new mongoose.Schema(
       index: true,
     },
     language: { type: String, default: "English" },
+    level: { type: String, enum: ["Beginner", "Intermediate", "Advanced"], default: "Beginner" },
     modules: [{ type: mongoose.Schema.Types.ObjectId, ref: "Module" }],
     isPublic: { type: Boolean, default: false },
+    completedEmailSent: { type: Boolean, default: false },
     shareId: { type: String, maxlength: 64 },
     finalTest: {
       generatedAt: { type: Date },

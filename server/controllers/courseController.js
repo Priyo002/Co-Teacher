@@ -1,16 +1,21 @@
 const crypto = require("crypto");
 const Course = require("../models/Course");
+const Lesson = require("../models/Lesson");
 const { deleteCourseRecords } = require("../services/coursePersistence");
 const { getOwnedLesson } = require("../services/lessonAccessService");
+const { checkAndSendCourseCompletionEmail } = require("../services/courseCompletionService");
 const aiRouter = require("../services/aiRouter");
 const Certificate = require("../models/Certificate");
+const { createLessonContent } = require("../services/lessonGeneration");
+const { findLessonVideos } = require("../services/youtubeService");
+const { createLessonQuiz } = require("../services/studyGeneration");
 
 const COURSE_OUTLINE = {
   path: "modules",
   select: "title lessons",
   populate: {
     path: "lessons",
-    select: "title isEnriched completedAt bookmarked lastOpenedAt quizBestScore quizAttempts",
+    select: "title isEnriched completedAt bookmarked lastOpenedAt quizBestScore quizAttempts isUnlocked isPassed testAttempts generationStatus",
   },
 };
 
@@ -78,7 +83,7 @@ async function deleteCourse(req, res) {
 }
 
 async function updateLessonProgress(req, res) {
-  const { lesson } = await getOwnedLesson(req.params.lessonId, req.user._id);
+  const { lesson, course } = await getOwnedLesson(req.params.lessonId, req.user._id);
 
   if (req.body?.opened === true) lesson.lastOpenedAt = new Date();
   if (typeof req.body?.completed === "boolean") {
@@ -98,6 +103,11 @@ async function updateLessonProgress(req, res) {
   }
 
   await lesson.save();
+
+  if (req.body?.completed === true && course) {
+    checkAndSendCourseCompletionEmail(course._id, req.user);
+  }
+
   return res.json(lesson.toObject({ depopulate: true }));
 }
 
@@ -124,7 +134,7 @@ async function getPublicCourse(req, res) {
       select: "title lessons",
       populate: {
         path: "lessons",
-        select: "title content language isEnriched",
+        select: "title content language isEnriched isUnlocked isPassed generationStatus",
       },
     })
     .lean();
@@ -252,6 +262,168 @@ Format each item exactly like this:
   }
 }
 
+async function triggerBackgroundGeneration(course, lesson) {
+  if (lesson.isEnriched || lesson.generationStatus === 'complete' || lesson.generationStatus === 'content' || lesson.generationStatus === 'quiz') return;
+  
+  try {
+    const moduleDoc = course.modules.find(m => m.lessons.some(l => l._id.toString() === lesson._id.toString()));
+    const context = { course, moduleDoc, lesson, depth: "standard", language: course.language || "English" };
+    const blocks = await createLessonContent(context);
+    
+    const [videosResult, questionsResult] = await Promise.allSettled([
+       findLessonVideos(context),
+       createLessonQuiz(lesson)
+    ]);
+
+    if (videosResult.status === "fulfilled" && videosResult.value) {
+       blocks.splice(Math.floor(blocks.length / 2), 0, ...videosResult.value);
+    }
+
+    if (questionsResult.status === "fulfilled" && questionsResult.value) {
+       lesson.testQuestions = questionsResult.value;
+    }
+
+    lesson.content = blocks;
+    lesson.isEnriched = true;
+    lesson.generationStatus = 'complete';
+    await lesson.save();
+  } catch (err) {
+    console.error("Background Generation Error:", err);
+  }
+}
+
+async function startLessonTest(req, res) {
+  try {
+    const course = await Course.findById(req.params.courseId).populate({
+      path: "modules",
+      populate: { path: "lessons" }
+    });
+    if (!course) return res.status(404).json({ error: "Course not found" });
+    if (!ownsCourse(course, req.user._id)) return res.status(403).json({ error: "Forbidden" });
+
+    let currentLesson = null;
+    let nextLesson = null;
+    let foundCurrent = false;
+
+    for (const mod of course.modules) {
+      for (const les of mod.lessons) {
+        if (foundCurrent && !nextLesson) nextLesson = les;
+        if (les._id.toString() === req.params.lessonId) {
+          currentLesson = les;
+          foundCurrent = true;
+        }
+      }
+    }
+
+    if (!currentLesson) return res.status(404).json({ error: "Lesson not found" });
+
+    // Trigger background generation for next lesson
+    if (nextLesson && !nextLesson.isEnriched) {
+      triggerBackgroundGeneration(course, nextLesson).catch(console.error);
+    }
+
+    let testQuestions = currentLesson.testQuestions || [];
+
+    // If no questions exist, generate them on the fly (for backwards compatibility with older courses)
+    if (testQuestions.length === 0) {
+      try {
+        const questionsResult = await createLessonQuiz(currentLesson);
+        if (questionsResult && questionsResult.length > 0) {
+          testQuestions = questionsResult;
+          currentLesson.testQuestions = testQuestions;
+          await currentLesson.save();
+        }
+      } catch (err) {
+        console.error("Failed to dynamically generate test questions:", err);
+      }
+    }
+
+    return res.json({ testQuestions });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to start test" });
+  }
+}
+
+async function submitLessonTest(req, res) {
+  try {
+    const course = await Course.findById(req.params.courseId).populate({
+      path: "modules",
+      populate: { path: "lessons" }
+    });
+    if (!course) return res.status(404).json({ error: "Course not found" });
+    if (!ownsCourse(course, req.user._id)) return res.status(403).json({ error: "Forbidden" });
+
+    let currentLesson = null;
+    let nextLesson = null;
+    let foundCurrent = false;
+
+    for (const mod of course.modules) {
+      for (const les of mod.lessons) {
+        if (foundCurrent && !nextLesson) nextLesson = les;
+        if (les._id.toString() === req.params.lessonId) {
+          currentLesson = les;
+          foundCurrent = true;
+        }
+      }
+    }
+
+    if (!currentLesson) return res.status(404).json({ error: "Lesson not found" });
+
+    const { answers } = req.body; // Array of { questionIndex: Number, selectedOption: Number }
+    if (!Array.isArray(answers)) return res.status(400).json({ error: "Invalid answers array" });
+
+    let correctCount = 0;
+    const testQuestions = currentLesson.testQuestions || [];
+    
+    for (const ans of answers) {
+       const q = testQuestions[ans.questionIndex];
+       if (q && q.correctAnswer === ans.selectedOption) {
+           correctCount++;
+       }
+    }
+
+    const totalQuestions = testQuestions.length || 1;
+    const score = Math.round((correctCount / totalQuestions) * 100);
+    const passed = score >= 70;
+
+    currentLesson.testAttempts.push({
+      score,
+      passed,
+      date: new Date(),
+      answers: answers.map(a => JSON.stringify(a))
+    });
+
+    const passedOrMaxed = passed || currentLesson.testAttempts.length >= 3;
+
+    if (score >= 70) {
+      currentLesson.isPassed = true;
+      currentLesson.completedAt = new Date();
+      checkAndSendCourseCompletionEmail(course._id, req.user);
+    }
+    
+    if (nextLesson && !nextLesson.isUnlocked && passedOrMaxed) {
+        nextLesson.isUnlocked = true;
+        await nextLesson.save();
+    }
+
+    await currentLesson.save();
+
+    return res.json({ 
+       score, 
+       passed: passedOrMaxed,
+       isMaxAttempts: currentLesson.testAttempts.length >= 3,
+       correctCount,
+       totalQuestions,
+       nextLessonUnlocked: !!nextLesson?.isUnlocked
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to submit test" });
+  }
+}
+
 module.exports = {
   deleteCourse,
   getCourseById,
@@ -261,4 +433,6 @@ module.exports = {
   updateLessonProgress,
   updateSharing,
   generateFinalTest,
+  startLessonTest,
+  submitLessonTest,
 };

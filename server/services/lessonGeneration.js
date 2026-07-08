@@ -134,14 +134,7 @@ Course description: ${course.description || "Not provided"}
   return blocks;
 }
 
-async function createLessonContent(context) {
-  // Keeping this for backwards compatibility if needed, but not actively used for new flow
-  const { generateJson } = require("./aiRouter");
-  const prompt = `Create a complete lesson. Use these blocks: ${JSON.stringify(LESSON_DEPTHS[context.depth])}`;
-  
-  const result = await generateJson(RICH_CONTENT_INSTRUCTIONS + "\n\n" + prompt, context.lesson.title, context.depth.maxTokens);
-  return formatBlocks(result);
-}
+
 
 async function createLessonOutline(context) {
   const { generateJson } = require("./aiRouter");

@@ -31,15 +31,18 @@ async function saveGeneratedCourse(outline, userId, language = "English") {
   });
 
   try {
+    let isFirstModule = true;
     for (const moduleOutline of outline.modules) {
       const moduleDoc = await Module.create({
         title: moduleOutline.title,
         course: course._id,
       });
-      const lessons = await Lesson.insertMany(moduleOutline.lessons.map((lesson) => ({
+      const lessons = await Lesson.insertMany(moduleOutline.lessons.map((lesson, index) => ({
         title: lesson.title,
         module: moduleDoc._id,
+        isUnlocked: isFirstModule && index === 0,
       })));
+      isFirstModule = false;
 
       moduleDoc.lessons = lessons.map((lesson) => lesson._id);
       course.modules.push(moduleDoc._id);

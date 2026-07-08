@@ -54,13 +54,13 @@
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-dark-900;
+  @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
   @apply bg-slate-300 rounded-full border-2 border-slate-50;
 }
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-dark-700;
+  @apply bg-slate-400;
 }
 
 /* Background effects */

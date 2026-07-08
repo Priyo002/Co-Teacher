@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, Circle, Menu, ChevronRight, Loader2, Bot, PanelLeftClose, PanelLeftOpen, PanelRightOpen, AlertTriangle, Download, ChevronsLeft, ChevronsRight, Bookmark } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Circle, Menu, ChevronRight, Loader2, Bot, PanelLeftClose, PanelLeftOpen, PanelRightOpen, AlertTriangle, Download, ChevronsLeft, ChevronsRight, Bookmark, Lock } from 'lucide-react';
 import LessonRenderer from '../components/LessonRenderer';
 import AITutorChat from '../components/AITutorChat';
+import TestModal from '../components/TestModal';
 import { useApi } from '../hooks/useApi';
 import { Sparkles } from 'lucide-react';
 
@@ -14,12 +15,14 @@ export default function LessonViewerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
   const [generatingChunk, setGeneratingChunk] = useState(false);
   const [generationError, setGenerationError] = useState(null);
   const [savingProgress, setSavingProgress] = useState(false);
   const [expandedModules, setExpandedModules] = useState({});
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false);
+  const [isReviewMode, setIsReviewMode] = useState(false);
   const fetchApi = useApi();
   const endOfContentRef = useRef(null);
 
@@ -202,6 +205,29 @@ export default function LessonViewerPage() {
     };
   }, [lesson?.title]);
 
+  const handleContinueLearning = () => {
+    if (!course || !lesson) return;
+    let foundCurrent = false;
+    let nextLesson = null;
+    
+    for (const mod of course.modules) {
+      for (const l of mod.lessons) {
+        if (foundCurrent && !nextLesson) {
+          nextLesson = l;
+        }
+        if (l._id === lesson._id) {
+          foundCurrent = true;
+        }
+      }
+    }
+    
+    if (nextLesson && nextLesson.isUnlocked) {
+      navigate(`/course/${courseId}/lesson/${nextLesson._id}`);
+    } else {
+      navigate(`/course/${courseId}`);
+    }
+  };
+
   const toggleModule = (moduleId) => {
     setExpandedModules(prev => ({ ...prev, [moduleId]: !prev[moduleId] }));
   };
@@ -327,19 +353,24 @@ export default function LessonViewerPage() {
                     <div className="space-y-1 border-l border-slate-200 ml-2 pl-4">
                       {module.lessons.map((l) => {
                         const isActive = l._id === lesson._id;
+                        const isLocked = !l.isUnlocked;
+                        const Wrapper = isLocked ? 'div' : Link;
+                        
                         return (
-                          <Link
+                          <Wrapper
                             key={l._id}
-                            to={`/course/${courseId}/lesson/${l._id}`}
-                            className={`flex items-start gap-3 p-2 rounded-lg transition-colors ${isActive ? 'bg-brand-50 text-brand-600 font-medium' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
+                            to={isLocked ? undefined : `/course/${courseId}/lesson/${l._id}`}
+                            className={`flex items-start gap-3 p-2 rounded-lg transition-colors ${isActive ? 'bg-brand-50 text-brand-600 font-medium' : isLocked ? 'text-slate-400 opacity-60 cursor-not-allowed' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 cursor-pointer'}`}
                           >
-                            {l.completedAt ? (
+                            {isLocked ? (
+                              <Lock className={`w-4 h-4 mt-0.5 shrink-0 text-slate-400`} />
+                            ) : l.completedAt ? (
                               <CheckCircle className={`w-4 h-4 mt-0.5 shrink-0 ${isActive ? 'text-brand-600' : 'text-slate-500'}`} />
                             ) : (
                               <Circle className={`w-4 h-4 mt-0.5 shrink-0 ${isActive ? 'text-brand-600' : 'text-slate-400'}`} />
                             )}
                             <span className="text-sm line-clamp-2">{l.title}</span>
-                          </Link>
+                          </Wrapper>
                         );
                       })}
                     </div>
@@ -355,25 +386,41 @@ export default function LessonViewerPage() {
       {/* Right Sidebar Toggle Overlay / Button */}
       {lesson && lesson.generationStatus !== 'none' && !isRightSidebarOpen && !error && (
         <div className="absolute top-1/2 -translate-y-1/2 right-4 z-40 hidden lg:block no-print">
-          <button
-            onClick={() => setIsRightSidebarOpen(true)}
-            className="w-12 h-12 rounded-full bg-brand-500 text-white flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.3)] hover:scale-110 transition-transform group"
-            title="Expand AI Tutor"
-          >
-            <Bot className="w-6 h-6" />
-          </button>
+          <div className="relative">
+            {/* Ping indicator */}
+            <div className="absolute -inset-2 bg-brand-400/30 rounded-full animate-ping pointer-events-none" style={{ animationDuration: '3s' }}></div>
+            
+            <button
+              onClick={() => setIsRightSidebarOpen(true)}
+              className="relative w-12 h-12 rounded-full bg-brand-500 text-white flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.3)] hover:scale-110 transition-transform group"
+              title="Expand AI Tutor"
+            >
+              <Bot className="w-6 h-6" />
+              
+              {/* Tooltip hint */}
+              <div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-slate-900 text-white text-sm font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                Ask AI Tutor
+                <div className="absolute right-[-4px] top-1/2 -translate-y-1/2 border-4 border-transparent border-l-slate-900"></div>
+              </div>
+            </button>
+          </div>
         </div>
       )}
       
       {/* Mobile Right Sidebar Toggle */}
       {lesson && lesson.generationStatus !== 'none' && !isRightSidebarOpen && !error && (
-        <button
-          onClick={() => setIsRightSidebarOpen(true)}
-          className="lg:hidden absolute top-4 right-4 z-40 bg-white p-2 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-900 transition-colors shadow-sm no-print"
-          title="Expand AI Tutor"
-        >
-          <Bot className="w-5 h-5" />
-        </button>
+        <div className="absolute top-4 right-4 z-40 lg:hidden no-print">
+          <div className="relative">
+            <div className="absolute -inset-1 bg-brand-400/30 rounded-lg animate-ping pointer-events-none" style={{ animationDuration: '3s' }}></div>
+            <button
+              onClick={() => setIsRightSidebarOpen(true)}
+              className="relative bg-white p-2 rounded-lg border border-brand-200 text-brand-600 shadow-sm"
+              title="Ask AI Tutor"
+            >
+              <Bot className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
       )}
 
       <main className="flex-1 bg-white overflow-y-auto relative print:overflow-visible print:block">
@@ -490,6 +537,75 @@ export default function LessonViewerPage() {
                 )}
                 
                 <div ref={endOfContentRef} className="h-1 w-full" />
+                
+                {lesson.generationStatus === 'complete' && (
+                   <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col items-center">
+                     {lesson.isPassed ? (
+                        <div className="text-center">
+                          <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                          <h3 className="text-xl font-bold text-slate-900 mb-2">Lesson Passed</h3>
+                          <p className="text-slate-500 mb-6">You've successfully completed this lesson.</p>
+                          <div className="flex gap-4 justify-center">
+                            <button 
+                               onClick={handleContinueLearning}
+                               className="btn-primary"
+                            >
+                              Continue Learning <ChevronRight className="w-4 h-4 ml-2 inline" />
+                            </button>
+                            <button 
+                               onClick={() => {
+                                 setIsReviewMode(true);
+                                 setIsTestModalOpen(true);
+                               }}
+                               className="btn-secondary"
+                            >
+                              Review Test
+                            </button>
+                          </div>
+                        </div>
+                     ) : !lesson.isPassed && lesson.testAttempts?.length >= 3 ? (
+                        <div className="text-center">
+                          <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+                          <h3 className="text-xl font-bold text-slate-900 mb-2">Maximum Attempts Reached</h3>
+                          <p className="text-slate-500 mb-6">You didn't pass the test, but the next lesson has been unlocked for you.</p>
+                          <div className="flex gap-4 justify-center">
+                            <button 
+                               onClick={handleContinueLearning}
+                               className="btn-primary"
+                            >
+                              Continue Learning <ChevronRight className="w-4 h-4 ml-2 inline" />
+                            </button>
+                            <button 
+                               onClick={() => {
+                                 setIsReviewMode(true);
+                                 setIsTestModalOpen(true);
+                               }}
+                               className="btn-secondary"
+                            >
+                              Review Test
+                            </button>
+                          </div>
+                        </div>
+                     ) : (
+                        <div className="text-center">
+                          <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <Sparkles className="w-8 h-8 text-brand-500" />
+                          </div>
+                          <h3 className="text-xl font-bold text-slate-900 mb-2">Ready to test your knowledge?</h3>
+                          <p className="text-slate-500 mb-2">You must pass the lesson test with at least 70% to unlock the next lesson.</p>
+                          <p className="text-amber-600 font-medium mb-6 text-sm">
+                            Attempt {lesson.testAttempts?.length || 0} of 3. If you reach 3 attempts, the next lesson will unlock automatically.
+                          </p>
+                          <button onClick={() => {
+                            setIsReviewMode(false);
+                            setIsTestModalOpen(true);
+                          }} className="btn-primary">
+                            Take Lesson Test
+                          </button>
+                        </div>
+                     )}
+                   </div>
+                )}
               </div>
 
               {/* Inline mobile AI Tutor removed so it can be a proper sidebar overlay */}
@@ -520,6 +636,43 @@ export default function LessonViewerPage() {
           </div>
           <AITutorChat courseId={courseId} lessonId={id} onClose={() => setIsRightSidebarOpen(false)} />
         </aside>
+      )}
+
+      {lesson && (
+        <TestModal 
+          isOpen={isTestModalOpen} 
+          onClose={() => setIsTestModalOpen(false)} 
+          courseId={courseId} 
+          lessonId={id} 
+          isReviewMode={isReviewMode}
+          onSuccess={(res) => {
+            // Update lesson state locally
+            setLesson(prev => ({ 
+              ...prev, 
+              isPassed: res.passed,
+              completedAt: (res.passed || res.isMaxAttempts) ? new Date() : prev.completedAt,
+              testAttempts: [...(prev.testAttempts || []), { passed: res.passed }] // mock attempt for UI update
+            }));
+            // Also update course modules to unlock next lesson
+            if (res.nextLessonUnlocked) {
+              setCourse(prev => {
+                let unlockedNext = false;
+                const newModules = prev.modules.map(m => ({
+                  ...m,
+                  lessons: m.lessons.map(l => {
+                    if (l._id === id) return { ...l, isPassed: res.passed, completedAt: (res.passed || res.isMaxAttempts) ? new Date() : l.completedAt };
+                    if (!unlockedNext && !l.isUnlocked && !l.isPassed) {
+                      unlockedNext = true;
+                      return { ...l, isUnlocked: true };
+                    }
+                    return l;
+                  })
+                }));
+                return { ...prev, modules: newModules };
+              });
+            }
+          }}
+        />
       )}
     </div>
   );

@@ -58,8 +58,13 @@ async function verifyAuth0Token(req, res, next) {
       { email: auth0Profile.email },
       {
         $setOnInsert: {
-          name: auth0Profile.name || auth0Profile.nickname || "Learner",
-          authProviderId: auth0Profile.sub,
+          name: auth0Profile.name || auth0Profile.nickname || "User",
+          auth0Id: auth0Profile.sub,
+          hasCompletedOnboarding: false,
+          credits: 500,
+        },
+        $set: {
+          lastActiveAt: new Date()
         }
       },
       { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }

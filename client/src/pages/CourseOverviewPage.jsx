@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { BookOpen, CheckCircle, Circle, PlayCircle, ArrowLeft, MoreVertical, Share2, Loader2, Check, Trash2 } from 'lucide-react';
+import { BookOpen, CheckCircle, Circle, PlayCircle, ArrowLeft, MoreVertical, Share2, Loader2, Check, Trash2, Lock } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import CourseSkeleton from '../components/skeletons/CourseSkeleton';
 
@@ -175,35 +175,42 @@ export default function CourseOverviewPage() {
               <h3 className="font-bold text-lg text-slate-900">Module {mIdx + 1}: {module.title.replace(/^Module\s*\d+:\s*/i, '')}</h3>
             </div>
             <div className="divide-y divide-slate-100">
-              {module.lessons?.map((lesson, lIdx) => (
-                <Link 
-                  key={lesson._id}
-                  to={`/course/${course._id}/lesson/${lesson._id}`}
-                  className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors group"
-                >
-                  <div className="flex items-center gap-4">
-                    {lesson.completedAt ? (
-                      <CheckCircle className="w-5 h-5 text-brand-500 shrink-0" />
-                    ) : (
-                      <Circle className="w-5 h-5 text-slate-300 group-hover:text-brand-300 shrink-0" />
-                    )}
-                    <div>
-                      <h4 className="font-medium text-slate-900 group-hover:text-brand-600 transition-colors">
-                        {mIdx + 1}.{lIdx + 1} {lesson.title}
-                      </h4>
+              {module.lessons?.map((lesson, lIdx) => {
+                const isLocked = !lesson.isUnlocked;
+                const Wrapper = isLocked ? 'div' : Link;
+                
+                return (
+                  <Wrapper 
+                    key={lesson._id}
+                    to={isLocked ? undefined : `/course/${course._id}/lesson/${lesson._id}`}
+                    className={`flex items-center justify-between p-4 transition-colors group ${isLocked ? 'opacity-60 cursor-not-allowed bg-slate-50/50' : 'hover:bg-slate-50 cursor-pointer'}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      {isLocked ? (
+                        <Lock className="w-5 h-5 text-slate-400 shrink-0" />
+                      ) : lesson.completedAt ? (
+                        <CheckCircle className="w-5 h-5 text-brand-500 shrink-0" />
+                      ) : (
+                        <Circle className="w-5 h-5 text-slate-300 group-hover:text-brand-300 shrink-0" />
+                      )}
+                      <div>
+                        <h4 className={`font-medium transition-colors ${isLocked ? 'text-slate-500' : 'text-slate-900 group-hover:text-brand-600'}`}>
+                          {mIdx + 1}.{lIdx + 1} {lesson.title}
+                        </h4>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    {lesson.generationStatus === 'none' && (
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200">
-                        Draft
-                      </span>
-                    )}
-                    <PlayCircle className="w-5 h-5 text-slate-400 group-hover:text-brand-500 transition-colors" />
-                  </div>
-                </Link>
-              ))}
+                    
+                    <div className="flex items-center gap-3">
+                      {lesson.generationStatus === 'none' && !isLocked && (
+                        <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200">
+                          Draft
+                        </span>
+                      )}
+                      {!isLocked && <PlayCircle className="w-5 h-5 text-slate-400 group-hover:text-brand-500 transition-colors" />}
+                    </div>
+                  </Wrapper>
+                );
+              })}
             </div>
           </div>
         ))}
