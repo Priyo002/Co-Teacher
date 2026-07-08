@@ -4,12 +4,14 @@ import { Loader2, ArrowLeft, CheckCircle2, Trophy, Flame, Star, Sparkles, Rotate
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 import { useApi } from '../hooks/useApi';
+import { useAuth } from '../hooks/useAuth';
 import ProctoringWrapper from '../components/ProctoringWrapper';
 
 export default function FinalTestPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const fetchApi = useApi();
+  const { user } = useAuth();
   const { width, height } = useWindowSize();
 
   const [course, setCourse] = useState(null);
@@ -19,6 +21,17 @@ export default function FinalTestPage() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null); // { score, passed, certificateId }
   const [missedQuestions, setMissedQuestions] = useState([]);
+
+  const questions = course?.finalTest?.questions || [];
+
+  const handleAutoFill = () => {
+    const newAnswers = {};
+    questions.forEach((q, idx) => {
+      newAnswers[idx] = q.correctAnswer;
+    });
+    setAnswers(newAnswers);
+    setMissedQuestions([]);
+  };
 
   useEffect(() => {
     async function loadTest() {
@@ -112,9 +125,6 @@ export default function FinalTestPage() {
     );
   }
 
-  const questions = course.finalTest.questions;
-
-
   return (
     <div className="p-4 sm:p-8 animate-fade-in max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -125,9 +135,19 @@ export default function FinalTestPage() {
           <ArrowLeft className="w-4 h-4" /> Back to Course
         </button>
         {!result && (
-          <div className="flex items-center gap-2 text-brand-600 bg-brand-50 px-3 py-1.5 rounded-full text-sm font-medium">
-            <ShieldCheck className="w-4 h-4" />
-            AI Proctoring Ready
+          <div className="flex items-center gap-2">
+            {user?.isAdmin && (
+              <button 
+                onClick={handleAutoFill}
+                className="text-xs bg-amber-500 text-white px-3 py-1.5 rounded-full font-medium shadow-sm hover:bg-amber-600 transition-colors"
+              >
+                Admin Auto-Fill
+              </button>
+            )}
+            <div className="flex items-center gap-2 text-brand-600 bg-brand-50 px-3 py-1.5 rounded-full text-sm font-medium">
+              <ShieldCheck className="w-4 h-4" />
+              AI Proctoring Ready
+            </div>
           </div>
         )}
       </div>

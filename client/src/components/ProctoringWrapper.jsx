@@ -10,6 +10,11 @@ export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMi
   const [warningMessage, setWarningMessage] = useState(null);
   const [timeLeft, setTimeLeft] = useState(timeLimitMinutes ? timeLimitMinutes * 60 : null);
   
+  // Drag state for PIP
+  const [pipPosition, setPipPosition] = useState({ x: 16, y: 16 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 });
+  
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const audioContextRef = useRef(null);
@@ -187,11 +192,19 @@ export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMi
   const cleanup = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      const tracks = streamRef.current.getTracks();
+      // Defer hardware teardown to prevent blocking the UI thread during navigation
+      setTimeout(() => {
+        tracks.forEach(track => track.stop());
+      }, 1500);
     }
     if (audioContextRef.current) {
       if(audioContextRef.current.state !== 'closed') {
-         audioContextRef.current.close();
+         setTimeout(() => {
+           if(audioContextRef.current && audioContextRef.current.state !== 'closed') {
+             audioContextRef.current.close().catch(console.error);
+           }
+         }, 1500);
       }
     }
   };
@@ -246,6 +259,32 @@ export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMi
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
+  const handlePointerDown = (e) => {
+    setIsDragging(true);
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: pipPosition.x,
+      initialY: pipPosition.y
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
+    setPipPosition({
+      x: dragRef.current.initialX + dx,
+      y: dragRef.current.initialY - dy // Subtract dy because y is measured from the bottom
+    });
+  };
+
+  const handlePointerUp = (e) => {
+    setIsDragging(false);
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
+
   return (
     <>
       {/* Floating Timer */}
@@ -259,15 +298,22 @@ export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMi
       )}
 
       {/* Floating PIP Webcam */}
-      <div className="fixed bottom-4 left-4 z-[9999] w-48 aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border-2 border-brand-500/50">
+      <div 
+        className={`fixed z-[9999] w-48 aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border-2 border-brand-500/50 touch-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab hover:scale-105'} transition-transform`}
+        style={{ left: `${pipPosition.x}px`, bottom: `${pipPosition.y}px` }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      >
         <video 
           ref={videoRef} 
           autoPlay 
           muted 
           playsInline 
-          className="w-full h-full object-cover transform -scale-x-100"
+          className="w-full h-full object-cover transform -scale-x-100 pointer-events-none"
         ></video>
-        <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded text-[10px] text-white flex items-center gap-1 font-mono">
+        <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded text-[10px] text-white flex items-center gap-1 font-mono pointer-events-none">
           <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
           RECORDING
         </div>

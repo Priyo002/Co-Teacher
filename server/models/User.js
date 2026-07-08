@@ -22,6 +22,7 @@ const userSchema = new mongoose.Schema({
   
   phone: { type: String, maxlength: 20 },
   isPhoneVerified: { type: Boolean, default: false },
+  isAdmin: { type: Boolean, default: false },
   otpCache: {
     code: { type: String },
     expiresAt: { type: Date }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle2, XCircle, Loader2, RefreshCcw, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
+import { useAuth } from '../hooks/useAuth';
 import TestResultModal from '../components/TestResultModal';
 import ProctoringWrapper from '../components/ProctoringWrapper';
 
@@ -20,6 +21,16 @@ export default function LessonTestPage() {
   const [missedQuestions, setMissedQuestions] = useState([]);
   const [error, setError] = useState(null);
   const fetchApi = useApi();
+  const { user } = useAuth();
+
+  const handleAutoFill = () => {
+    const newAnswers = {};
+    questions.forEach((q, idx) => {
+      newAnswers[idx] = q.correctAnswer;
+    });
+    setAnswers(newAnswers);
+    setMissedQuestions([]);
+  };
 
   useEffect(() => {
     loadTest();
@@ -129,9 +140,19 @@ export default function LessonTestPage() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Lesson
         </button>
-        <div className="flex items-center gap-2 text-brand-600 bg-brand-50 px-3 py-1.5 rounded-full text-sm font-medium">
-          <ShieldCheck className="w-4 h-4" />
-          AI Proctoring Ready
+        <div className="flex items-center gap-2">
+          {user?.isAdmin && (
+            <button 
+              onClick={handleAutoFill}
+              className="text-xs bg-amber-500 text-white px-3 py-1.5 rounded-full font-medium shadow-sm hover:bg-amber-600 transition-colors"
+            >
+              Admin Auto-Fill
+            </button>
+          )}
+          <div className="flex items-center gap-2 text-brand-600 bg-brand-50 px-3 py-1.5 rounded-full text-sm font-medium">
+            <ShieldCheck className="w-4 h-4" />
+            AI Proctoring Ready
+          </div>
         </div>
       </div>
 
