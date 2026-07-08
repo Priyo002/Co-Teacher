@@ -22,6 +22,7 @@ export default function FinalTestPage() {
   const [result, setResult] = useState(null); // { score, passed, certificateId }
   const [missedQuestions, setMissedQuestions] = useState([]);
   const [showExplanation, setShowExplanation] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [attemptKey, setAttemptKey] = useState(0);
 
   const [shuffledQuestions, setShuffledQuestions] = useState([]);
@@ -213,9 +214,7 @@ export default function FinalTestPage() {
         <button 
           onClick={() => {
             if (!result) {
-              if (confirm("If you leave the test now, it will be marked as a failed attempt and you will not get credit points. Are you sure?")) {
-                handleSubmit(false, true).then(() => navigate(`/course/${id}`));
-              }
+              setShowLeaveModal(true);
             } else {
               navigate(`/course/${id}`);
             }
@@ -367,6 +366,34 @@ export default function FinalTestPage() {
             </button>
           </div>
         </ProctoringWrapper>
+      )}
+
+      {showLeaveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold text-slate-900 mb-2">Leave Final Test?</h3>
+            <p className="text-slate-500 mb-6">
+              If you leave the test now, it will be marked as a failed attempt and you will lose your chance to earn the certificate for this attempt. Are you sure you want to leave?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowLeaveModal(false)}
+                className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowLeaveModal(false);
+                  handleSubmit(false, true).then(() => navigate(`/course/${courseId}`));
+                }}
+                className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors"
+              >
+                Leave Test
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

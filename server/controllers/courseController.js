@@ -317,10 +317,8 @@ async function startLessonTest(req, res) {
 
     if (!currentLesson) return res.status(404).json({ error: "Lesson not found" });
 
-    // Trigger background generation for next lesson
-    if (nextLesson && !nextLesson.isEnriched) {
-      triggerBackgroundGeneration(course, nextLesson).catch(console.error);
-    }
+    // Note: Background generation was removed so the frontend chunk-based generation
+    // can create much deeper, richer content when the user navigates to the next lesson.
 
     let testQuestions = currentLesson.testQuestions || [];
 
