@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const Lesson = require("../models/Lesson");
 const CreditHistory = require("../models/CreditHistory");
+const cloudinary = require("../config/cloudinary");
 const Certificate = require("../models/Certificate");
 const { sendEmail } = require("../services/emailService");
 const twilio = require('twilio');
@@ -169,6 +170,31 @@ async function updateProfile(req, res) {
   }
 }
 
+async function uploadProfilePicture(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No image provided" });
+    }
+
+    const b64 = Buffer.from(req.file.buffer).toString("base64");
+    let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+    
+    const uploadRes = await cloudinary.uploader.upload(dataURI, {
+      folder: 'co_teacher_profiles',
+      resource_type: "image"
+    });
+
+    await User.findByIdAndUpdate(req.user._id, { 
+      profilePicture: uploadRes.secure_url 
+    });
+
+    res.json({ success: true, profilePicture: uploadRes.secure_url });
+  } catch (error) {
+    console.error("Failed to upload profile picture:", error);
+    res.status(500).json({ error: "Failed to upload image" });
+  }
+}
+
 async function sendOtp(req, res) {
   try {
     const user = await User.findById(req.user._id);
@@ -297,5 +323,6 @@ module.exports = {
   sendOtp,
   verifyOtp,
   getCreditHistory,
-  getCertificates
+  getCertificates,
+  uploadProfilePicture
 };

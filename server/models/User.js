@@ -19,6 +19,7 @@ const userSchema = new mongoose.Schema({
   },
   password: { type: String, maxlength: 128 },
   auth0Id: { type: String, maxlength: 255 },
+  profilePicture: { type: String, default: "" },
   
   phone: { type: String, maxlength: 20 },
   isPhoneVerified: { type: Boolean, default: false },

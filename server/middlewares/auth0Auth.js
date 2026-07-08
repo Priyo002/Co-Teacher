@@ -62,6 +62,7 @@ async function verifyAuth0Token(req, res, next) {
           auth0Id: auth0Profile.sub,
           hasCompletedOnboarding: false,
           credits: 500,
+          profilePicture: auth0Profile.picture || ""
         },
         $set: {
           lastActiveAt: new Date()

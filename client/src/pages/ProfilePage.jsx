@@ -2,66 +2,35 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useApi } from '../hooks/useApi';
 import { countryCodes } from '../utils/countryCodes';
-import { User, Phone, BookOpen, Target, CheckCircle, Smartphone, CreditCard, Save, Loader2, Sparkles, Activity } from 'lucide-react';
+import { User, Phone, BookOpen, Target, CheckCircle, Smartphone, Save, Loader2, Camera } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function ProfilePage() {
-  const { user, refreshProfile } = useAuth();
+  const { user, refreshProfile, getToken } = useAuth();
   const fetchApi = useApi();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [transactions, setTransactions] = useState([]);
-  const [creditHistory, setCreditHistory] = useState([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
-    countryCode: '+91',
-    phoneNumber: '',
     educationLevel: 'High School',
     fieldOfStudy: '',
     learningStyle: [],
     learningGoal: ''
   });
 
-  // OTP State
-  const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState('');
-  const [verifying, setVerifying] = useState(false);
-
   useEffect(() => {
     async function loadData() {
       try {
-        const [profileData, txData, historyData] = await Promise.all([
-          fetchApi('/user/profile'),
-          fetchApi('/payment/transactions'),
-          fetchApi('/user/credit-history')
-        ]);
-        
-        const profilePhone = profileData.phone || '';
-        let extractedCountryCode = '+91';
-        let extractedPhone = profilePhone;
-        
-        // Simple extraction for +XX or +X format
-        if (profilePhone.startsWith('+')) {
-          const spaceIndex = profilePhone.indexOf(' ');
-          if (spaceIndex > 0) {
-            extractedCountryCode = profilePhone.substring(0, spaceIndex);
-            extractedPhone = profilePhone.substring(spaceIndex + 1);
-          }
-        }
-
+        const profileData = await fetchApi('/user/profile');
         setFormData({
           name: profileData.name || '',
-          countryCode: extractedCountryCode,
-          phoneNumber: extractedPhone,
           educationLevel: profileData.educationLevel || 'High School',
           fieldOfStudy: profileData.fieldOfStudy || '',
           learningStyle: profileData.learningStyle || [],
           learningGoal: profileData.learningGoal || ''
         });
-        
-        setTransactions(txData.transactions || []);
-        setCreditHistory(historyData.history || []);
       } catch (err) {
         console.error('Failed to load profile data', err);
         toast.error('Failed to load profile data');
@@ -76,14 +45,9 @@ export default function ProfilePage() {
     e.preventDefault();
     setSaving(true);
     try {
-      const fullPhone = formData.phoneNumber ? `${formData.countryCode} ${formData.phoneNumber}` : '';
-      const payload = {
-        ...formData,
-        phone: fullPhone
-      };
       await fetchApi('/user/profile', {
         method: 'PUT',
-        body: JSON.stringify(payload)
+        body: JSON.stringify(formData)
       });
       await refreshProfile();
       toast.success("Profile updated successfully!");
@@ -91,47 +55,6 @@ export default function ProfilePage() {
       toast.error(err.message || "Failed to update profile");
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleSendOtp = async () => {
-    if (!formData.phoneNumber) {
-      toast.error("Please enter your phone number first.");
-      return;
-    }
-    
-    // Auto save the phone number first
-    try {
-      const fullPhone = `${formData.countryCode} ${formData.phoneNumber}`;
-      await fetchApi('/user/profile', {
-        method: 'PUT',
-        body: JSON.stringify({ phone: fullPhone })
-      });
-      
-      await fetchApi('/user/send-otp', { method: 'POST' });
-      setOtpSent(true);
-      toast.success("OTP sent! Check the server console.");
-    } catch (err) {
-      toast.error(err.message || "Failed to send OTP");
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!otp) return;
-    setVerifying(true);
-    try {
-      await fetchApi('/user/verify-otp', {
-        method: 'POST',
-        body: JSON.stringify({ otp })
-      });
-      await refreshProfile();
-      setOtpSent(false);
-      setOtp('');
-      toast.success("Phone verified! You earned 100 credits.");
-    } catch (err) {
-      toast.error(err.message || "Invalid OTP");
-    } finally {
-      setVerifying(false);
     }
   };
 
@@ -146,6 +69,39 @@ export default function ProfilePage() {
     });
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      return toast.error("Image must be smaller than 5MB");
+    }
+
+    setUploadingImage(true);
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const token = await getToken();
+      const res = await fetch(import.meta.env.VITE_API_URL + '/user/profile/picture', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to upload image');
+      
+      await refreshProfile();
+      toast.success("Profile picture updated!");
+    } catch (err) {
+      toast.error(err.message || "Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   if (loading) {
     return <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-brand-600" /></div>;
   }
@@ -157,8 +113,35 @@ export default function ProfilePage() {
         <p className="text-slate-500">Manage your account settings, learning preferences, and billing.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 flex flex-col h-full">
+      <div className="max-w-4xl mx-auto flex flex-col h-full gap-6">
+          {/* Profile Picture Section */}
+          <div className="glass-panel p-6 sm:p-8 bg-white border border-slate-200 flex flex-col sm:flex-row items-center sm:items-start gap-6">
+            <div className="relative group">
+              <div className="w-24 h-24 rounded-full overflow-hidden bg-brand-100 border-4 border-white shadow-md flex items-center justify-center font-bold text-3xl text-brand-700">
+                {uploadingImage ? (
+                  <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
+                ) : user?.profilePicture ? (
+                  <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  user?.name?.charAt(0).toUpperCase()
+                )}
+              </div>
+              <label className="absolute bottom-0 right-0 bg-brand-600 text-white p-2 rounded-full cursor-pointer shadow-lg hover:bg-brand-700 transition-colors transform translate-x-1 translate-y-1">
+                <Camera className="w-4 h-4" />
+                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} />
+              </label>
+            </div>
+            <div className="text-center sm:text-left flex-1">
+              <h2 className="text-xl font-bold text-slate-900">{user?.name}</h2>
+              <p className="text-slate-500 text-sm mb-3">{user?.email}</p>
+              <label className="text-sm font-semibold text-brand-600 hover:text-brand-700 cursor-pointer inline-flex items-center gap-1 bg-brand-50 px-3 py-1.5 rounded-lg transition-colors">
+                <Camera className="w-4 h-4" />
+                Update Picture
+                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} />
+              </label>
+            </div>
+          </div>
+
           {/* General Info */}
           <div className="glass-panel p-6 sm:p-8 bg-white border border-slate-200 flex-1 flex flex-col">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
@@ -176,71 +159,6 @@ export default function ProfilePage() {
                   className="input-field"
                   required
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Phone Number</label>
-                <div className="flex gap-3">
-                  <div className="relative flex-1 flex shadow-sm rounded-xl">
-                    <select
-                      value={formData.countryCode}
-                      onChange={e => setFormData({...formData, countryCode: e.target.value})}
-                      className="input-field rounded-r-none border-r-0 bg-slate-50 w-[120px] pl-3 pr-8 font-semibold text-slate-700 cursor-pointer appearance-none"
-                    >
-                      {countryCodes.map(c => (
-                        <option key={c.code} value={c.code}>{c.label}</option>
-                      ))}
-                    </select>
-                    <div className="relative flex-1">
-                      <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                      <input
-                        type="tel"
-                        value={formData.phoneNumber}
-                        onChange={e => setFormData({...formData, phoneNumber: e.target.value.replace(/\D/g, '')})}
-                        placeholder="9876543210"
-                        className="input-field pl-10 rounded-l-none border-l border-slate-200"
-                      />
-                    </div>
-                  </div>
-                  {user?.isPhoneVerified ? (
-                    <div className="flex items-center gap-1 text-green-600 bg-green-50 px-4 rounded-xl border border-green-200 font-semibold whitespace-nowrap">
-                      <CheckCircle className="w-4 h-4" />
-                      Verified
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleSendOtp}
-                      className="btn-secondary whitespace-nowrap px-6"
-                    >
-                      Verify (+100 Credits)
-                    </button>
-                  )}
-                </div>
-                
-                {otpSent && !user?.isPhoneVerified && (
-                  <div className="mt-4 p-4 bg-brand-50 border border-brand-100 rounded-xl flex items-end gap-3 animate-slide-up">
-                    <div className="flex-1">
-                      <label className="block text-sm font-semibold text-brand-800 mb-2">Enter 6-digit OTP</label>
-                      <input
-                        type="text"
-                        value={otp}
-                        onChange={e => setOtp(e.target.value)}
-                        placeholder="123456"
-                        className="input-field bg-white"
-                        maxLength={6}
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleVerifyOtp}
-                      disabled={verifying || otp.length < 6}
-                      className="btn-primary"
-                    >
-                      {verifying ? <Loader2 className="w-5 h-5 animate-spin" /> : "Verify OTP"}
-                    </button>
-                  </div>
-                )}
               </div>
 
               {/* Onboarding Fields */}
@@ -320,101 +238,6 @@ export default function ProfilePage() {
               </div>
             </form>
           </div>
-        </div>
-
-        {/* Right Sidebar */}
-        <div className="lg:col-span-1 flex flex-col gap-6">
-          {/* Billing History */}
-          <div className="glass-panel p-6 bg-white border border-slate-200 flex flex-col">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-brand-600" />
-              Billing History
-            </h2>
-            
-            {transactions.length > 0 ? (
-              <div className="space-y-4 max-h-[270px] overflow-y-auto pr-2 custom-scrollbar">
-                {transactions.map(t => (
-                  <div key={t._id} className="p-4 rounded-xl border border-slate-100 bg-slate-50 flex flex-col gap-2">
-                    <div className="flex justify-between items-start">
-                      <span className="font-bold text-slate-900 capitalize">{t.packageId} Plan</span>
-                      <span className="font-bold text-brand-600">+{t.creditsAdded} cr</span>
-                    </div>
-                    <div className="flex justify-between items-end">
-                      <span className="text-sm text-slate-500">
-                        {new Date(t.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })} (IST)
-                      </span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        t.status === 'success' ? 'bg-green-100 text-green-700' :
-                        t.status === 'failed' ? 'bg-red-100 text-red-700' :
-                        'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {t.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-slate-500 flex flex-col items-center">
-                <CreditCard className="w-8 h-8 text-slate-300 mb-3" />
-                <p className="text-sm">No transactions yet.</p>
-              </div>
-            )}
-          </div>
-
-          {/* Credit History Section */}
-          <div className="glass-panel p-6 bg-white border border-slate-200 flex flex-col">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <Activity className="w-5 h-5 text-brand-600" />
-              Credit History
-            </h2>
-            
-            {creditHistory.length > 0 ? (
-              <div className="space-y-4 max-h-[270px] overflow-y-auto pr-2 custom-scrollbar">
-                {creditHistory.map(item => (
-                  <div key={item._id} className="p-4 rounded-xl border border-slate-100 bg-slate-50 flex flex-col gap-2">
-                    <div className="flex justify-between items-baseline gap-4">
-                      {(() => {
-                        const parts = item.reason.split(': ');
-                        const title = parts[0];
-                        const detail = parts.slice(1).join(': ');
-                        return (
-                          <div className="flex flex-col gap-1.5 min-w-0">
-                            <span className="font-bold text-slate-900 truncate">{title}</span>
-                            {detail && (
-                              <span className="text-[11px] font-medium text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded-md truncate w-fit max-w-full shadow-sm" title={detail}>
-                                {detail}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })()}
-                      <span className={`font-bold shrink-0 ${item.amount > 0 ? 'text-brand-600' : 'text-red-500'}`}>
-                        {item.amount > 0 ? '+' : ''}{item.amount} cr
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center mt-1">
-                      <span className="text-sm text-slate-500">
-                        {new Date(item.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })} (IST)
-                      </span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        item.amount > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'
-                      }`}>
-                        {item.amount > 0 ? 'EARNED' : 'SPENT'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-slate-500 flex flex-col items-center">
-                <Activity className="w-8 h-8 text-slate-300 mb-3" />
-                <p className="text-sm">No credit history yet.</p>
-              </div>
-            )}
-          </div>
-
-        </div>
       </div>
     </div>
   );

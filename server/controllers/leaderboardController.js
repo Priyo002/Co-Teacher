@@ -3,7 +3,7 @@ const User = require('../models/User');
 exports.getLeaderboard = async (req, res) => {
   try {
     const topUsers = await User.find({})
-      .select('name globalScore totalTestsTaken createdAt')
+      .select('name globalScore totalTestsTaken createdAt profilePicture')
       .sort({ globalScore: -1, createdAt: 1 })
       .limit(50);
 

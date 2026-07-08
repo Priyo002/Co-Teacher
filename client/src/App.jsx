@@ -14,6 +14,8 @@ import OnboardingPage from './pages/OnboardingPage';
 import ProfilePage from './pages/ProfilePage';
 import LessonTestPage from './pages/LessonTestPage';
 import LeaderboardPage from './pages/LeaderboardPage';
+import BillingHistoryPage from './pages/BillingHistoryPage';
+import CreditHistoryPage from './pages/CreditHistoryPage';
 
 function GuestRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -59,6 +61,8 @@ export default function App() {
         <Route path="/course/:courseId/lesson/:id" element={<DashboardPage><LessonViewerPage /></DashboardPage>} />
         <Route path="/course/:courseId/lesson/:id/test" element={<DashboardPage><LessonTestPage /></DashboardPage>} />
         <Route path="/leaderboard" element={<DashboardPage><LeaderboardPage /></DashboardPage>} />
+        <Route path="/billing" element={<DashboardPage><BillingHistoryPage /></DashboardPage>} />
+        <Route path="/credit-history" element={<DashboardPage><CreditHistoryPage /></DashboardPage>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
