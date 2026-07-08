@@ -1,42 +1,38 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require('resend');
 
-let transporter = null;
-
-if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
-  transporter = nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE || 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_APP_PASSWORD,
-    },
-  });
-}
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
- * Sends an email using nodemailer.
+ * Sends an email using Resend.
  * @param {Object} options - Email options
  * @param {string} options.to - Recipient email
  * @param {string} options.subject - Email subject
  * @param {string} options.html - HTML content of the email
  */
 async function sendEmail({ to, subject, html }) {
-  if (!transporter) {
+  if (!process.env.RESEND_API_KEY) {
     console.warn(`[Mock Email] To: ${to} | Subject: ${subject}`);
-    console.warn("Email configuration is missing (.env). Skipping actual send.");
+    console.warn("Resend API key is missing (.env). Skipping actual send.");
     return false;
   }
 
   try {
-    const info = await transporter.sendMail({
-      from: `"Co-Teacher" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      html,
+    const { data, error } = await resend.emails.send({
+      from: 'Co-Teacher <hello@co-teacher.me>',
+      to: [to],
+      subject: subject,
+      html: html,
     });
-    console.log(`Email sent successfully to ${to} [${info.messageId}]`);
+
+    if (error) {
+      console.error(`Failed to send email to ${to} via Resend:`, error);
+      return false;
+    }
+
+    console.log(`Email sent successfully to ${to} [${data.id}]`);
     return true;
   } catch (error) {
-    console.error(`Failed to send email to ${to}:`, error);
+    console.error(`Unexpected error sending email to ${to}:`, error);
     return false;
   }
 }

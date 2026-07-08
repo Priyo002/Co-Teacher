@@ -48,7 +48,7 @@ async function generateCourseContent(req, res) {
     await CreditHistory.create({
       user: user._id,
       amount: -100,
-      reason: "Course Generation"
+      reason: `Course Generation: ${course.title}`
     });
 
     // 1. Course Generation Success Email
@@ -107,24 +107,11 @@ async function generatePreAssessmentCourse(req, res) {
       return res.status(400).json({ error: "Beginner level does not require pre-assessment." });
     }
 
-    // Small credit charge for pre-assessment
-    const user = req.user;
-    if (user.credits < 10) {
-      return res.status(403).json({ 
-        error: "Insufficient credits for pre-assessment test. Needs 10 credits." 
-      });
-    }
+
 
     const questions = await generatePreAssessmentQuestions(prompt, level, language);
 
-    user.credits -= 10;
-    await user.save();
 
-    await CreditHistory.create({
-      user: user._id,
-      amount: -10,
-      reason: "Pre-Assessment Test"
-    });
 
     return res.status(200).json({ questions });
   } catch (error) {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, BookOpen, PlayCircle, BarChart3, TrendingUp, CheckCircle, Clock, Check, Bookmark, Search } from 'lucide-react';
+import { Plus, BookOpen, PlayCircle, BarChart3, TrendingUp, CheckCircle, Clock, Check, Bookmark, Search, Award } from 'lucide-react';
 import CourseCard from '../components/CourseCard';
 import CreateCourseModal from '../components/CreateCourseModal';
 import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
@@ -74,6 +74,12 @@ export default function HomePage() {
 
   const recentCourse = coursesWithLatestOpen[0];
   const allCourses = coursesWithLatestOpen;
+
+  const completedCourses = allCourses.filter(course => {
+    const lessonCount = course.modules?.reduce((acc, mod) => acc + (mod.lessons?.length || 0), 0) || 0;
+    const completedLessons = course.modules?.reduce((acc, mod) => acc + (mod.lessons?.filter(l => l.completedAt)?.length || 0), 0) || 0;
+    return lessonCount > 0 && completedLessons === lessonCount;
+  });
 
   return (
     <div className="p-8 md:p-12 animate-fade-in max-w-[1400px] mx-auto">
@@ -344,7 +350,7 @@ export default function HomePage() {
 
                   return (
                     <div className="flex flex-col h-full justify-between">
-                      <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center justify-between mb-4">
                         <div>
                           <span className="text-slate-500 font-medium text-sm block mb-1">Current Streak</span>
                           <span className="text-2xl font-bold text-slate-900 flex items-center gap-2">
@@ -359,7 +365,7 @@ export default function HomePage() {
                         </div>
                       </div>
                       
-                      <div className="mt-auto">
+                      <div className="my-auto py-2">
                         {/* Days of week header */}
                         <div className="grid grid-cols-7 gap-1 mb-2 text-center">
                           {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
@@ -403,6 +409,16 @@ export default function HomePage() {
                           })}
                         </div>
                       </div>
+                      
+                      {/* Legend */}
+                      <div className="flex items-center justify-end gap-2 text-xs font-medium text-slate-400 mt-2">
+                        <span>Less</span>
+                        <div className="w-3 h-3 rounded-full bg-slate-100"></div>
+                        <div className="w-3 h-3 rounded-full bg-brand-200"></div>
+                        <div className="w-3 h-3 rounded-full bg-brand-500"></div>
+                        <div className="w-3 h-3 rounded-full bg-brand-700"></div>
+                        <span>More</span>
+                      </div>
                     </div>
                   );
                 })()}
@@ -427,6 +443,13 @@ export default function HomePage() {
                 <Bookmark className="w-5 h-5" />
                 Bookmarks
               </button>
+              <button
+                onClick={() => setActiveTab('certificates')}
+                className={`pb-3 text-lg font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'certificates' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+              >
+                <Award className="w-5 h-5" />
+                Certificates
+              </button>
             </div>
 
             {activeTab === 'courses' ? (
@@ -437,6 +460,34 @@ export default function HomePage() {
                   ))}
                 </div>
               ) : null
+            ) : activeTab === 'certificates' ? (
+              completedCourses.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {completedCourses.map(course => (
+                    <Link
+                      key={course._id}
+                      to={`/certificate/${course._id}`}
+                      className="glass-panel p-6 border-slate-200 hover:border-amber-500 transition-all hover:-translate-y-1 group bg-white shadow-sm hover:shadow-md flex flex-col justify-between min-h-[220px]"
+                    >
+                      <div>
+                        <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 mb-4 group-hover:scale-110 transition-transform">
+                          <Award className="w-6 h-6" />
+                        </div>
+                        <h3 className="font-bold text-lg mb-2 line-clamp-2 text-slate-900 group-hover:text-amber-600 transition-colors">{course.title}</h3>
+                      </div>
+                      <div className="flex items-center justify-between w-full mt-4">
+                        <span className="text-sm font-medium text-amber-600">View Certificate</span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-20 bg-slate-50 rounded-2xl border border-slate-200">
+                  <Award className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">No Certificates Yet</h3>
+                  <p className="text-slate-500">Complete a course 100% to earn your first certificate!</p>
+                </div>
+              )
             ) : (
               bookmarks.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -468,8 +519,10 @@ export default function HomePage() {
                   ))}
                 </div>
               ) : (
-                <div className="p-8 text-center border-dashed border-2 border-slate-200 rounded-xl bg-slate-50 text-slate-500 shadow-sm">
-                  You haven't bookmarked any lessons yet.
+                <div className="text-center py-20 bg-slate-50 rounded-2xl border border-slate-200">
+                  <Bookmark className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">No Bookmarks Yet</h3>
+                  <p className="text-slate-500">Save your favorite lessons to quickly access them later!</p>
                 </div>
               )
             )}

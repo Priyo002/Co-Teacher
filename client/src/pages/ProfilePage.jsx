@@ -323,7 +323,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Right Sidebar */}
-        <div className="lg:col-span-1 flex flex-col justify-between h-full gap-6">
+        <div className="lg:col-span-1 flex flex-col gap-6">
           {/* Billing History */}
           <div className="glass-panel p-6 bg-white border border-slate-200 flex flex-col">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
@@ -340,7 +340,9 @@ export default function ProfilePage() {
                       <span className="font-bold text-brand-600">+{t.creditsAdded} cr</span>
                     </div>
                     <div className="flex justify-between items-end">
-                      <span className="text-sm text-slate-500">{new Date(t.createdAt).toLocaleDateString()}</span>
+                      <span className="text-sm text-slate-500">
+                        {new Date(t.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })} (IST)
+                      </span>
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                         t.status === 'success' ? 'bg-green-100 text-green-700' :
                         t.status === 'failed' ? 'bg-red-100 text-red-700' :
@@ -371,14 +373,30 @@ export default function ProfilePage() {
               <div className="space-y-4 max-h-[270px] overflow-y-auto pr-2 custom-scrollbar">
                 {creditHistory.map(item => (
                   <div key={item._id} className="p-4 rounded-xl border border-slate-100 bg-slate-50 flex flex-col gap-2">
-                    <div className="flex justify-between items-start">
-                      <span className="font-bold text-slate-900">{item.reason}</span>
-                      <span className={`font-bold ${item.amount > 0 ? 'text-brand-600' : 'text-red-500'}`}>
+                    <div className="flex justify-between items-start gap-4">
+                      {(() => {
+                        const parts = item.reason.split(': ');
+                        const title = parts[0];
+                        const detail = parts.slice(1).join(': ');
+                        return (
+                          <div className="flex flex-col gap-1.5 min-w-0">
+                            <span className="font-bold text-slate-900 truncate">{title}</span>
+                            {detail && (
+                              <span className="text-[11px] font-medium text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded-md truncate w-fit max-w-full shadow-sm" title={detail}>
+                                {detail}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                      <span className={`font-bold shrink-0 ${item.amount > 0 ? 'text-brand-600' : 'text-red-500'}`}>
                         {item.amount > 0 ? '+' : ''}{item.amount} cr
                       </span>
                     </div>
                     <div className="flex justify-between items-end">
-                      <span className="text-sm text-slate-500">{new Date(item.createdAt).toLocaleDateString()}</span>
+                      <span className="text-sm text-slate-500">
+                        {new Date(item.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })} (IST)
+                      </span>
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                         item.amount > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'
                       }`}>
