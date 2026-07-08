@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle2, XCircle, Loader2, RefreshCcw, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import TestResultModal from '../components/TestResultModal';
+import ProctoringWrapper from '../components/ProctoringWrapper';
 
 export default function LessonTestPage() {
   const { courseId, id: lessonId } = useParams();
@@ -67,29 +68,34 @@ export default function LessonTestPage() {
     setMissedQuestions(prev => prev.filter(id => id !== qIdx));
   };
 
-  const handleSubmit = async () => {
-    const missing = [];
-    questions.forEach((_, idx) => {
-      if (answers[idx] === undefined) {
-        missing.push(idx);
-      }
-    });
+  const handleSubmit = async (isViolation = false) => {
+    const isForcedFail = isViolation === true;
+    
+    if (!isForcedFail) {
+      const missing = [];
+      questions.forEach((_, idx) => {
+        if (answers[idx] === undefined) {
+          missing.push(idx);
+        }
+      });
 
-    if (missing.length > 0) {
-      setMissedQuestions(missing);
-      const firstMissed = document.getElementById(`question-${missing[0]}`);
-      if (firstMissed) {
-        firstMissed.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (missing.length > 0) {
+        setMissedQuestions(missing);
+        const firstMissed = document.getElementById(`question-${missing[0]}`);
+        if (firstMissed) {
+          firstMissed.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
       }
-      return;
     }
+    
     setMissedQuestions([]);
 
     setSubmitting(true);
     try {
       const submission = questions.map((q, idx) => ({
         questionIndex: q.originalIndex !== undefined ? q.originalIndex : idx,
-        selectedOption: answers[idx]
+        selectedOption: isForcedFail ? -1 : (answers[idx] ?? -1)
       }));
 
       const res = await fetchApi(`/courses/${courseId}/lessons/${lessonId}/test/submit`, {
@@ -113,7 +119,7 @@ export default function LessonTestPage() {
     setQuestions(prev => [...prev].sort(() => Math.random() - 0.5));
   };
 
-  return (
+  const content = (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in duration-500">
       <div className="mb-6 flex items-center justify-between">
         <button 
@@ -299,5 +305,13 @@ export default function LessonTestPage() {
         onTakeFinalTest={() => navigate(`/course/${courseId}/test`)}
       />
     </div>
+  );
+
+  if (isReviewMode) return content;
+
+  return (
+    <ProctoringWrapper onForceSubmit={handleSubmit} timeLimitMinutes={10}>
+      {content}
+    </ProctoringWrapper>
   );
 }

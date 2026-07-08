@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, ArrowLeft, CheckCircle2, Trophy, Flame, Star, Sparkles, RotateCcw } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle2, Trophy, Flame, Star, Sparkles, RotateCcw, ShieldCheck } from 'lucide-react';
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 import { useApi } from '../hooks/useApi';
+import ProctoringWrapper from '../components/ProctoringWrapper';
 
 export default function FinalTestPage() {
   const { id } = useParams();
@@ -41,29 +42,34 @@ export default function FinalTestPage() {
     loadTest();
   }, [id, fetchApi]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (isViolation = false) => {
+    const isForcedFail = isViolation === true;
     const questions = course.finalTest.questions;
     
-    const missing = [];
-    questions.forEach((_, idx) => {
-      if (answers[idx] === undefined) {
-        missing.push(idx);
-      }
-    });
+    if (!isForcedFail) {
+      const missing = [];
+      questions.forEach((_, idx) => {
+        if (answers[idx] === undefined) {
+          missing.push(idx);
+        }
+      });
 
-    if (missing.length > 0) {
-      setMissedQuestions(missing);
-      const firstMissed = document.getElementById(`question-${missing[0]}`);
-      if (firstMissed) {
-        firstMissed.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (missing.length > 0) {
+        setMissedQuestions(missing);
+        const firstMissed = document.getElementById(`question-${missing[0]}`);
+        if (firstMissed) {
+          firstMissed.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
       }
-      return;
     }
     setMissedQuestions([]);
 
     setSubmitting(true);
     try {
-      const answersArray = questions.map((_, idx) => answers[idx] !== undefined ? answers[idx] : -1);
+      const answersArray = isForcedFail 
+        ? questions.map(() => -1) 
+        : questions.map((_, idx) => answers[idx] !== undefined ? answers[idx] : -1);
       
       const res = await fetchApi(`/certificates/claim/${id}`, {
         method: 'POST',
@@ -108,14 +114,23 @@ export default function FinalTestPage() {
 
   const questions = course.finalTest.questions;
 
+
   return (
     <div className="p-4 sm:p-8 animate-fade-in max-w-4xl mx-auto">
-      <button 
-        onClick={() => navigate(`/course/${id}`)}
-        className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors mb-6 font-medium"
-      >
-        <ArrowLeft className="w-4 h-4" /> Back to Course
-      </button>
+      <div className="flex items-center justify-between mb-6">
+        <button 
+          onClick={() => navigate(`/course/${id}`)}
+          className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors font-medium"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Course
+        </button>
+        {!result && (
+          <div className="flex items-center gap-2 text-brand-600 bg-brand-50 px-3 py-1.5 rounded-full text-sm font-medium">
+            <ShieldCheck className="w-4 h-4" />
+            AI Proctoring Ready
+          </div>
+        )}
+      </div>
 
       {result ? (
         <div className="mt-10 p-8 bg-white border border-brand-200 rounded-2xl text-center relative overflow-hidden group shadow-sm">
@@ -156,7 +171,7 @@ export default function FinalTestPage() {
           {result.passed && <Confetti width={width} height={height} recycle={false} numberOfPieces={800} />}
         </div>
       ) : (
-        <>
+        <ProctoringWrapper onForceSubmit={handleSubmit} timeLimitMinutes={30}>
           <div className="mb-10">
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">Final Certification Test</h1>
             <p className="text-slate-700 text-lg">{course.title}</p>
@@ -215,7 +230,7 @@ export default function FinalTestPage() {
               {submitting ? 'Submitting...' : 'Submit Final Test'}
             </button>
           </div>
-        </>
+        </ProctoringWrapper>
       )}
     </div>
   );

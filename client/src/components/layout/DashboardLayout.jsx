@@ -20,7 +20,7 @@ export default function DashboardLayout({ children }) {
             </div>
             <span className="font-bold text-xl tracking-tight text-slate-900">Co-Teacher</span>
           </Link>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsPaymentModalOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-full transition-colors shadow-sm"
