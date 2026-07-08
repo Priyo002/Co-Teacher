@@ -12,6 +12,7 @@ import CertificatePage from './pages/CertificatePage';
 import FinalTestPage from './pages/FinalTestPage';
 import OnboardingPage from './pages/OnboardingPage';
 import ProfilePage from './pages/ProfilePage';
+import LessonTestPage from './pages/LessonTestPage';
 
 function GuestRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -55,6 +56,7 @@ export default function App() {
         <Route path="/certificate/:id" element={<CertificatePage />} />
         <Route path="/course/:id/test" element={<DashboardPage><FinalTestPage /></DashboardPage>} />
         <Route path="/course/:courseId/lesson/:id" element={<DashboardPage><LessonViewerPage /></DashboardPage>} />
+        <Route path="/course/:courseId/lesson/:id/test" element={<DashboardPage><LessonTestPage /></DashboardPage>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

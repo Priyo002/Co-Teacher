@@ -23,21 +23,21 @@ export default function DashboardLayout({ children }) {
           <div className="flex items-center gap-6">
             <button 
               onClick={() => setIsPaymentModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-full transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-full transition-colors shadow-sm"
               title="Buy more credits"
             >
               <Zap className="w-4 h-4 fill-amber-500 text-amber-500" />
-              <span className="font-bold">{user?.credits ?? 0}</span>
+              <span className="text-sm font-semibold">{user?.credits ?? 0}</span>
             </button>
             <Link 
               to="/profile"
-              className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 hover:border-brand-300 hover:bg-brand-50 text-slate-700 rounded-full transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-brand-300 hover:bg-brand-50 text-slate-700 rounded-full transition-colors shadow-sm"
               title="Profile Settings"
             >
               <User className="w-4 h-4 text-brand-600" />
               <span className="text-sm font-semibold hidden sm:block">{user?.name}</span>
             </Link>
-            <button onClick={logout} className="px-5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-full text-sm font-bold shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+            <button onClick={logout} className="px-5 py-2 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-full text-sm font-semibold shadow-sm hover:-translate-y-0.5 transition-all">
               Log Out
             </button>
           </div>

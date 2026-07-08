@@ -131,39 +131,6 @@ export default function CourseOverviewPage() {
               <p className="text-sm text-slate-500">{completedLessons} of {totalLessons} lessons completed</p>
             </div>
           </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <h4 className="font-medium text-slate-900">Final Certification</h4>
-              {!course?.earnedCertificateId && (
-                <p className="text-sm text-slate-500">Score 70%+ to unlock</p>
-              )}
-            </div>
-            
-            {course?.earnedCertificateId ? (
-              <button 
-                onClick={() => navigate(`/certificate/${course.earnedCertificateId}`)}
-                className="btn-primary shadow-md shadow-brand-500/20 whitespace-nowrap"
-              >
-                View Certificate
-              </button>
-            ) : hasFinalTest ? (
-              <button 
-                onClick={() => navigate(`/course/${id}/test`)}
-                className="btn-primary shadow-md shadow-brand-500/20 whitespace-nowrap"
-              >
-                Take Final Test
-              </button>
-            ) : (
-              <button 
-                onClick={handleGenerateTest}
-                disabled={generatingTest}
-                className="btn-secondary whitespace-nowrap"
-              >
-                {generatingTest ? <><Loader2 className="w-4 h-4 animate-spin inline mr-2" /> Generating...</> : 'Generate Test'}
-              </button>
-            )}
-          </div>
         </div>
       </div>
 
@@ -188,8 +155,10 @@ export default function CourseOverviewPage() {
                     <div className="flex items-center gap-4">
                       {isLocked ? (
                         <Lock className="w-5 h-5 text-slate-400 shrink-0" />
-                      ) : lesson.completedAt ? (
-                        <CheckCircle className="w-5 h-5 text-brand-500 shrink-0" />
+                      ) : lesson.isPassed ? (
+                        <CheckCircle className="w-5 h-5 text-green-500 shrink-0" />
+                      ) : (!lesson.isPassed && lesson.testAttempts?.length >= 3) ? (
+                        <CheckCircle className="w-5 h-5 text-amber-500 shrink-0" />
                       ) : (
                         <Circle className="w-5 h-5 text-slate-300 group-hover:text-brand-300 shrink-0" />
                       )}
@@ -214,6 +183,42 @@ export default function CourseOverviewPage() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="mt-12 bg-white rounded-3xl p-8 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-1">Final Certification</h2>
+          <p className="text-slate-500">
+            {course?.earnedCertificateId 
+              ? "You've successfully completed this course!" 
+              : "Complete all lessons and pass the final test to earn your certificate."}
+          </p>
+        </div>
+        <div className="shrink-0">
+          {course?.earnedCertificateId ? (
+            <button 
+              onClick={() => navigate(`/certificate/${course.earnedCertificateId}`)}
+              className="btn-primary px-8 py-3"
+            >
+              View Certificate
+            </button>
+          ) : hasFinalTest ? (
+            <button 
+              onClick={() => navigate(`/course/${id}/test`)}
+              className="btn-primary px-8 py-3"
+            >
+              Take Final Test
+            </button>
+          ) : (
+            <button 
+              onClick={handleGenerateTest}
+              disabled={generatingTest}
+              className="btn-primary px-8 py-3"
+            >
+              {generatingTest ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Generate Final Test'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

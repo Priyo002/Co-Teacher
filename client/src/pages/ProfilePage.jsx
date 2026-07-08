@@ -373,7 +373,7 @@ export default function ProfilePage() {
               <div className="space-y-4 max-h-[270px] overflow-y-auto pr-2 custom-scrollbar">
                 {creditHistory.map(item => (
                   <div key={item._id} className="p-4 rounded-xl border border-slate-100 bg-slate-50 flex flex-col gap-2">
-                    <div className="flex justify-between items-start gap-4">
+                    <div className="flex justify-between items-baseline gap-4">
                       {(() => {
                         const parts = item.reason.split(': ');
                         const title = parts[0];
@@ -393,7 +393,7 @@ export default function ProfilePage() {
                         {item.amount > 0 ? '+' : ''}{item.amount} cr
                       </span>
                     </div>
-                    <div className="flex justify-between items-end">
+                    <div className="flex justify-between items-center mt-1">
                       <span className="text-sm text-slate-500">
                         {new Date(item.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })} (IST)
                       </span>

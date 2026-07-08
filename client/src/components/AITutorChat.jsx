@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Send, Sparkles, Bot, PanelRightClose, Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Send, Sparkles, Bot, PanelRightClose, Trash2, Mic, MicOff, Volume2, Square } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import ReactMarkdown from 'react-markdown';
 
@@ -20,9 +20,43 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
   });
   
   const [isTyping, setIsTyping] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [playingIndex, setPlayingIndex] = useState(null);
+  
   const fetchApi = useApi();
+  const recognitionRef = useRef(null);
 
-  // Load chat history when switching courses (or if it gets cleared)
+  // Initialize Speech Recognition
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false; // Listen for a single utterance
+      recognitionRef.current.interimResults = false;
+      
+      recognitionRef.current.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setMessage(prev => (prev ? prev + ' ' + transcript : transcript));
+        setIsListening(false);
+      };
+      
+      recognitionRef.current.onerror = (event) => {
+        console.error("Speech recognition error", event.error);
+        setIsListening(false);
+      };
+      
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+    
+    return () => {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
+  // Load chat history when switching courses
   useEffect(() => {
     try {
       const saved = localStorage.getItem(storageKey);
@@ -38,16 +72,54 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
     }
   }, [storageKey]);
 
-  // Save chat history to local storage whenever it changes
+  // Save chat history to local storage
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify(chatHistory));
   }, [chatHistory, storageKey]);
 
   const handleClearHistory = () => {
     if (window.confirm("Are you sure you want to clear this chat's history?")) {
+      window.speechSynthesis.cancel();
+      setPlayingIndex(null);
       setChatHistory([
         { role: 'assistant', content: 'Hi! I am your AI tutor for this course. Ask me anything to clarify concepts or dive deeper.' }
       ]);
+    }
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+          setIsListening(true);
+        } catch (e) {
+          console.error(e);
+        }
+      } else {
+        alert("Speech recognition is not supported in this browser.");
+      }
+    }
+  };
+
+  const toggleSpeech = (text, index) => {
+    if (playingIndex === index) {
+      window.speechSynthesis.cancel();
+      setPlayingIndex(null);
+    } else {
+      window.speechSynthesis.cancel();
+      // Clean markdown characters for smoother reading
+      const cleanText = text.replace(/[*#`_~]/g, '').trim();
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      
+      utterance.onend = () => setPlayingIndex(null);
+      utterance.onerror = () => setPlayingIndex(null);
+      
+      setPlayingIndex(index);
+      window.speechSynthesis.speak(utterance);
     }
   };
 
@@ -55,10 +127,19 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
     e.preventDefault();
     if (!message.trim() || isTyping) return;
 
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    }
+
     const userMsg = message.trim();
     setMessage('');
     setChatHistory(prev => [...prev, { role: 'user', content: userMsg }]);
     setIsTyping(true);
+    
+    // Stop any ongoing speech
+    window.speechSynthesis.cancel();
+    setPlayingIndex(null);
 
     try {
       const data = await fetchApi(`/courses/${courseId}/chat`, {
@@ -113,15 +194,30 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
                 <Sparkles className="w-4 h-4 text-brand-600" />
               </div>
             )}
-            <div className={`p-3 rounded-2xl max-w-[85%] ${
+            <div className={`relative group p-3 rounded-2xl max-w-[85%] ${
               msg.role === 'user' 
                 ? 'bg-brand-600 text-white rounded-tr-sm' 
-                : 'bg-white text-slate-700 border border-slate-200 rounded-tl-sm prose prose-sm max-w-none'
+                : 'bg-white text-slate-700 border border-slate-200 rounded-tl-sm prose prose-sm max-w-none shadow-sm'
             }`}>
               {msg.role === 'user' ? (
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
               ) : (
-                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                <div className="pr-6">
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  
+                  {/* Play/Stop Audio Button */}
+                  <button
+                    onClick={() => toggleSpeech(msg.content, idx)}
+                    className="absolute top-2 right-2 p-1.5 rounded-full text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                    title={playingIndex === idx ? "Stop Audio" : "Read Aloud"}
+                  >
+                    {playingIndex === idx ? (
+                      <Square className="w-4 h-4 fill-current text-brand-500" />
+                    ) : (
+                      <Volume2 className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -131,7 +227,7 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
             <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center shrink-0 border border-brand-200">
               <Sparkles className="w-4 h-4 text-brand-600" />
             </div>
-            <div className="p-4 rounded-2xl bg-white border border-slate-200 rounded-tl-sm flex items-center gap-2">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 rounded-tl-sm flex items-center gap-2 shadow-sm">
               <div className="w-2 h-2 rounded-full bg-brand-500 animate-bounce" />
               <div className="w-2 h-2 rounded-full bg-brand-500 animate-bounce" style={{ animationDelay: '0.2s' }} />
               <div className="w-2 h-2 rounded-full bg-brand-500 animate-bounce" style={{ animationDelay: '0.4s' }} />
@@ -146,16 +242,36 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Ask your AI tutor..."
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-4 pr-12 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500/50 transition-colors"
+            placeholder={isListening ? "Listening..." : "Ask your AI tutor..."}
+            className={`w-full bg-slate-50 border rounded-xl py-3 pl-4 pr-20 text-slate-900 placeholder-slate-400 focus:outline-none transition-colors ${
+              isListening ? "border-red-300 ring-2 ring-red-100" : "border-slate-200 focus:border-brand-500/50"
+            }`}
           />
-          <button 
-            type="submit" 
-            disabled={!message.trim() || isTyping}
-            className="absolute right-2 p-2 bg-brand-500 text-white rounded-lg hover:bg-brand-400 transition-colors disabled:opacity-50"
-          >
-            <Send className="w-4 h-4" />
-          </button>
+          
+          <div className="absolute right-2 flex items-center gap-1">
+            {/* Voice Input Button */}
+            <button
+              type="button"
+              onClick={toggleListening}
+              className={`p-2 rounded-lg transition-colors flex items-center justify-center ${
+                isListening 
+                  ? "bg-red-100 text-red-500 animate-pulse hover:bg-red-200" 
+                  : "text-slate-400 hover:text-brand-500 hover:bg-slate-100"
+              }`}
+              title={isListening ? "Stop Listening" : "Speak your question"}
+            >
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </button>
+            
+            {/* Send Button */}
+            <button 
+              type="submit" 
+              disabled={!message.trim() || isTyping}
+              className="p-2 bg-brand-500 text-white rounded-lg hover:bg-brand-400 transition-colors disabled:opacity-50"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
         </form>
       </div>
     </div>

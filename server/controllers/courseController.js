@@ -338,7 +338,21 @@ async function startLessonTest(req, res) {
       }
     }
 
-    return res.json({ testQuestions });
+    // Get previous result if any
+    let previousResult = null;
+    if (currentLesson.testAttempts && currentLesson.testAttempts.length > 0) {
+      const lastAttempt = currentLesson.testAttempts[currentLesson.testAttempts.length - 1];
+      previousResult = {
+        score: lastAttempt.score,
+        passed: lastAttempt.passed,
+        isMaxAttempts: currentLesson.testAttempts.length >= 3,
+        answers: lastAttempt.answers ? lastAttempt.answers.map(a => JSON.parse(a)) : [],
+        attemptsCount: currentLesson.testAttempts.length,
+        nextLessonId: nextLesson ? nextLesson._id : null
+      };
+    }
+
+    return res.json({ testQuestions, previousResult });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to start test" });
@@ -387,6 +401,10 @@ async function submitLessonTest(req, res) {
     const score = Math.round((correctCount / totalQuestions) * 100);
     const passed = score >= 70;
 
+    if (currentLesson.isPassed || currentLesson.testAttempts.length >= 3) {
+      return res.status(400).json({ error: "Maximum attempts reached or already passed." });
+    }
+
     currentLesson.testAttempts.push({
       score,
       passed,
@@ -415,7 +433,9 @@ async function submitLessonTest(req, res) {
        isMaxAttempts: currentLesson.testAttempts.length >= 3,
        correctCount,
        totalQuestions,
-       nextLessonUnlocked: !!nextLesson?.isUnlocked
+       attemptsCount: currentLesson.testAttempts.length,
+       nextLessonUnlocked: !!nextLesson?.isUnlocked,
+       nextLessonId: nextLesson ? nextLesson._id : null
     });
 
   } catch (err) {

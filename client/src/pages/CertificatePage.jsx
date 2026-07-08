@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { Award, Download, ArrowLeft, Loader2 } from 'lucide-react';
+import { Award, Download, ArrowLeft, Loader2, ShieldCheck } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 
 export default function CertificatePage() {
@@ -104,47 +104,81 @@ export default function CertificatePage() {
       </div>
 
       {/* Certificate Preview Container */}
-      <div className="w-full max-w-[1000px] bg-white p-2 sm:p-6 rounded-2xl border border-slate-200 shadow-md relative overflow-hidden flex justify-center items-center">
-        
-        {/* Actual Certificate DOM (what gets exported) */}
-        <div 
-          ref={certificateRef}
-          className="relative w-full max-w-[900px] aspect-[1.414/1] bg-white border-[12px] border-slate-100 flex flex-col items-center justify-center p-12 text-center overflow-hidden"
-          style={{ backgroundImage: 'linear-gradient(135deg, rgba(20, 184, 166, 0.05), rgba(13, 148, 136, 0.1))' }}
-        >
-          <div className="absolute top-0 left-0 w-64 h-64 bg-brand-50 rounded-full blur-3xl -ml-32 -mt-32"></div>
-          <div className="absolute bottom-0 right-0 w-80 h-80 bg-brand-50 rounded-full blur-3xl -mr-40 -mb-40"></div>
-          
-          <div className="border border-brand-200 w-full h-full p-8 flex flex-col items-center justify-center relative z-10">
-            <Award className="w-20 h-20 text-brand-400 mb-6" />
+      <div className="w-full max-w-[1000px] bg-white p-2 sm:p-6 rounded-2xl border border-slate-200 shadow-md relative overflow-hidden">
+        {/* Certificate Container Wrapper for Scroll */}
+        <div className="w-full overflow-x-auto flex justify-center pb-8 px-4">
+          {/* Actual Certificate DOM (what gets exported) */}
+          <div 
+            ref={certificateRef}
+            className="relative w-[900px] h-[636px] min-w-[900px] shrink-0 bg-white text-slate-800 flex flex-col items-center justify-center p-8 overflow-hidden shadow-2xl mx-auto"
+            style={{ backgroundImage: 'radial-gradient(circle at center, #ffffff 0%, #f8fafc 100%)' }}
+          >
+            {/* Subtle background pattern */}
+            <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 1px, transparent 1px, transparent 10px)' }}></div>
             
-            <h1 className="text-4xl md:text-5xl font-display font-bold text-slate-900 mb-2 tracking-widest uppercase">
-              Certificate of Completion
-            </h1>
-            <div className="w-32 h-1 bg-brand-500 rounded-full mb-10"></div>
+            {/* Outer Border */}
+            <div className="absolute inset-4 border border-slate-200"></div>
+            {/* Inner Border */}
+            <div className="absolute inset-6 border-[3px] border-slate-800 pointer-events-none flex items-center justify-center">
+              {/* Corner ornaments */}
+              <div className="absolute top-0 left-0 w-3 h-3 bg-slate-800 -mt-1.5 -ml-1.5"></div>
+              <div className="absolute top-0 right-0 w-3 h-3 bg-slate-800 -mt-1.5 -mr-1.5"></div>
+              <div className="absolute bottom-0 left-0 w-3 h-3 bg-slate-800 -mb-1.5 -ml-1.5"></div>
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-slate-800 -mb-1.5 -mr-1.5"></div>
+            </div>
             
-            <p className="text-xl text-slate-600 mb-4 font-serif italic">This is to certify that</p>
-            <h2 className="text-4xl font-bold text-brand-700 mb-8">{certificate.userName}</h2>
-            
-            <p className="text-lg text-slate-600 mb-4 font-serif italic">has successfully completed the course</p>
-            <h3 className="text-3xl font-bold text-brand-700 mb-12 max-w-2xl">{certificate.courseTitle}</h3>
-            
-            <div className="flex justify-between w-full max-w-3xl mt-auto pt-8 border-t border-slate-200 pb-4">
-              <div className="text-center">
-                <p className="text-lg font-bold text-slate-900 mb-1">
-                  {new Date(certificate.issuedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                </p>
-                <p className="text-sm text-slate-500 uppercase tracking-widest">Date Issued</p>
+            <div className="w-full h-full p-8 flex flex-col items-center justify-center relative z-10 text-center">
+              
+              <div className="mb-4 flex flex-col items-center">
+                <div className="w-16 h-16 rounded-full border border-slate-300 flex items-center justify-center mb-4 bg-white shadow-sm">
+                  <ShieldCheck size={32} color="#1e293b" strokeWidth={1.5} />
+                </div>
+                <h1 className="text-4xl md:text-5xl font-serif font-bold text-slate-900 tracking-widest uppercase pb-2">
+                  Certificate of Completion
+                </h1>
+                <p className="text-sm tracking-[0.3em] text-slate-500 uppercase">Proudly Presented To</p>
               </div>
-              <div className="text-center">
-                <p className="text-xl font-bold text-brand-700 mb-1 font-signature">Co-Teacher</p>
-                <p className="text-sm text-slate-500 uppercase tracking-widest">Platform</p>
+              
+              <div className="mb-4 text-center w-full max-w-md mx-auto">
+                <h2 className="text-5xl font-bold text-slate-800 font-display italic px-12 pb-4" style={{ lineHeight: '1.2' }}>
+                  {certificate.userName}
+                </h2>
+                <div className="w-full h-[2px] bg-slate-200 mx-auto mb-4"></div>
+              </div>
+              
+              <p className="text-lg text-slate-600 mb-2 font-serif max-w-2xl leading-relaxed">
+                For successfully completing the comprehensive requirements and demonstrating proficiency in
+              </p>
+              <h3 className="text-3xl font-bold text-slate-900 mb-8 max-w-2xl font-serif">{certificate.courseTitle}</h3>
+              
+              <div className="flex justify-between items-end w-full max-w-3xl mt-auto px-4 sm:px-8">
+                <div className="text-center w-32 sm:w-48">
+                  <p className="text-lg font-bold text-slate-800 pb-4" style={{ lineHeight: '1.2' }}>
+                    {new Date(certificate.issuedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                  <div className="w-full h-[1px] bg-slate-300 mx-auto mb-3"></div>
+                  <p className="text-xs text-slate-500 uppercase tracking-widest">Date Issued</p>
+                </div>
+                
+                <div className="text-center pb-2">
+                  <Award size={48} color="#f59e0b" strokeWidth={1.5} className="mb-2 mx-auto" />
+                  <p className="text-[10px] font-mono text-slate-400">ID: {certificate.certificateId.substring(0, 8).toUpperCase()}</p>
+                </div>
+
+                <div className="text-center w-32 sm:w-48">
+                  <p className="text-3xl font-bold text-slate-800 pb-2" style={{ fontFamily: "cursive, 'Brush Script MT'", lineHeight: '1.2' }}>
+                    Co-Teacher
+                  </p>
+                  <div className="w-full h-[1px] bg-slate-300 mx-auto mb-2"></div>
+                  <p className="text-xs text-slate-500 uppercase tracking-widest">Lead Instructor</p>
+                </div>
+              </div>
+
+              {/* Verification Link in normal flow to guarantee it's below signatures */}
+              <div className="w-full text-center mt-6 z-20">
+                <p className="text-[8px] text-slate-400 font-mono tracking-widest">Verify Authenticity: {window.location.origin}/certificate/{certificate.certificateId}</p>
               </div>
             </div>
-          </div>
-          
-          <div className="absolute bottom-3 left-0 w-full text-center z-20">
-            <p className="text-[10px] text-slate-500 font-mono tracking-wider">Verify at: {window.location.origin}/certificate/{certificate.certificateId}</p>
           </div>
         </div>
       </div>

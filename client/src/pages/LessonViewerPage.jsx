@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Circle, Menu, ChevronRight, Loader2, Bot, PanelLeftClose, PanelLeftOpen, PanelRightOpen, AlertTriangle, Download, ChevronsLeft, ChevronsRight, Bookmark, Lock } from 'lucide-react';
 import LessonRenderer from '../components/LessonRenderer';
 import AITutorChat from '../components/AITutorChat';
-import TestModal from '../components/TestModal';
+
 import { useApi } from '../hooks/useApi';
 import { Sparkles } from 'lucide-react';
 
@@ -18,11 +18,9 @@ export default function LessonViewerPage() {
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
   const [generatingChunk, setGeneratingChunk] = useState(false);
   const [generationError, setGenerationError] = useState(null);
-  const [savingProgress, setSavingProgress] = useState(false);
   const [expandedModules, setExpandedModules] = useState({});
   const [isBookmarked, setIsBookmarked] = useState(false);
-  const [isTestModalOpen, setIsTestModalOpen] = useState(false);
-  const [isReviewMode, setIsReviewMode] = useState(false);
+
   const fetchApi = useApi();
   const endOfContentRef = useRef(null);
 
@@ -232,31 +230,7 @@ export default function LessonViewerPage() {
     setExpandedModules(prev => ({ ...prev, [moduleId]: !prev[moduleId] }));
   };
 
-  const handleToggleComplete = async () => {
-    setSavingProgress(true);
-    try {
-      const isCurrentlyCompleted = !!lesson.completedAt;
-      const updatedLesson = await fetchApi(`/courses/${courseId}/lessons/${id}/progress`, {
-        method: 'PUT',
-        body: JSON.stringify({ completed: !isCurrentlyCompleted })
-      });
-      setLesson(updatedLesson);
-      
-      // Update the course state so the sidebar checkmark updates immediately
-      setCourse(prevCourse => {
-        const newCourse = { ...prevCourse };
-        newCourse.modules = newCourse.modules.map(mod => ({
-          ...mod,
-          lessons: mod.lessons.map(l => l._id === id ? { ...l, completedAt: updatedLesson.completedAt } : l)
-        }));
-        return newCourse;
-      });
-    } catch (err) {
-      alert("Failed to update progress: " + err.message);
-    } finally {
-      setSavingProgress(false);
-    }
-  };
+
 
   if (loading && !course) {
     return (
@@ -364,8 +338,10 @@ export default function LessonViewerPage() {
                           >
                             {isLocked ? (
                               <Lock className={`w-4 h-4 mt-0.5 shrink-0 text-slate-400`} />
-                            ) : l.completedAt ? (
-                              <CheckCircle className={`w-4 h-4 mt-0.5 shrink-0 ${isActive ? 'text-brand-600' : 'text-slate-500'}`} />
+                            ) : l.isPassed ? (
+                              <CheckCircle className={`w-4 h-4 mt-0.5 shrink-0 ${isActive ? 'text-brand-600' : 'text-green-500'}`} />
+                            ) : (!l.isPassed && l.testAttempts?.length >= 3) ? (
+                              <CheckCircle className={`w-4 h-4 mt-0.5 shrink-0 ${isActive ? 'text-amber-600' : 'text-amber-500'}`} />
                             ) : (
                               <Circle className={`w-4 h-4 mt-0.5 shrink-0 ${isActive ? 'text-brand-600' : 'text-slate-400'}`} />
                             )}
@@ -472,29 +448,20 @@ export default function LessonViewerPage() {
                   <div className="flex items-center gap-3 no-print shrink-0">
                     <button
                       onClick={() => window.print()}
+                      className="flex items-center justify-center p-2.5 rounded-full transition-colors bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900"
                       title="Download PDF"
-                      className="flex items-center justify-center w-10 h-10 rounded-lg font-medium transition-all bg-brand-50 text-brand-600 border border-brand-100 hover:bg-brand-100"
                     >
                       <Download className="w-5 h-5" />
                     </button>
-                    <button 
-                      onClick={handleToggleComplete}
-                      disabled={savingProgress}
-                      title={lesson.completedAt ? "Completed" : "Mark as Complete"}
-                      className={`flex items-center justify-center w-10 h-10 rounded-lg font-medium transition-all ${
-                        lesson.completedAt 
-                          ? 'bg-green-50 text-green-600 border border-green-100 hover:bg-green-100' 
-                          : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      {savingProgress ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : lesson.completedAt ? (
-                        <CheckCircle className="w-5 h-5" />
-                      ) : (
-                        <Circle className="w-5 h-5" />
-                      )}
-                    </button>
+                    {lesson.isPassed ? (
+                      <div className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-green-50 text-green-700 border border-green-200">
+                        <CheckCircle className="w-4 h-4" /> Passed
+                      </div>
+                    ) : (!lesson.isPassed && lesson.testAttempts?.length >= 3) ? (
+                      <div className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                        <AlertTriangle className="w-4 h-4" /> Max Attempts
+                      </div>
+                    ) : null}
                   </div>
                 )}
               </div>
@@ -539,8 +506,9 @@ export default function LessonViewerPage() {
                 <div ref={endOfContentRef} className="h-1 w-full" />
                 
                 {lesson.generationStatus === 'complete' && (
-                   <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col items-center">
-                     {lesson.isPassed ? (
+                  <>
+                    <div className="mt-8 pt-8 border-t border-slate-100 flex flex-col items-center">
+                      {lesson.isPassed ? (
                         <div className="text-center">
                           <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
                           <h3 className="text-xl font-bold text-slate-900 mb-2">Lesson Passed</h3>
@@ -553,17 +521,14 @@ export default function LessonViewerPage() {
                               Continue Learning <ChevronRight className="w-4 h-4 ml-2 inline" />
                             </button>
                             <button 
-                               onClick={() => {
-                                 setIsReviewMode(true);
-                                 setIsTestModalOpen(true);
-                               }}
+                               onClick={() => navigate(`/course/${courseId}/lesson/${id}/test`, { state: { isReviewMode: true } })}
                                className="btn-secondary"
                             >
                               Review Test
                             </button>
                           </div>
                         </div>
-                     ) : !lesson.isPassed && lesson.testAttempts?.length >= 3 ? (
+                      ) : !lesson.isPassed && lesson.testAttempts?.length >= 3 ? (
                         <div className="text-center">
                           <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
                           <h3 className="text-xl font-bold text-slate-900 mb-2">Maximum Attempts Reached</h3>
@@ -576,17 +541,14 @@ export default function LessonViewerPage() {
                               Continue Learning <ChevronRight className="w-4 h-4 ml-2 inline" />
                             </button>
                             <button 
-                               onClick={() => {
-                                 setIsReviewMode(true);
-                                 setIsTestModalOpen(true);
-                               }}
+                               onClick={() => navigate(`/course/${courseId}/lesson/${id}/test`, { state: { isReviewMode: true } })}
                                className="btn-secondary"
                             >
                               Review Test
                             </button>
                           </div>
                         </div>
-                     ) : (
+                      ) : (
                         <div className="text-center">
                           <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <Sparkles className="w-8 h-8 text-brand-500" />
@@ -596,15 +558,16 @@ export default function LessonViewerPage() {
                           <p className="text-amber-600 font-medium mb-6 text-sm">
                             Attempt {lesson.testAttempts?.length || 0} of 3. If you reach 3 attempts, the next lesson will unlock automatically.
                           </p>
-                          <button onClick={() => {
-                            setIsReviewMode(false);
-                            setIsTestModalOpen(true);
-                          }} className="btn-primary">
+                          <button 
+                            onClick={() => navigate(`/course/${courseId}/lesson/${id}/test`, { state: { isReviewMode: false } })} 
+                            className="btn-primary"
+                          >
                             Take Lesson Test
                           </button>
                         </div>
-                     )}
-                   </div>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -638,42 +601,6 @@ export default function LessonViewerPage() {
         </aside>
       )}
 
-      {lesson && (
-        <TestModal 
-          isOpen={isTestModalOpen} 
-          onClose={() => setIsTestModalOpen(false)} 
-          courseId={courseId} 
-          lessonId={id} 
-          isReviewMode={isReviewMode}
-          onSuccess={(res) => {
-            // Update lesson state locally
-            setLesson(prev => ({ 
-              ...prev, 
-              isPassed: res.passed,
-              completedAt: (res.passed || res.isMaxAttempts) ? new Date() : prev.completedAt,
-              testAttempts: [...(prev.testAttempts || []), { passed: res.passed }] // mock attempt for UI update
-            }));
-            // Also update course modules to unlock next lesson
-            if (res.nextLessonUnlocked) {
-              setCourse(prev => {
-                let unlockedNext = false;
-                const newModules = prev.modules.map(m => ({
-                  ...m,
-                  lessons: m.lessons.map(l => {
-                    if (l._id === id) return { ...l, isPassed: res.passed, completedAt: (res.passed || res.isMaxAttempts) ? new Date() : l.completedAt };
-                    if (!unlockedNext && !l.isUnlocked && !l.isPassed) {
-                      unlockedNext = true;
-                      return { ...l, isUnlocked: true };
-                    }
-                    return l;
-                  })
-                }));
-                return { ...prev, modules: newModules };
-              });
-            }
-          }}
-        />
-      )}
     </div>
   );
 }

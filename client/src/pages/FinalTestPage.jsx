@@ -17,13 +17,19 @@ export default function FinalTestPage() {
   const [answers, setAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null); // { score, passed, certificateId }
+  const [missedQuestions, setMissedQuestions] = useState([]);
 
   useEffect(() => {
     async function loadTest() {
       try {
-        const data = await fetchApi(`/courses/${id}`);
+        let data = await fetchApi(`/courses/${id}`);
         if (!data.finalTest || !data.finalTest.questions || data.finalTest.questions.length === 0) {
-          throw new Error('No final test generated for this course yet.');
+          // Auto-generate if missing
+          await fetchApi(`/courses/${id}/test/generate`, { method: 'POST' });
+          data = await fetchApi(`/courses/${id}`);
+          if (!data.finalTest || !data.finalTest.questions || data.finalTest.questions.length === 0) {
+            throw new Error('Failed to generate final test.');
+          }
         }
         setCourse(data);
       } catch (err) {
@@ -37,13 +43,23 @@ export default function FinalTestPage() {
 
   const handleSubmit = async () => {
     const questions = course.finalTest.questions;
-    const answeredCount = Object.keys(answers).length;
     
-    if (answeredCount < questions.length) {
-      if (!window.confirm(`You have only answered ${answeredCount} out of ${questions.length} questions. Are you sure you want to submit?`)) {
-        return;
+    const missing = [];
+    questions.forEach((_, idx) => {
+      if (answers[idx] === undefined) {
+        missing.push(idx);
       }
+    });
+
+    if (missing.length > 0) {
+      setMissedQuestions(missing);
+      const firstMissed = document.getElementById(`question-${missing[0]}`);
+      if (firstMissed) {
+        firstMissed.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
     }
+    setMissedQuestions([]);
 
     setSubmitting(true);
     try {
@@ -152,11 +168,18 @@ export default function FinalTestPage() {
               const selectedAns = answers[qIdx];
 
               return (
-                <div key={qIdx} className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
-                  <p className="text-xl font-bold text-slate-900 mb-6 flex gap-4">
-                    <span className="text-brand-600">{qIdx + 1}.</span> 
-                    <span>{q.question}</span>
-                  </p>
+                <div key={qIdx} id={`question-${qIdx}`} className={`bg-white p-6 sm:p-8 rounded-2xl border shadow-sm transition-colors ${missedQuestions.includes(qIdx) ? 'border-red-300 bg-red-50/30' : 'border-slate-200'}`}>
+                  <div className="flex items-start justify-between mb-6 gap-4">
+                    <p className="text-xl font-bold text-slate-900 flex gap-4">
+                      <span className="text-brand-600 shrink-0">{qIdx + 1}.</span> 
+                      <span>{q.question}</span>
+                    </p>
+                    {missedQuestions.includes(qIdx) && (
+                      <span className="shrink-0 bg-red-100 text-red-600 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        Required
+                      </span>
+                    )}
+                  </div>
                   <div className="space-y-3">
                     {q.options.map((opt, oIdx) => {
                       let btnClass = "w-full text-left p-4 rounded-xl border transition-all break-words whitespace-pre-wrap ";
