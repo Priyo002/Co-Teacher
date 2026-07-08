@@ -23,6 +23,7 @@ export default function FinalTestPage() {
   const [missedQuestions, setMissedQuestions] = useState([]);
   const [showExplanation, setShowExplanation] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [isTestStarted, setIsTestStarted] = useState(false);
   const [attemptKey, setAttemptKey] = useState(0);
 
   const [shuffledQuestions, setShuffledQuestions] = useState([]);
@@ -213,13 +214,13 @@ export default function FinalTestPage() {
       <div className="flex items-center justify-between mb-6">
         <button 
           onClick={() => {
-            if (!result) {
+            if (!result && isTestStarted) {
               setShowLeaveModal(true);
             } else {
               navigate(`/course/${id}`);
             }
           }}
-          className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors font-medium"
+          className="flex items-center text-slate-500 hover:text-brand-600 transition-colors font-medium z-10 relative"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Course
         </button>
@@ -285,7 +286,13 @@ export default function FinalTestPage() {
           {result.passed && <Confetti width={width} height={height} recycle={false} numberOfPieces={800} />}
         </div>
       ) : (
-        <ProctoringWrapper key={attemptKey} onForceSubmit={handleSubmit} timeLimitMinutes={30} isSubmitted={!!result}>
+        <ProctoringWrapper
+          key={attemptKey}
+          onForceSubmit={() => handleSubmit(false, true)}
+          timeLimitMinutes={30}
+          isSubmitted={submitting}
+          onStart={() => setIsTestStarted(true)}
+        >
           <div className="mb-10">
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">Final Certification Test</h1>
             <p className="text-slate-700 text-lg">{course.title}</p>

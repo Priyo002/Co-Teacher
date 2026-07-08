@@ -451,7 +451,7 @@ export default function HomePage() {
 
             {activeTab === 'courses' ? (
               allCourses.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {allCourses.map(course => (
                     <CourseCard key={course._id} course={course} onDelete={handleDeleteCourse} />
                   ))}
@@ -459,21 +459,21 @@ export default function HomePage() {
               ) : null
             ) : activeTab === 'certificates' ? (
               certificates.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {certificates.map(cert => (
                     <Link
                       key={cert._id}
                       to={`/certificate/${cert.certificateId}`}
-                      className="glass-panel p-6 border-slate-200 hover:border-amber-500 transition-all hover:-translate-y-1 group bg-white shadow-sm hover:shadow-md flex flex-col justify-between min-h-[220px]"
+                      className="glass-panel p-6 border-slate-200 hover:border-brand-500 transition-all hover:-translate-y-1 group bg-white shadow-sm hover:shadow-md flex flex-col justify-between min-h-[220px]"
                     >
                       <div>
-                        <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 mb-4 group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 bg-brand-50 rounded-xl flex items-center justify-center text-brand-500 mb-4 group-hover:scale-110 transition-transform">
                           <Award className="w-6 h-6" />
                         </div>
-                        <h3 className="font-bold text-lg mb-2 line-clamp-2 text-slate-900 group-hover:text-amber-600 transition-colors">{cert.courseTitle}</h3>
+                        <h3 className="font-bold text-lg mb-2 line-clamp-2 text-slate-900 group-hover:text-brand-600 transition-colors">{cert.courseTitle}</h3>
                       </div>
                       <div className="flex items-center justify-between w-full mt-4">
-                        <span className="text-sm font-medium text-amber-600">View Certificate</span>
+                        <span className="text-sm font-medium text-brand-600">View Certificate</span>
                         <span className="text-xs text-slate-400 font-mono">Score: {cert.averageScore}%</span>
                       </div>
                     </Link>
@@ -488,7 +488,7 @@ export default function HomePage() {
               )
             ) : (
               bookmarks.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {bookmarks.map(lesson => (
                     <Link 
                       key={lesson._id}

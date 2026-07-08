@@ -19,6 +19,7 @@ export default function LessonTestPage() {
   const [result, setResult] = useState(null);
   const [showResultModal, setShowResultModal] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [isTestStarted, setIsTestStarted] = useState(false);
   const [missedQuestions, setMissedQuestions] = useState([]);
   const [attemptKey, setAttemptKey] = useState(0);
   const [error, setError] = useState(null);
@@ -166,13 +167,13 @@ export default function LessonTestPage() {
       <div className="mb-6 flex items-center justify-between">
         <button 
           onClick={() => {
-            if (!result) {
+            if (!result && isTestStarted) {
               setShowLeaveModal(true);
             } else {
               navigate(`/course/${courseId}/lesson/${lessonId}`);
             }
           }}
-          className="flex items-center text-slate-500 hover:text-brand-600 transition-colors font-medium"
+          className="flex items-center text-slate-500 hover:text-brand-600 transition-colors font-medium relative z-10"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Lesson

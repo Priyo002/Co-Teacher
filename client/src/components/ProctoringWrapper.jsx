@@ -3,7 +3,7 @@ import * as faceapi from '@vladmandic/face-api';
 import { Camera, Mic, Maximize, AlertTriangle, ShieldCheck, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMinutes, isSubmitted }) {
+export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMinutes, isSubmitted, onStart }) {
   const [hasStarted, setHasStarted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [strikes, setStrikes] = useState(0);
@@ -75,6 +75,7 @@ export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMi
       
       initAudioMonitoring(stream);
       setHasStarted(true);
+      if (onStart) onStart();
       startProctoringLoop();
       
     } catch (error) {
