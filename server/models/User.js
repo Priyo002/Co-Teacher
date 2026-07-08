@@ -47,6 +47,10 @@ const userSchema = new mongoose.Schema({
   credits: { type: Number, default: 500 },
   lowCreditEmailSent: { type: Boolean, default: false },
 
+  // --- Leaderboard / Gamification ---
+  totalTestsTaken: { type: Number, default: 0 },
+  globalScore: { type: Number, default: 0 },
+
   bookmarkedLessons: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "Lesson"
@@ -54,6 +58,7 @@ const userSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 userSchema.index({ auth0Id: 1 }, { unique: true, sparse: true });
+userSchema.index({ globalScore: -1 });
 
 userSchema.pre("save", async function hashPassword() {
   if (!this.isModified("password") || !this.password) return;

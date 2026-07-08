@@ -1,6 +1,6 @@
 import { useAuth } from '../../hooks/useAuth';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { GraduationCap, Zap, User } from 'lucide-react';
+import { GraduationCap, Zap, User, Trophy } from 'lucide-react';
 import { useState } from 'react';
 import PaymentModal from '../PaymentModal';
 
@@ -32,6 +32,14 @@ export default function DashboardLayout({ children }) {
               <Zap className="w-4 h-4 fill-amber-500 text-amber-500" />
               <span className="text-sm font-semibold">{user?.credits ?? 0}</span>
             </button>
+            <Link 
+              to="/leaderboard"
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-amber-300 hover:bg-amber-50 text-slate-700 rounded-full transition-colors shadow-sm"
+              title="Global Leaderboard"
+            >
+              <Trophy className="w-4 h-4 text-amber-500" />
+              <span className="text-sm font-semibold hidden sm:block">Leaderboard</span>
+            </Link>
             <Link 
               to="/profile"
               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-brand-300 hover:bg-brand-50 text-slate-700 rounded-full transition-colors shadow-sm"

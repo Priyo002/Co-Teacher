@@ -415,17 +415,28 @@ async function submitLessonTest(req, res) {
     // Give credits if this is their first attempt AND they passed AND didn't cheat
     const isFirstAttempt = currentLesson.testAttempts.length === 0;
     let creditsEarned = 0;
-    if (isFirstAttempt && passed && !cheated && !navigatedAway) {
-      req.user.credits = (req.user.credits || 0) + 5;
+    let magicScoreEarned = 0;
+
+    if (isFirstAttempt) {
+      // Calculate Magic Score
+      magicScoreEarned = Math.round(20 * (score / 100) * (passed ? 1.5 : 1.0));
+      req.user.globalScore = (req.user.globalScore || 0) + magicScoreEarned;
+      req.user.totalTestsTaken = (req.user.totalTestsTaken || 0) + 1;
+
+      // Handle credits if passed
+      if (passed && !cheated && !navigatedAway) {
+        req.user.credits = (req.user.credits || 0) + 5;
+        creditsEarned = 5;
+        
+        const CreditHistory = require("../models/CreditHistory");
+        await CreditHistory.create({
+          user: req.user._id,
+          amount: 5,
+          reason: `Passed Lesson Test on First Attempt: ${currentLesson.title}`
+        });
+      }
+
       await req.user.save();
-      creditsEarned = 5;
-      
-      const CreditHistory = require("../models/CreditHistory");
-      await CreditHistory.create({
-        user: req.user._id,
-        amount: 5,
-        reason: `Passed Lesson Test on First Attempt: ${currentLesson.title}`
-      });
     }
 
     currentLesson.testAttempts.push({

@@ -48,18 +48,26 @@ async function claimCertificate(req, res) {
 
     const isFirstAttempt = !course.finalTest.attempts || course.finalTest.attempts.length === 0;
     let creditsEarned = 0;
+    let magicScoreEarned = 0;
 
-    if (isFirstAttempt && passed && !cheated && !navigatedAway) {
-      req.user.credits = (req.user.credits || 0) + 20;
+    if (isFirstAttempt) {
+      // Calculate Magic Score for Final Test
+      magicScoreEarned = Math.round(100 * (percentage / 100) * (passed ? 1.5 : 1.0));
+      req.user.globalScore = (req.user.globalScore || 0) + magicScoreEarned;
+      req.user.totalTestsTaken = (req.user.totalTestsTaken || 0) + 1;
+
+      if (passed && !cheated && !navigatedAway) {
+        req.user.credits = (req.user.credits || 0) + 15;
+        creditsEarned = 15;
+        const CreditHistory = require("../models/CreditHistory");
+        await CreditHistory.create({
+          user: req.user._id,
+          amount: 15,
+          reason: `Passed Final Test on First Attempt: ${course.title}`
+        });
+      }
+
       await req.user.save();
-      creditsEarned = 20;
-      
-      const CreditHistory = require("../models/CreditHistory");
-      await CreditHistory.create({
-        user: req.user._id,
-        amount: 20,
-        reason: `Passed Final Test on First Attempt: ${course.title}`
-      });
     }
 
     if (!course.finalTest.attempts) {
