@@ -121,27 +121,25 @@ export default function BillingHistoryPage() {
                   <div className="text-sm text-slate-500 mt-1">
                     {new Date(t.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })} (IST)
                   </div>
+                  {t.status === 'success' && (
+                    <button 
+                      onClick={() => generateReceipt(t)}
+                      className="mt-3 flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700 transition-colors"
+                      title="Download PDF Receipt"
+                    >
+                      <Download className="w-4 h-4" /> Download Receipt
+                    </button>
+                  )}
                 </div>
-                <div className="flex flex-col sm:items-end gap-2">
+                <div className="flex flex-col sm:items-end gap-2 mt-4 sm:mt-0">
                   <span className="font-bold text-xl text-brand-600">+{t.creditsAdded} credits</span>
-                  <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider w-fit ${
-                      t.status === 'success' ? 'bg-green-100 text-green-700' :
-                      t.status === 'failed' ? 'bg-red-100 text-red-700' :
-                      'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {t.status}
-                    </span>
-                    {t.status === 'success' && (
-                      <button 
-                        onClick={() => generateReceipt(t)}
-                        className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
-                        title="Download Receipt"
-                      >
-                        <Download className="w-5 h-5" />
-                      </button>
-                    )}
-                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider w-fit ${
+                    t.status === 'success' ? 'bg-green-100 text-green-700' :
+                    t.status === 'failed' ? 'bg-red-100 text-red-700' :
+                    'bg-yellow-100 text-yellow-700'
+                  }`}>
+                    {t.status}
+                  </span>
                 </div>
               </div>
             ))}
