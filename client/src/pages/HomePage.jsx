@@ -222,24 +222,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {courses.length === 0 ? (
-        <div className="glass-panel p-12 text-center flex flex-col items-center bg-slate-50">
-          <div className="bg-white w-16 h-16 rounded-2xl flex items-center justify-center mb-4 text-brand-500 shadow-sm border border-slate-100">
-            <BookOpen className="w-8 h-8" />
-          </div>
-          <h3 className="text-xl font-semibold mb-2 text-slate-900">No courses yet</h3>
-          <p className="text-slate-500 max-w-md mb-6">You haven't generated any courses. Use the AI course generator to start learning anything.</p>
-          <button onClick={() => {
-            setSuggestionPrompt('');
-            setSuggestionLevel('Auto-detect');
-            setIsModalOpen(true);
-          }} className="btn-primary">
-            Create Your First Course
-          </button>
-        </div>
-      ) : (
-        <>
-          {/* Metrics Row */}
+      {/* Metrics Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
             <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden flex flex-col justify-center">
               <div className="absolute top-0 right-0 w-32 h-32 bg-brand-50 rounded-full blur-2xl -mr-8 -mt-8 transition-transform group-hover:scale-125"></div>
@@ -579,7 +562,20 @@ export default function HomePage() {
                     <CourseCard key={course._id} course={course} onDelete={handleDeleteCourse} />
                   ))}
                 </div>
-              ) : null
+              ) : (
+                <div className="text-center py-20 bg-slate-50 rounded-2xl border border-slate-200">
+                  <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">No Courses Yet</h3>
+                  <p className="text-slate-500 mb-6">You haven't generated any courses. Start learning anything today!</p>
+                  <button onClick={() => {
+                    setSuggestionPrompt('');
+                    setSuggestionLevel('Auto-detect');
+                    setIsModalOpen(true);
+                  }} className="btn-primary">
+                    Create Your First Course
+                  </button>
+                </div>
+              )
             ) : activeTab === 'certificates' ? (
               certificates.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -648,8 +644,7 @@ export default function HomePage() {
               )
             )}
           </div>
-        </>
-      )}
+
 
       <CreateCourseModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} initialPrompt={suggestionPrompt} initialLevel={suggestionLevel} />
     </div>

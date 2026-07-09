@@ -491,18 +491,18 @@ async function getCourseSuggestions(req, res) {
     }
     
     // 5-minute cooldown check (only if they are trying to refresh and have a previous generation)
-    if (isRefresh && user.lastSuggestionsGeneratedAt) {
-      const diffMs = now - user.lastSuggestionsGeneratedAt;
-      const minutesPassed = Math.floor(diffMs / 60000);
+    // if (isRefresh && user.lastSuggestionsGeneratedAt) {
+    //   const diffMs = now - user.lastSuggestionsGeneratedAt;
+    //   const minutesPassed = Math.floor(diffMs / 60000);
       
-      if (minutesPassed < 5) {
-        return res.status(429).json({
-          error: `Please wait ${5 - minutesPassed} more minutes before getting new suggestions.`,
-          suggestions: user.cachedCourseSuggestions,
-          lastGeneratedAt: user.lastSuggestionsGeneratedAt
-        });
-      }
-    }
+    //   if (minutesPassed < 5) {
+    //     return res.status(429).json({
+    //       error: `Please wait ${5 - minutesPassed} more minutes before getting new suggestions.`,
+    //       suggestions: user.cachedCourseSuggestions,
+    //       lastGeneratedAt: user.lastSuggestionsGeneratedAt
+    //     });
+    //   }
+    // }
 
     const existingCourses = await Course.find({ creator: user._id })
       .select("title")
