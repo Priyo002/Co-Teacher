@@ -40,7 +40,25 @@ export default function CreditHistoryPage() {
           Activity Log
         </h2>
         
-        {creditHistory.length > 0 ? (
+        {loading && creditHistory.length === 0 ? (
+          <div className="space-y-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="p-4 sm:p-6 rounded-xl border border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between sm:items-center gap-4 animate-pulse">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-col gap-2">
+                    <div className="h-6 w-40 bg-slate-200 rounded-md"></div>
+                    <div className="h-6 w-64 bg-slate-200 rounded-lg"></div>
+                  </div>
+                  <div className="h-4 w-48 bg-slate-200 rounded-md mt-3"></div>
+                </div>
+                <div className="flex flex-col sm:items-end gap-2 shrink-0">
+                  <div className="h-6 w-24 bg-slate-200 rounded-md"></div>
+                  <div className="h-6 w-20 bg-slate-200 rounded-full"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : creditHistory.length > 0 ? (
           <div className="space-y-4">
             {creditHistory.map(item => (
               <div key={item._id} className="p-4 sm:p-6 rounded-xl border border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between sm:items-center gap-4">

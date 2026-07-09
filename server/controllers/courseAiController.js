@@ -16,8 +16,8 @@ async function generateCourseContent(req, res) {
     const language = String(req.body?.language || "English").trim().slice(0, 80);
     const level = String(req.body?.level || "Beginner").trim().slice(0, 50);
 
-    if (prompt.length < 10) {
-      return res.status(400).json({ error: "Describe the course in at least 10 characters" });
+    if (prompt.length < 3) {
+      return res.status(400).json({ error: "Describe the course in at least 3 characters" });
     }
 
     // Credit Limit Check
@@ -99,8 +99,8 @@ async function generatePreAssessmentCourse(req, res) {
     const language = String(req.body?.language || "English").trim().slice(0, 80);
     const level = String(req.body?.level || "Beginner").trim().slice(0, 50);
 
-    if (prompt.length < 10) {
-      return res.status(400).json({ error: "Describe the course in at least 10 characters" });
+    if (prompt.length < 3) {
+      return res.status(400).json({ error: "Describe the course in at least 3 characters" });
     }
 
     if (level === "Beginner") {

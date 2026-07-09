@@ -4,10 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../hooks/useAuth';
 
-export default function CreateCourseModal({ isOpen, onClose }) {
-  const [prompt, setPrompt] = useState('');
+export default function CreateCourseModal({ isOpen, onClose, initialPrompt = '', initialLevel = 'Auto-detect' }) {
+  const [prompt, setPrompt] = useState(initialPrompt);
   const [language, setLanguage] = useState('English');
-  const [level, setLevel] = useState('Beginner');
+  const [level, setLevel] = useState(initialLevel);
   const [step, setStep] = useState('input'); // input, assessment, evaluating, warning
   const [assessmentQuestions, setAssessmentQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -76,12 +76,28 @@ export default function CreateCourseModal({ isOpen, onClose }) {
   ];
   const SUPPORTED_LEVELS = ["Auto-detect", "Beginner", "Intermediate", "Advanced"];
 
+  useEffect(() => {
+    if (isOpen) {
+      setPrompt(initialPrompt);
+      
+      // Map AI difficulty strings to the exact dropdown values
+      let matchedLevel = 'Auto-detect';
+      if (initialLevel) {
+        const lowerLvl = initialLevel.toLowerCase();
+        if (lowerLvl.includes('beginner')) matchedLevel = 'Beginner';
+        else if (lowerLvl.includes('intermediate')) matchedLevel = 'Intermediate';
+        else if (lowerLvl.includes('advanced')) matchedLevel = 'Advanced';
+      }
+      setLevel(matchedLevel);
+    }
+  }, [isOpen, initialPrompt, initialLevel]);
+
   if (!isOpen) return null;
 
   const resetState = () => {
-    setPrompt('');
+    setPrompt(initialPrompt);
     setLanguage('English');
-    setLevel('Auto-detect');
+    setLevel(initialLevel);
     setStep('input');
     setAssessmentQuestions([]);
     setCurrentQuestionIndex(0);
@@ -99,7 +115,7 @@ export default function CreateCourseModal({ isOpen, onClose }) {
 
   const handleInitialSubmit = async (e) => {
     e.preventDefault();
-    if (prompt.trim().length < 10) return;
+    if (prompt.trim().length < 3) return;
     
     setError('');
     
@@ -295,7 +311,7 @@ export default function CreateCourseModal({ isOpen, onClose }) {
 
               <button
                 type="submit"
-                disabled={prompt.length < 10 || isGenerating}
+                disabled={prompt.length < 3 || isGenerating}
                 className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed group"
               >
                 {isGenerating ? (

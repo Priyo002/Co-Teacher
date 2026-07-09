@@ -103,7 +103,35 @@ export default function ProfilePage() {
   };
 
   if (loading) {
-    return <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-brand-600" /></div>;
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-pulse">
+        <div>
+          <div className="w-48 h-10 bg-slate-200 rounded-lg mb-2"></div>
+          <div className="w-96 h-5 bg-slate-100 rounded-md"></div>
+        </div>
+
+        <div className="max-w-4xl mx-auto flex flex-col h-full gap-6">
+          <div className="glass-panel p-6 sm:p-8 bg-white border border-slate-200 flex flex-col sm:flex-row items-center sm:items-start gap-6">
+            <div className="w-24 h-24 rounded-full bg-slate-200 shrink-0 border-4 border-white shadow-md"></div>
+            <div className="flex flex-col gap-3 w-full sm:w-auto items-center sm:items-start mt-2">
+              <div className="w-48 h-6 bg-slate-200 rounded-md"></div>
+              <div className="w-64 h-4 bg-slate-100 rounded-md"></div>
+              <div className="w-32 h-8 bg-slate-100 rounded-lg mt-2"></div>
+            </div>
+          </div>
+
+          <div className="glass-panel p-6 sm:p-8 bg-white border border-slate-200 flex-1">
+            <div className="w-48 h-6 bg-slate-200 rounded-md mb-8"></div>
+            <div className="space-y-6">
+              <div className="w-full h-12 bg-slate-100 rounded-xl"></div>
+              <div className="w-full h-12 bg-slate-100 rounded-xl mt-6"></div>
+              <div className="w-full h-12 bg-slate-100 rounded-xl mt-6"></div>
+              <div className="w-full h-24 bg-slate-100 rounded-xl mt-6"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

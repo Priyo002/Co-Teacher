@@ -9,7 +9,8 @@ const {
   updateLessonProgress,
   generateFinalTest,
   startLessonTest,
-  submitLessonTest
+  submitLessonTest,
+  getCourseSuggestions
 } = require("../../controllers/courseController");
 const { verifyAuth0Token } = require("../../middlewares/auth0Auth");
 
@@ -19,6 +20,7 @@ router.use(verifyAuth0Token); // Ensure user is authenticated via Auth0
 
 router.post("/generate", generateCourseContent);
 router.post("/pre-assessment", generatePreAssessmentCourse);
+router.get("/suggestions", getCourseSuggestions);
 router.get("/mine", getMyCourses);
 router.post("/:courseId/chat", chatAboutCourse);
 

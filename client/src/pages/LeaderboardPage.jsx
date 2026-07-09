@@ -35,8 +35,57 @@ export default function LeaderboardPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
+      <div className="max-w-5xl mx-auto px-4 md:px-8 py-12 animate-pulse">
+        <div className="text-center mb-12 flex flex-col items-center">
+          <div className="w-64 h-12 bg-slate-200 rounded-lg mb-4"></div>
+          <div className="w-96 h-6 bg-slate-100 rounded-md"></div>
+        </div>
+        
+        {/* Skeleton Podium */}
+        <div className="flex flex-col md:flex-row justify-center items-end gap-4 md:gap-8 mb-16 pt-10">
+          {/* Rank 2 */}
+          <div className="flex-1 max-w-[220px] order-2 md:order-1 flex flex-col items-center">
+            <div className="w-20 h-20 rounded-full bg-slate-200 border-4 border-slate-100 mb-4 z-10 relative top-6"></div>
+            <div className="bg-slate-100 rounded-2xl w-full h-40 pt-10 pb-6 flex flex-col items-center gap-3">
+               <div className="w-24 h-5 bg-slate-200 rounded"></div>
+               <div className="w-16 h-4 bg-slate-200 rounded"></div>
+               <div className="w-20 h-6 bg-slate-200 rounded"></div>
+            </div>
+          </div>
+          {/* Rank 1 */}
+          <div className="flex-1 max-w-[260px] order-1 md:order-2 flex flex-col items-center z-10">
+            <div className="w-28 h-28 rounded-full bg-slate-200 border-4 border-slate-100 mb-6 z-10 relative top-10"></div>
+            <div className="bg-slate-100 rounded-2xl w-full h-48 pt-14 pb-8 flex flex-col items-center gap-3">
+               <div className="w-32 h-6 bg-slate-200 rounded"></div>
+               <div className="w-20 h-4 bg-slate-200 rounded"></div>
+               <div className="w-24 h-8 bg-slate-200 rounded"></div>
+            </div>
+          </div>
+          {/* Rank 3 */}
+          <div className="flex-1 max-w-[220px] order-3 md:order-3 flex flex-col items-center">
+            <div className="w-20 h-20 rounded-full bg-slate-200 border-4 border-slate-100 mb-4 z-10 relative top-6"></div>
+            <div className="bg-slate-100 rounded-2xl w-full h-36 pt-10 pb-4 flex flex-col items-center gap-3">
+               <div className="w-24 h-5 bg-slate-200 rounded"></div>
+               <div className="w-16 h-4 bg-slate-200 rounded"></div>
+               <div className="w-20 h-6 bg-slate-200 rounded"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Skeleton List */}
+        <div className="bg-white/70 border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+           {[1, 2, 3, 4, 5].map(i => (
+             <div key={i} className="flex items-center justify-between p-4 border-b border-slate-100">
+                <div className="w-8 h-4 bg-slate-200 rounded"></div>
+                <div className="flex items-center gap-3 flex-1 px-8">
+                  <div className="w-10 h-10 bg-slate-200 rounded-full"></div>
+                  <div className="w-32 h-5 bg-slate-200 rounded"></div>
+                </div>
+                <div className="w-16 h-4 bg-slate-200 rounded hidden md:block"></div>
+                <div className="w-20 h-6 bg-slate-200 rounded ml-4"></div>
+             </div>
+           ))}
+        </div>
       </div>
     );
   }

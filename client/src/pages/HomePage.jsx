@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, BookOpen, PlayCircle, BarChart3, TrendingUp, CheckCircle, Clock, Check, Bookmark, Search, Award } from 'lucide-react';
+import { Plus, BookOpen, PlayCircle, BarChart3, TrendingUp, CheckCircle, Clock, Check, Bookmark, Search, Award, Sparkles, ArrowUp } from 'lucide-react';
 import CourseCard from '../components/CourseCard';
 import CreateCourseModal from '../components/CreateCourseModal';
 import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
@@ -14,6 +14,12 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [lastGeneratedAt, setLastGeneratedAt] = useState(null);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [suggestionPrompt, setSuggestionPrompt] = useState('');
+  const [suggestionLevel, setSuggestionLevel] = useState('Auto-detect');
+  const [tick, setTick] = useState(0);
   const fetchApi = useApi();
   
   useEffect(() => {
@@ -34,6 +40,10 @@ export default function HomePage() {
       }
     }
     loadData();
+    fetchCourseSuggestions();
+
+    const interval = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleDeleteCourse = async (courseId) => {
@@ -46,6 +56,38 @@ export default function HomePage() {
     } catch (err) {
       alert("Failed to delete course: " + err.message);
     }
+  };
+
+  const fetchCourseSuggestions = async (refresh = false) => {
+    setLoadingSuggestions(true);
+    try {
+      const data = await fetchApi(`/courses/suggestions${refresh ? '?refresh=true' : ''}`);
+      setSuggestions(data.suggestions || []);
+      setLastGeneratedAt(data.lastGeneratedAt);
+    } catch (err) {
+      console.error('Failed to fetch suggestions', err);
+      if (refresh) alert(err.message || "Failed to fetch suggestions");
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  const getRemainingTime = () => {
+    if (!lastGeneratedAt) return { ready: true, text: "" };
+    const diffMs = (5 * 60 * 1000) - (new Date() - new Date(lastGeneratedAt));
+    if (diffMs <= 0) return { ready: true, text: "" };
+    
+    const m = Math.floor(diffMs / 60000);
+    const s = Math.floor((diffMs % 60000) / 1000);
+    return { ready: false, text: `${m}:${s.toString().padStart(2, '0')}` };
+  };
+
+  const timerState = getRemainingTime();
+
+  const openCourseModalWithPrompt = (title, difficulty) => {
+    setSuggestionPrompt(title);
+    setSuggestionLevel(difficulty || 'Beginner');
+    setIsModalOpen(true);
   };
 
   const handleRemoveBookmark = async (e, lessonId) => {
@@ -167,7 +209,11 @@ export default function HomePage() {
             )}
           </div>
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setSuggestionPrompt('');
+              setSuggestionLevel('Auto-detect');
+              setIsModalOpen(true);
+            }}
             className="px-6 py-3 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all flex items-center gap-2 whitespace-nowrap shrink-0"
           >
             <Plus className="w-5 h-5" />
@@ -183,7 +229,11 @@ export default function HomePage() {
           </div>
           <h3 className="text-xl font-semibold mb-2 text-slate-900">No courses yet</h3>
           <p className="text-slate-500 max-w-md mb-6">You haven't generated any courses. Use the AI course generator to start learning anything.</p>
-          <button onClick={() => setIsModalOpen(true)} className="btn-primary">
+          <button onClick={() => {
+            setSuggestionPrompt('');
+            setSuggestionLevel('Auto-detect');
+            setIsModalOpen(true);
+          }} className="btn-primary">
             Create Your First Course
           </button>
         </div>
@@ -247,6 +297,65 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* Recommended for You */}
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold mb-6 flex items-center justify-between text-slate-900 tracking-tight">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-amber-600" />
+                </div>
+                Recommended for You
+              </div>
+              <button
+                onClick={() => fetchCourseSuggestions(true)}
+                disabled={!timerState.ready || loadingSuggestions}
+                className="px-4 py-2 bg-amber-100 text-amber-700 hover:bg-amber-200 font-bold rounded-lg transition-colors flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed min-w-[160px] justify-center"
+              >
+                <Sparkles className="w-4 h-4" /> 
+                {loadingSuggestions 
+                  ? 'Thinking...' 
+                  : (!timerState.ready 
+                      ? `Wait ${timerState.text}` 
+                      : 'Surprise Me')}
+              </button>
+            </h2>
+
+            {loadingSuggestions ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="bg-white rounded-3xl p-6 border border-slate-200 h-40 flex flex-col justify-between animate-pulse">
+                    <div>
+                      <div className="h-5 w-3/4 bg-slate-200 rounded-md mb-3"></div>
+                      <div className="h-3 w-full bg-slate-100 rounded-md"></div>
+                      <div className="h-3 w-5/6 bg-slate-100 rounded-md mt-2"></div>
+                    </div>
+                    <div className="h-6 w-20 bg-slate-200 rounded-full mt-auto"></div>
+                  </div>
+                ))}
+              </div>
+            ) : suggestions.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                {suggestions.map((suggestion, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => openCourseModalWithPrompt(suggestion.title, suggestion.difficulty)}
+                    className="bg-white rounded-3xl p-6 border border-slate-200 hover:border-amber-400 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden flex flex-col items-start text-left w-full"
+                  >
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-full blur-2xl -mr-8 -mt-8 transition-transform group-hover:scale-150 opacity-0 group-hover:opacity-100"></div>
+                    <h3 className="font-bold text-slate-900 mb-2 relative z-10 group-hover:text-amber-700 transition-colors">{suggestion.title}</h3>
+                    <p className="text-xs text-slate-500 line-clamp-3 mb-4 relative z-10">{suggestion.description}</p>
+                    <div className="mt-auto flex items-center gap-2 relative z-10">
+                      <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-md text-[10px] font-bold uppercase tracking-wider">{suggestion.difficulty}</span>
+                      <span className="text-[10px] font-bold text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 ml-2">
+                        Generate Now <ArrowUp className="w-3 h-3 rotate-45" />
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
           {/* Continue Learning & Study Activity */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-12">
             {/* Continue Learning */}
@@ -263,7 +372,11 @@ export default function HomePage() {
                 ) : (
                   <div className="bg-white rounded-3xl h-full p-12 flex flex-col items-center justify-center text-center border-dashed border-2 border-slate-200 shadow-sm">
                     <p className="text-slate-500 mb-6 text-lg">You haven't started any courses yet.</p>
-                    <button onClick={() => setIsModalOpen(true)} className="px-6 py-3 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl shadow-lg transition-all">
+                    <button onClick={() => {
+                      setSuggestionPrompt('');
+                      setSuggestionLevel('Auto-detect');
+                      setIsModalOpen(true);
+                    }} className="px-6 py-3 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl shadow-lg transition-all">
                       Generate a Course
                     </button>
                   </div>
@@ -528,7 +641,7 @@ export default function HomePage() {
         </>
       )}
 
-      <CreateCourseModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <CreateCourseModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} initialPrompt={suggestionPrompt} initialLevel={suggestionLevel} />
     </div>
   );
 }

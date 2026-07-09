@@ -112,7 +112,23 @@ export default function BillingHistoryPage() {
           Transactions
         </h2>
         
-        {transactions.length > 0 ? (
+        {loading && transactions.length === 0 ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="p-4 sm:p-6 rounded-xl border border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between sm:items-center gap-4 animate-pulse">
+                <div>
+                  <div className="h-6 w-32 bg-slate-200 rounded-md mb-2"></div>
+                  <div className="h-4 w-48 bg-slate-200 rounded-md mt-1"></div>
+                  <div className="h-4 w-32 bg-slate-200 rounded-md mt-3"></div>
+                </div>
+                <div className="flex flex-col sm:items-end gap-2 mt-4 sm:mt-0">
+                  <div className="h-6 w-24 bg-slate-200 rounded-md"></div>
+                  <div className="h-6 w-20 bg-slate-200 rounded-full"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : transactions.length > 0 ? (
           <div className="space-y-4">
             {transactions.map(t => (
               <div key={t._id} className="p-4 sm:p-6 rounded-xl border border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between sm:items-center gap-4">

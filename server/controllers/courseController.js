@@ -9,6 +9,7 @@ const Certificate = require("../models/Certificate");
 const { createLessonContent } = require("../services/lessonGeneration");
 const { findLessonVideos } = require("../services/youtubeService");
 const { createLessonQuiz } = require("../services/studyGeneration");
+const { generateCourseSuggestions } = require("../services/courseSuggestions");
 
 const COURSE_OUTLINE = {
   path: "modules",
@@ -475,6 +476,55 @@ async function submitLessonTest(req, res) {
   }
 }
 
+async function getCourseSuggestions(req, res) {
+  try {
+    const isRefresh = req.query.refresh === 'true';
+    const user = req.user;
+    const now = new Date();
+    
+    // Check cache
+    if (!isRefresh && user.cachedCourseSuggestions && user.cachedCourseSuggestions.length > 0) {
+      return res.json({
+        suggestions: user.cachedCourseSuggestions,
+        lastGeneratedAt: user.lastSuggestionsGeneratedAt
+      });
+    }
+    
+    // 5-minute cooldown check (only if they are trying to refresh and have a previous generation)
+    if (isRefresh && user.lastSuggestionsGeneratedAt) {
+      const diffMs = now - user.lastSuggestionsGeneratedAt;
+      const minutesPassed = Math.floor(diffMs / 60000);
+      
+      if (minutesPassed < 5) {
+        return res.status(429).json({
+          error: `Please wait ${5 - minutesPassed} more minutes before getting new suggestions.`,
+          suggestions: user.cachedCourseSuggestions,
+          lastGeneratedAt: user.lastSuggestionsGeneratedAt
+        });
+      }
+    }
+
+    const existingCourses = await Course.find({ creator: user._id })
+      .select("title")
+      .lean();
+    
+    const newSuggestions = await generateCourseSuggestions(user, existingCourses);
+    
+    // Save to user model
+    user.cachedCourseSuggestions = newSuggestions;
+    user.lastSuggestionsGeneratedAt = now;
+    await user.save();
+    
+    return res.json({
+      suggestions: newSuggestions,
+      lastGeneratedAt: now
+    });
+  } catch (error) {
+    console.error("Course Suggestions Error:", error);
+    return res.status(500).json({ error: error.message || "Failed to generate suggestions" });
+  }
+}
+
 module.exports = {
   deleteCourse,
   getCourseById,
@@ -486,4 +536,5 @@ module.exports = {
   generateFinalTest,
   startLessonTest,
   submitLessonTest,
+  getCourseSuggestions,
 };

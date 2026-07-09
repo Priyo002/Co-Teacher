@@ -56,6 +56,13 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Lesson"
   }],
+  
+  cachedCourseSuggestions: [{
+    title: String,
+    description: String,
+    difficulty: String
+  }],
+  lastSuggestionsGeneratedAt: { type: Date }
 }, { timestamps: true });
 
 userSchema.index({ auth0Id: 1 }, { unique: true, sparse: true });
