@@ -124,6 +124,7 @@ exports.verifyPayment = async (req, res) => {
               <p><strong>Amount Paid:</strong> ₹${PACKAGES[packageId].amount}</p>
               <p><strong>Credits Added:</strong> +${credits} Credits</p>
               <p><strong>Order ID:</strong> ${razorpay_order_id}</p>
+              <p><strong>Payment ID:</strong> ${razorpay_payment_id}</p>
             </div>
             <p>Your new balance is <strong>${req.user.credits} credits</strong>.</p>
             <br/>
