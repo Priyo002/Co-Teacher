@@ -62,7 +62,33 @@ const userSchema = new mongoose.Schema({
     description: String,
     difficulty: String
   }],
-  lastSuggestionsGeneratedAt: { type: Date }
+  lastSuggestionsGeneratedAt: { type: Date },
+
+  // --- Mentor Specific Fields ---
+  isMentor: { type: Boolean, default: false },
+  mentorProfile: {
+    bio: { type: String, maxlength: 1000 },
+    rateCredits: { type: Number },
+    rateINR: { type: Number },
+    expertise: [{ type: String }],
+    meetingLink: { type: String }, // e.g., Google Meet default link
+    upiId: { type: String },
+    bankDetails: { type: String },
+    availability: [{
+      dayOfWeek: { type: Number, min: 0, max: 6 }, // 0 = Sunday, 1 = Monday
+      slots: [{
+        startTime: { type: String }, // e.g., "09:00"
+        endTime: { type: String } // e.g., "17:00"
+      }]
+    }],
+    dateOverrides: [{
+      date: { type: String }, // "YYYY-MM-DD"
+      slots: [{
+        startTime: { type: String },
+        endTime: { type: String }
+      }]
+    }]
+  }
 }, { timestamps: true });
 
 userSchema.index({ auth0Id: 1 }, { unique: true, sparse: true });

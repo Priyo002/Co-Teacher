@@ -1,6 +1,6 @@
 import { useAuth } from '../../hooks/useAuth';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { GraduationCap, Zap, Trophy, Settings, CreditCard, Activity, LogOut, ChevronDown } from 'lucide-react';
+import { GraduationCap, Zap, Trophy, Settings, CreditCard, Activity, LogOut, ChevronDown, ShieldAlert, Award, Video } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import PaymentModal from '../PaymentModal';
 
@@ -111,6 +111,42 @@ export default function DashboardLayout({ children }) {
                   >
                     <Activity className="w-4 h-4" /> Credit History
                   </Link>
+                  <Link 
+                    to="/mentors" 
+                    onClick={() => setIsProfileDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-brand-600 transition-colors"
+                  >
+                    <Video className="w-4 h-4" /> Hire a Mentor
+                  </Link>
+                  <div className="h-px bg-slate-100 my-2"></div>
+
+                  {user?.isAdmin && (
+                    <Link 
+                      to="/admin" 
+                      onClick={() => setIsProfileDropdownOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
+                    >
+                      <ShieldAlert className="w-4 h-4" /> Admin Dashboard
+                    </Link>
+                  )}
+
+                  {user?.isMentor ? (
+                    <Link 
+                      to="/mentor-dashboard" 
+                      onClick={() => setIsProfileDropdownOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors"
+                    >
+                      <Video className="w-4 h-4" /> Mentor Dashboard
+                    </Link>
+                  ) : (
+                    <Link 
+                      to="/become-mentor" 
+                      onClick={() => setIsProfileDropdownOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors"
+                    >
+                      <Award className="w-4 h-4" /> Become a Mentor
+                    </Link>
+                  )}
                   
                   <div className="h-px bg-slate-100 my-2"></div>
                   

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { BookOpen, CheckCircle, Circle, PlayCircle, ArrowLeft, MoreVertical, Share2, Loader2, Check, Trash2, Lock } from 'lucide-react';
+import { BookOpen, CheckCircle, Circle, PlayCircle, ArrowLeft, MoreVertical, Share2, Loader2, Check, Trash2, Lock, Video } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import CourseSkeleton from '../components/skeletons/CourseSkeleton';
 
@@ -95,7 +95,7 @@ export default function CourseOverviewPage() {
             <p className="text-slate-600 max-w-2xl text-lg">{course.description}</p>
           </div>
           
-          <div className="flex gap-3 relative">
+          <div className="flex gap-3 relative shrink-0">
             <div className="relative">
               <button 
                 onClick={() => setShowDropdown(!showDropdown)} 
@@ -131,6 +131,14 @@ export default function CourseOverviewPage() {
               <p className="text-sm text-slate-500">{completedLessons} of {totalLessons} lessons completed</p>
             </div>
           </div>
+          
+          <button 
+            onClick={() => navigate('/mentors')}
+            className="bg-brand-500 text-white px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-bold whitespace-nowrap shadow-md hover:bg-brand-600 hover:shadow-lg hover:-translate-y-0.5 transition-all shrink-0"
+          >
+            <Video className="w-4 h-4" />
+            Hire a Mentor
+          </button>
         </div>
       </div>
 

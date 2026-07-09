@@ -18,6 +18,10 @@ import LessonTestPage from './pages/LessonTestPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import BillingHistoryPage from './pages/BillingHistoryPage';
 import CreditHistoryPage from './pages/CreditHistoryPage';
+import ApplyMentorPage from './pages/ApplyMentorPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
+import MentorDashboardPage from './pages/MentorDashboardPage';
+import FindMentorPage from './pages/FindMentorPage';
 
 function GuestRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -65,6 +69,10 @@ export default function App() {
         <Route path="/leaderboard" element={<DashboardPage><LeaderboardPage /></DashboardPage>} />
         <Route path="/billing" element={<DashboardPage><BillingHistoryPage /></DashboardPage>} />
         <Route path="/credit-history" element={<DashboardPage><CreditHistoryPage /></DashboardPage>} />
+        <Route path="/mentors" element={<DashboardPage><FindMentorPage /></DashboardPage>} />
+        <Route path="/become-mentor" element={<DashboardPage><ApplyMentorPage /></DashboardPage>} />
+        <Route path="/mentor-dashboard" element={<DashboardPage><MentorDashboardPage /></DashboardPage>} />
+        <Route path="/admin" element={<DashboardPage><AdminDashboardPage /></DashboardPage>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Analytics />

@@ -74,7 +74,7 @@ export default function HomePage() {
 
   const getRemainingTime = () => {
     if (!lastGeneratedAt) return { ready: true, text: "" };
-    const diffMs = (5 * 60 * 1000) - (new Date() - new Date(lastGeneratedAt));
+    const diffMs = (10 * 60 * 1000) - (new Date() - new Date(lastGeneratedAt));
     if (diffMs <= 0) return { ready: true, text: "" };
     
     const m = Math.floor(diffMs / 60000);

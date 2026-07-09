@@ -1,0 +1,243 @@
+import { useState, useEffect } from 'react';
+import { X, Calendar as CalendarIcon, Clock, CreditCard, Gem } from 'lucide-react';
+import { useApi } from '../hooks/useApi';
+import toast from 'react-hot-toast';
+
+export default function BookingModal({ mentor, isOpen, onClose }) {
+  const [slots, setSlots] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [selectedDateStr, setSelectedDateStr] = useState(null);
+  const duration = 60; // Hardcoded to 60 mins
+  const [paymentMethod, setPaymentMethod] = useState('CREDITS'); // 'CREDITS' or 'INR'
+  const [booking, setBooking] = useState(false);
+  
+  const fetchApi = useApi();
+
+  useEffect(() => {
+    if (isOpen && mentor) {
+      fetchSlots();
+    }
+  }, [isOpen, mentor]);
+
+  const fetchSlots = async () => {
+    try {
+      const data = await fetchApi(`/mentors/${mentor._id}/slots`);
+      setSlots(data);
+      if (data.length > 0) {
+        const firstDate = new Date(data[0].startTime).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+        setSelectedDateStr(firstDate);
+      }
+    } catch (err) {
+      toast.error("Failed to load mentor availability");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBook = async () => {
+    if (!selectedSlot) return toast.error("Please select a time slot");
+    
+    setBooking(true);
+    try {
+      const res = await fetchApi('/mentors/book', {
+        method: 'POST',
+        body: JSON.stringify({
+          mentorId: mentor._id,
+          startTime: selectedSlot.startTime,
+          durationMins: duration,
+          paymentMethod
+        })
+      });
+
+      if (paymentMethod === 'CREDITS') {
+        toast.success("Session booked successfully!");
+        onClose();
+      } else if (paymentMethod === 'INR') {
+        // Implement Razorpay flow
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
+          amount: res.amount,
+          currency: res.currency,
+          name: "Co-Teacher",
+          description: `Mentorship with ${mentor.name}`,
+          order_id: res.orderId,
+          handler: async function (response) {
+            try {
+              await fetchApi('/mentors/verify', {
+                method: 'POST',
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  sessionId: res.sessionId
+                })
+              });
+              toast.success("Payment verified and session booked!");
+              onClose();
+            } catch (err) {
+              toast.error("Payment verification failed");
+            }
+          },
+          theme: { color: "#4F46E5" }
+        };
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      }
+    } catch (err) {
+      toast.error(err.message || "Booking failed");
+    } finally {
+      setBooking(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const creditsCost = Math.round(mentor?.mentorProfile?.rateCredits || 0);
+  const inrCost = Math.round(mentor?.mentorProfile?.rateINR || 0);
+
+  const groupedSlots = slots.reduce((acc, slot) => {
+    const date = new Date(slot.startTime);
+    const dateString = date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+    if (!acc[dateString]) acc[dateString] = [];
+    acc[dateString].push(slot);
+    return acc;
+  }, {});
+
+  const dates = Object.keys(groupedSlots);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+      <div className="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl relative max-h-[90vh] flex flex-col">
+        <div className="flex justify-between items-center p-6 border-b border-slate-100">
+          <h2 className="text-2xl font-bold text-slate-900">Book Session</h2>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex-grow flex flex-col min-h-0 pl-6 pt-6 pb-6 pr-2">
+          <div className="overflow-y-auto flex-grow custom-scrollbar pr-4 pb-2">
+          {/* Mentor Summary */}
+          <div className="flex items-center gap-4 mb-8 bg-slate-50 p-4 rounded-xl border border-slate-100">
+            {mentor?.profilePicture ? (
+              <img src={mentor.profilePicture} alt="" className="w-12 h-12 rounded-full object-cover" />
+            ) : (
+              <div className="w-12 h-12 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center font-bold">
+                {mentor?.name?.charAt(0)}
+              </div>
+            )}
+            <div>
+              <div className="font-bold">{mentor?.name}</div>
+              <div className="text-sm text-slate-500">{mentor?.mentorProfile?.expertise?.join(', ')}</div>
+            </div>
+          </div>
+
+          {/* Duration selection removed - defaulted to 60 minutes */}
+
+          <h3 className="font-semibold text-slate-700 mb-4 flex items-center gap-2">
+            <CalendarIcon className="w-4 h-4" /> Available Slots
+          </h3>
+          {loading ? (
+            <div className="flex flex-col md:flex-row gap-6 mb-8 border border-slate-200 rounded-2xl p-4 bg-white shadow-sm animate-pulse">
+              {/* Skeleton Left: Date selector */}
+              <div className="w-full md:w-1/3 md:border-r border-slate-100 md:pr-6 flex flex-col gap-2">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="h-11 bg-slate-100 rounded-xl w-full"></div>
+                ))}
+              </div>
+              {/* Skeleton Right: Time slots */}
+              <div className="w-full md:w-2/3 md:pl-2 grid grid-cols-2 sm:grid-cols-3 gap-3 content-start">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <div key={i} className="h-11 bg-slate-100 rounded-xl w-full"></div>
+                ))}
+              </div>
+            </div>
+          ) : slots.length === 0 ? (
+            <div className="bg-amber-50 text-amber-700 p-4 rounded-xl text-sm border border-amber-200 mb-8">
+              No available slots at the moment.
+            </div>
+          ) : (
+            <div className="flex flex-col md:flex-row gap-6 mb-8 border border-slate-200 rounded-2xl p-4 bg-white shadow-sm">
+              {/* Left: Date selector */}
+              <div className="w-full md:w-1/3 md:border-r border-slate-100 md:pr-6 flex flex-col">
+                <div className="flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-y-auto max-h-64 pb-2 md:pb-0 pr-2 custom-scrollbar">
+                  {dates.map(date => (
+                    <button 
+                      key={date}
+                      onClick={() => { setSelectedDateStr(date); setSelectedSlot(null); }}
+                      className={`shrink-0 w-[120px] md:w-full text-center md:text-left p-3 rounded-xl text-sm font-bold transition-all
+                        ${selectedDateStr === date 
+                          ? 'bg-brand-50 text-brand-700 border border-brand-500' 
+                          : 'text-slate-600 hover:bg-slate-50 border border-transparent hover:border-slate-200'
+                        }`}
+                    >
+                      {date}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Right: Time slots */}
+              <div className="w-full md:w-2/3 md:pl-2 flex flex-col">
+                <div className="max-h-64 overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-3 gap-3 content-start custom-scrollbar">
+                {groupedSlots[selectedDateStr]?.map(slot => {
+                  const canBook = slot.bookedDuration + duration <= 60;
+                  return (
+                    <button
+                      key={slot._id}
+                      disabled={!canBook}
+                      onClick={() => setSelectedSlot(slot)}
+                      className={`p-3 rounded-xl border text-sm font-bold flex justify-center items-center transition-all
+                        ${selectedSlot?._id === slot._id 
+                          ? 'border-brand-500 bg-brand-600 text-white shadow-md' 
+                          : canBook 
+                            ? 'border-brand-200 text-brand-700 hover:border-brand-400 hover:bg-brand-50' 
+                            : 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed opacity-60'
+                        }
+                      `}
+                    >
+                      {new Date(slot.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </button>
+                  );
+                })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <h3 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
+            <CreditCard className="w-4 h-4" /> Payment Method
+          </h3>
+          <div className="grid grid-cols-2 gap-3 mb-2">
+            <button
+              onClick={() => setPaymentMethod('CREDITS')}
+              className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-colors ${paymentMethod === 'CREDITS' ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}
+            >
+              <Gem className="w-6 h-6" />
+              <span className="font-bold">{creditsCost} Credits</span>
+            </button>
+            <button
+              onClick={() => setPaymentMethod('INR')}
+              className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-colors ${paymentMethod === 'INR' ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}
+            >
+              <span className="text-2xl font-serif leading-none">₹</span>
+              <span className="font-bold">₹{inrCost}</span>
+            </button>
+          </div>
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-slate-100 bg-slate-50">
+          <button
+            onClick={handleBook}
+            disabled={!selectedSlot || booking}
+            className="w-full btn-primary py-4 text-lg"
+          >
+            {booking ? 'Processing...' : 'Confirm Booking'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
