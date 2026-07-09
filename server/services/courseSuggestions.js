@@ -73,7 +73,9 @@ Return JSON EXACTLY in this format:
 CRITICAL: Return exactly 4 suggestions.
   `.trim();
 
-  const isWeakProfile = (!user.fieldOfStudy || user.fieldOfStudy.trim().length < 3) && (!user.learningGoal || user.learningGoal.trim().length < 3);
+  const isMeaningful = (text) => text && text.trim().length >= 3 && /[a-zA-Z0-9]/.test(text);
+  const isWeakProfile = !isMeaningful(user.fieldOfStudy) && !isMeaningful(user.learningGoal);
+  
   if (isWeakProfile && (!existingCourses || existingCourses.length === 0)) {
     return getPredefinedSuggestions(user.educationLevel);
   }

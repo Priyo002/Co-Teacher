@@ -4,6 +4,7 @@ import CourseCard from '../components/CourseCard';
 import CreateCourseModal from '../components/CreateCourseModal';
 import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
 import { useApi } from '../hooks/useApi';
+import { useAuth } from '../hooks/useAuth';
 import { Link } from 'react-router-dom';
 
 export default function HomePage() {
@@ -19,8 +20,10 @@ export default function HomePage() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [suggestionPrompt, setSuggestionPrompt] = useState('');
   const [suggestionLevel, setSuggestionLevel] = useState('Auto-detect');
+  const [hasRefreshed, setHasRefreshed] = useState(false);
   const [tick, setTick] = useState(0);
   const fetchApi = useApi();
+  const { user } = useAuth();
   
   useEffect(() => {
     async function loadData() {
@@ -59,6 +62,7 @@ export default function HomePage() {
   };
 
   const fetchCourseSuggestions = async (refresh = false) => {
+    if (refresh) setHasRefreshed(true);
     setLoadingSuggestions(true);
     try {
       const data = await fetchApi(`/courses/suggestions${refresh ? '?refresh=true' : ''}`);
@@ -73,6 +77,7 @@ export default function HomePage() {
   };
 
   const getRemainingTime = () => {
+    if (courses.length === 0 && !hasRefreshed) return { ready: true, text: "" };
     if (!lastGeneratedAt) return { ready: true, text: "" };
     const diffMs = (10 * 60 * 1000) - (new Date() - new Date(lastGeneratedAt));
     if (diffMs <= 0) return { ready: true, text: "" };
@@ -108,6 +113,10 @@ export default function HomePage() {
   const totalLessons = courses.reduce((acc, c) => acc + (c.modules?.reduce((mAcc, m) => mAcc + (m.lessons?.length || 0), 0) || 0), 0);
   const completedLessons = courses.reduce((acc, c) => acc + (c.modules?.reduce((mAcc, m) => mAcc + (m.lessons?.filter(l => l.completedAt)?.length || 0), 0) || 0), 0);
   const progressPercent = totalLessons === 0 ? 0 : Math.round((completedLessons / totalLessons) * 100);
+
+  const isMeaningful = (text) => text && text.trim().length >= 3 && /[a-zA-Z0-9]/.test(text);
+  const isWeakProfile = !isMeaningful(user?.fieldOfStudy) && !isMeaningful(user?.learningGoal);
+  const isShowingFixedCourses = isWeakProfile && totalCourses === 0;
 
   const coursesWithLatestOpen = [...courses].map(c => {
     const latestLesson = c.modules?.flatMap(m => m.lessons || []).reduce((latest, l) => {
@@ -289,28 +298,38 @@ export default function HomePage() {
                 </div>
                 Recommended for You
               </div>
-              <button
-                onClick={() => fetchCourseSuggestions(true)}
-                disabled={!timerState.ready || loadingSuggestions}
-                className={`px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 min-w-[160px] transition-all duration-300 relative overflow-hidden
-                  ${(!timerState.ready || loadingSuggestions)
-                    ? 'bg-slate-100 text-slate-400 ring-1 ring-inset ring-slate-200 cursor-not-allowed shadow-inner'
-                    : 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-md hover:shadow-lg hover:shadow-orange-500/20 hover:-translate-y-0.5'
-                  }
-                `}
-              >
-                {timerState.ready && !loadingSuggestions && (
-                  <div className="absolute inset-0 bg-white opacity-0 hover:opacity-20 transition-opacity"></div>
-                )}
-                <Sparkles className={`w-4 h-4 ${!timerState.ready || loadingSuggestions ? 'opacity-50' : 'animate-pulse'}`} /> 
-                <span className="relative z-10">
-                  {loadingSuggestions 
-                    ? 'Refreshing...' 
-                    : (!timerState.ready 
-                        ? `Wait ${timerState.text}` 
-                        : 'Surprise Me')}
-                </span>
-              </button>
+              {isShowingFixedCourses ? (
+                <Link
+                  to="/profile"
+                  className="px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all duration-300 bg-brand-50 text-brand-700 hover:bg-brand-100 shadow-sm whitespace-nowrap"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Complete Profile for AI Courses
+                </Link>
+              ) : (
+                <button
+                  onClick={() => fetchCourseSuggestions(true)}
+                  disabled={!timerState.ready || loadingSuggestions}
+                  className={`px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 min-w-[160px] transition-all duration-300 relative overflow-hidden
+                    ${(!timerState.ready || loadingSuggestions)
+                      ? 'bg-slate-100 text-slate-400 ring-1 ring-inset ring-slate-200 cursor-not-allowed shadow-inner'
+                      : 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-md hover:shadow-lg hover:shadow-orange-500/20 hover:-translate-y-0.5'
+                    }
+                  `}
+                >
+                  {timerState.ready && !loadingSuggestions && (
+                    <div className="absolute inset-0 bg-white opacity-0 hover:opacity-20 transition-opacity"></div>
+                  )}
+                  <Sparkles className={`w-4 h-4 ${!timerState.ready || loadingSuggestions ? 'opacity-50' : 'animate-pulse'}`} /> 
+                  <span className="relative z-10">
+                    {loadingSuggestions 
+                      ? 'Refreshing...' 
+                      : (!timerState.ready 
+                          ? `Wait ${timerState.text}` 
+                          : 'Surprise Me')}
+                  </span>
+                </button>
+              )}
             </h2>
 
             {loadingSuggestions ? (
