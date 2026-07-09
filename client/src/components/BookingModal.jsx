@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Calendar as CalendarIcon, Clock, CreditCard, Gem } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import toast from 'react-hot-toast';
@@ -106,8 +107,8 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
 
   const dates = Object.keys(groupedSlots);
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+  return createPortal(
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
       <div className="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl relative max-h-[90vh] flex flex-col">
         <div className="flex justify-between items-center p-6 border-b border-slate-100">
           <h2 className="text-2xl font-bold text-slate-900">Book Session</h2>
@@ -238,6 +239,7 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

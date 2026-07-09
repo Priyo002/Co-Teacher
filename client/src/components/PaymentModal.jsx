@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Zap, Loader2, CheckCircle2 } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../hooks/useAuth';
@@ -95,8 +96,8 @@ export default function PaymentModal({ isOpen, onClose }) {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden relative animate-in slide-in-from-bottom-8 duration-300">
         
         {/* Header */}
@@ -177,6 +178,7 @@ export default function PaymentModal({ isOpen, onClose }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

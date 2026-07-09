@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Sparkles, X, Loader2, Mic, ArrowUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
@@ -173,6 +174,12 @@ export default function CreateCourseModal({ isOpen, onClose, initialPrompt = '',
     }
   };
 
+  const prevQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(prev => prev - 1);
+    }
+  };
+
   const evaluateAssessment = () => {
     let correct = 0;
     assessmentQuestions.forEach((q, idx) => {
@@ -198,8 +205,8 @@ export default function CreateCourseModal({ isOpen, onClose, initialPrompt = '',
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
       <div 
         className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
         onClick={handleClose}
@@ -361,13 +368,24 @@ export default function CreateCourseModal({ isOpen, onClose, initialPrompt = '',
               </div>
             </div>
 
-            <button
-              onClick={nextQuestion}
-              disabled={answers[currentQuestionIndex] === undefined || isGenerating}
-              className="btn-primary w-full"
-            >
-              {currentQuestionIndex < assessmentQuestions.length - 1 ? 'Next Question' : 'Submit & Evaluate'}
-            </button>
+            <div className="flex gap-4">
+              {currentQuestionIndex > 0 && (
+                <button
+                  onClick={prevQuestion}
+                  disabled={isGenerating}
+                  className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors shrink-0"
+                >
+                  Previous
+                </button>
+              )}
+              <button
+                onClick={nextQuestion}
+                disabled={answers[currentQuestionIndex] === undefined || isGenerating}
+                className="btn-primary flex-1"
+              >
+                {currentQuestionIndex < assessmentQuestions.length - 1 ? 'Next Question' : 'Submit & Evaluate'}
+              </button>
+            </div>
           </div>
         )}
 
@@ -431,6 +449,7 @@ export default function CreateCourseModal({ isOpen, onClose, initialPrompt = '',
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

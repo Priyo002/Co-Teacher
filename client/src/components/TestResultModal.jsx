@@ -1,4 +1,5 @@
 import { CheckCircle2, AlertTriangle, XCircle, ChevronRight, RotateCcw, Eye, ShieldCheck, BookOpen } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { useEffect } from 'react';
 
 export default function TestResultModal({ isOpen, onClose, result, onRetry, onContinue, onReviewMaterial, onTakeFinalTest }) {
@@ -48,8 +49,8 @@ export default function TestResultModal({ isOpen, onClose, result, onRetry, onCo
     description = `You scored ${result.score}%. You need 70% to pass. Review the material and try again. (${attemptsText})`;
   }
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+  return createPortal(
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" 
@@ -105,6 +106,7 @@ export default function TestResultModal({ isOpen, onClose, result, onRetry, onCo
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
