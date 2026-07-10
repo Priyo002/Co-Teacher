@@ -31,6 +31,7 @@ const userSchema = new mongoose.Schema({
   
   // --- Personalization Fields ---
   hasCompletedOnboarding: { type: Boolean, default: false },
+  onboardingEmailSent: { type: Boolean, default: false },
   lastActiveAt: { type: Date, default: Date.now },
   lastRetentionEmailDate: { type: Date },
   educationLevel: { 
