@@ -545,7 +545,7 @@ exports.getMySessions = async (req, res) => {
   try {
     const isMentorView = req.query.role === 'mentor';
     
-    let query = {};
+    let query = { status: { $ne: 'pending' } };
     if (isMentorView) {
       if (!req.user.isMentor) return res.status(403).json({ error: "Not a mentor" });
       query.mentor = req.user._id;
