@@ -58,10 +58,10 @@ export default function StudentSessionsPage() {
         ) : (
           <div className="grid gap-6">
             {paginatedSessions.map(session => (
-              <div key={session._id} className="border border-slate-200 rounded-2xl p-6 flex flex-col md:flex-row justify-between md:items-center gap-6 hover:shadow-md transition-shadow bg-white relative overflow-hidden group">
+              <div key={session._id} className="border border-slate-200 rounded-2xl p-6 flex flex-col md:flex-row justify-between md:items-start gap-6 hover:shadow-md transition-shadow bg-white relative overflow-hidden group">
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-500"></div>
-                <div className="flex items-start md:items-center gap-5">
-                  <div className="w-16 h-16 rounded-full overflow-hidden shrink-0 bg-slate-100 border border-slate-200">
+                <div className="flex items-start gap-5 flex-1 min-w-0">
+                  <div className="w-14 h-14 rounded-full overflow-hidden shrink-0 bg-slate-100 border border-slate-200 mt-1">
                     {session.mentor?.profilePicture ? (
                       <img src={session.mentor.profilePicture} alt={session.mentor.name} className="w-full h-full object-cover" />
                     ) : (
@@ -70,8 +70,8 @@ export default function StudentSessionsPage() {
                       </div>
                     )}
                   </div>
-                  <div>
-                    <h3 className="font-bold text-xl text-slate-900">{session.mentor?.name}</h3>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-xl text-slate-900 truncate">{session.mentor?.name}</h3>
                     <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
                       <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {session.mentor?.mentorProfile?.location || 'Remote'}</span>
                       <span>•</span>
@@ -81,10 +81,10 @@ export default function StudentSessionsPage() {
                       <span className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-lg"><CalendarIcon className="w-4 h-4 text-brand-600" /> {new Date(session.startTime).toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })} IST</span>
                       <span className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-lg"><Clock className="w-4 h-4 text-brand-600" /> {session.durationMins} mins</span>
                     </div>
-                    {session.context && (
-                      <div className="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-lg text-sm text-slate-700">
-                        <span className="font-semibold block mb-1">Your Note:</span>
-                        {session.context}
+                    {session.notes && (
+                      <div className="mt-4 p-4 bg-slate-50 border border-slate-100 rounded-xl text-sm text-slate-700 max-w-2xl">
+                        <span className="font-semibold block mb-2 text-slate-900">Your Note:</span>
+                        <div className="whitespace-pre-wrap leading-relaxed">{session.notes}</div>
                       </div>
                     )}
                   </div>

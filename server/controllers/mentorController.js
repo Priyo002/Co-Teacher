@@ -12,6 +12,7 @@ const sendSessionScheduledEmails = async (student, mentor, session) => {
       <h2>Mentorship Session Scheduled!</h2>
       <p>A 60-minute mentorship session has been confirmed.</p>
       <p><strong>Time:</strong> ${timeStr} (IST)</p>
+      ${session.notes ? `<p><strong>Student's Note:</strong> ${session.notes}</p>` : ''}
       <p><strong>Meeting Link:</strong> <a href="${session.meetingLink}">${session.meetingLink}</a></p>
       <p><strong>Context:</strong> ${session.context?.courseId ? 'Course specific session' : 'General Discussion'}</p>
     </div>
@@ -373,7 +374,7 @@ const razorpay = new Razorpay({
 
 exports.bookSession = async (req, res) => {
   try {
-    const { mentorId, startTime, durationMins, paymentMethod, context } = req.body;
+    const { mentorId, startTime, durationMins, paymentMethod, context, notes } = req.body;
     
     if (durationMins !== 60) return res.status(400).json({ error: "Only 60 minute sessions are supported" });
     if (!mentorId || !startTime) return res.status(400).json({ error: "mentorId and startTime are required" });
@@ -440,6 +441,7 @@ exports.bookSession = async (req, res) => {
         startTime: sessionStart,
         durationMins,
         context,
+        notes,
         status: 'confirmed', // immediately confirm
         payment: { amount: 0, currency: 'INR', status: 'paid' }
       });
@@ -469,6 +471,7 @@ exports.bookSession = async (req, res) => {
       startTime: sessionStart,
       durationMins,
       context,
+      notes,
       payment: { amount: amountRequired, currency: 'INR', status: 'pending', transactionId: order.id }
     });
     await session.save();
@@ -594,9 +597,9 @@ const generateGoogleMeetLink = async (mentor, session, studentName = null) => {
 
     const event = {
       summary: summary,
-      description: `Mentorship session via Co-Teacher.\nContext: ${session.context?.courseId ? 'Course specific session' : 'General Discussion'}`,
-      start: { dateTime: session.startTime.toISOString(), timeZone: 'UTC' },
-      end: { dateTime: new Date(session.startTime.getTime() + session.durationMins * 60000).toISOString(), timeZone: 'UTC' },
+      description: `Mentorship session via Co-Teacher.\n${session.notes ? `Student's Note: ${session.notes}\n` : ''}Context: ${session.context?.courseId ? 'Course specific session' : 'General Discussion'}`,
+      start: { dateTime: session.startTime.toISOString(), timeZone: 'Asia/Kolkata' },
+      end: { dateTime: new Date(session.startTime.getTime() + session.durationMins * 60000).toISOString(), timeZone: 'Asia/Kolkata' },
       conferenceData: {
         createRequest: {
           requestId: session._id.toString(),

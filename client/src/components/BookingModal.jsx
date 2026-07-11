@@ -9,7 +9,7 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
   const [loading, setLoading] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [selectedDateStr, setSelectedDateStr] = useState(null);
-  const [context, setContext] = useState('');
+  const [notes, setNotes] = useState('');
   const duration = 60; // Hardcoded to 60 mins
   const [booking, setBooking] = useState(false);
   
@@ -47,7 +47,7 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
           mentorId: mentor._id,
           startTime: selectedSlot.startTime,
           durationMins: duration,
-          context,
+          notes,
           paymentMethod: 'razorpay'
         })
       });
@@ -230,8 +230,8 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
               className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 focus:bg-white transition-all resize-none"
               rows="3"
               placeholder="Briefly describe what you'd like to discuss or need help with..."
-              value={context}
-              onChange={(e) => setContext(e.target.value)}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
             ></textarea>
           </div>
 

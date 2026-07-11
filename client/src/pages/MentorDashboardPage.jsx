@@ -350,10 +350,10 @@ export default function MentorDashboardPage() {
                   ) : (
                     <div className="grid gap-4">
                       {paginatedSessions.map(session => (
-                        <div key={session._id} className="border border-slate-200 rounded-2xl p-6 flex flex-col md:flex-row justify-between md:items-center gap-6 hover:shadow-md transition-shadow bg-white relative overflow-hidden group">
+                        <div key={session._id} className="border border-slate-200 rounded-2xl p-6 flex flex-col md:flex-row justify-between md:items-start gap-6 hover:shadow-md transition-shadow bg-white relative overflow-hidden group">
                           <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-500"></div>
-                          <div className="flex items-center gap-5">
-                            <div className="w-14 h-14 shrink-0 bg-slate-100 rounded-full flex items-center justify-center overflow-hidden">
+                          <div className="flex items-start gap-5 flex-1 min-w-0">
+                            <div className="w-14 h-14 shrink-0 bg-slate-100 rounded-full flex items-center justify-center overflow-hidden mt-1">
                               <img 
                                 src={session.student.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(session.student.name || 'S')}&background=random`} 
                                 alt="" 
@@ -361,16 +361,16 @@ export default function MentorDashboardPage() {
                                 onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(session.student.name || 'S')}&background=random`; }}
                               />
                             </div>
-                            <div>
-                              <h3 className="font-bold text-xl text-slate-900">{session.student?.name}</h3>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-xl text-slate-900 truncate">{session.student?.name}</h3>
                               <div className="flex flex-wrap gap-4 text-sm font-semibold text-slate-600 mt-2">
                                 <span className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-lg"><CalendarIcon className="w-4 h-4 text-brand-600" /> {new Date(session.startTime).toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })} IST</span>
                                 <span className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-lg"><Clock className="w-4 h-4 text-brand-600" /> {session.durationMins} mins</span>
                               </div>
-                              {session.context && (
-                                <div className="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-lg text-sm text-slate-700">
-                                  <span className="font-semibold block mb-1">Student's Note:</span>
-                                  {session.context}
+                              {session.notes && (
+                                <div className="mt-4 p-4 bg-slate-50 border border-slate-100 rounded-xl text-sm text-slate-700 max-w-2xl">
+                                  <span className="font-semibold block mb-2 text-slate-900">Student's Note:</span>
+                                  <div className="whitespace-pre-wrap leading-relaxed">{session.notes}</div>
                                 </div>
                               )}
                             </div>

@@ -20,6 +20,9 @@ const mentorSessionSchema = new mongoose.Schema({
     moduleId: { type: mongoose.Schema.Types.ObjectId, ref: "Module" },
     lessonId: { type: mongoose.Schema.Types.ObjectId, ref: "Lesson" }
   },
+  notes: {
+    type: String
+  },
   startTime: {
     type: Date,
     required: true
