@@ -40,7 +40,8 @@ const mentorSessionSchema = new mongoose.Schema({
     status: { type: String, enum: ['pending', 'paid'], default: 'pending' },
     transactionId: { type: String } // To store Razorpay payment ID or internal credit transaction ref
   },
-  meetingLink: { type: String } // Inherited from mentor or generated uniquely
+  meetingLink: { type: String }, // Inherited from mentor or generated uniquely
+  googleEventId: { type: String } // Stores the ID of the Google Calendar event
 }, { timestamps: true });
 
 module.exports = mongoose.model("MentorSession", mentorSessionSchema);

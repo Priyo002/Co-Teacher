@@ -13,7 +13,7 @@ const sendSessionScheduledEmails = async (student, mentor, session) => {
       <p>A 60-minute mentorship session has been confirmed.</p>
       <p><strong>Time:</strong> ${timeStr} (IST)</p>
       <p><strong>Meeting Link:</strong> <a href="${session.meetingLink}">${session.meetingLink}</a></p>
-      <p><strong>Context:</strong> ${session.context || 'N/A'}</p>
+      <p><strong>Context:</strong> ${session.context?.courseId ? 'Course specific session' : 'General Discussion'}</p>
     </div>
   `;
   await sendEmail({ to: student.email, subject: `Session Scheduled with ${mentor.name}`, html: htmlContent });
@@ -583,7 +583,7 @@ const generateGoogleMeetLink = async (mentor, session, studentName = null) => {
 
     const event = {
       summary: summary,
-      description: `Mentorship session via Co-Teacher.\nContext: ${session.context || 'N/A'}`,
+      description: `Mentorship session via Co-Teacher.\nContext: ${session.context?.courseId ? 'Course specific session' : 'General Discussion'}`,
       start: { dateTime: session.startTime.toISOString(), timeZone: 'UTC' },
       end: { dateTime: new Date(session.startTime.getTime() + session.durationMins * 60000).toISOString(), timeZone: 'UTC' },
       conferenceData: {
@@ -600,6 +600,7 @@ const generateGoogleMeetLink = async (mentor, session, studentName = null) => {
       conferenceDataVersion: 1
     });
 
+    session.googleEventId = res.data.id;
     return res.data.hangoutLink;
   } catch (err) {
     console.error("Failed to create Google Calendar event:", err);
@@ -655,7 +656,7 @@ exports.rescheduleSession = async (req, res) => {
     
     if (!newStartTime) return res.status(400).json({ error: "newStartTime is required" });
 
-    const session = await MentorSession.findById(id).populate('student', 'name email').populate('mentor', 'name email');
+    const session = await MentorSession.findById(id).populate('student', 'name email').populate('mentor', 'name email mentorProfile');
     if (!session) return res.status(404).json({ error: "Session not found" });
 
     // Verify ownership
@@ -664,7 +665,28 @@ exports.rescheduleSession = async (req, res) => {
     }
     
     session.startTime = new Date(newStartTime);
+    const sessionEnd = new Date(session.startTime.getTime() + session.durationMins * 60000);
     await session.save();
+
+    // Update Google Calendar event if it exists
+    if (session.googleEventId && session.mentor?.mentorProfile?.googleRefreshToken) {
+      try {
+        const oauth2Client = getOauth2Client();
+        oauth2Client.setCredentials({ refresh_token: session.mentor.mentorProfile.googleRefreshToken });
+        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+        await calendar.events.patch({
+          calendarId: 'primary',
+          eventId: session.googleEventId,
+          resource: {
+            start: { dateTime: session.startTime.toISOString(), timeZone: 'UTC' },
+            end: { dateTime: sessionEnd.toISOString(), timeZone: 'UTC' }
+          }
+        });
+      } catch (calErr) {
+        console.error("Failed to update Google Calendar event on reschedule:", calErr);
+        // We do not fail the whole request just because calendar patch failed
+      }
+    }
 
     // Send emails
     await sendSessionRescheduledEmails(session.student, session.mentor, session);
