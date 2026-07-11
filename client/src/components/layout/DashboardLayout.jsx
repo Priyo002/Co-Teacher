@@ -27,7 +27,7 @@ export default function DashboardLayout({ children }) {
       <div className="absolute top-0 right-0 w-[800px] h-[400px] bg-brand-100/40 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
       
       {!isTestPage && (
-        <header className="border-b border-slate-200 bg-white/70 backdrop-blur-xl sticky top-0 z-[100]">
+        <header className="border-b border-slate-200 bg-white/70 backdrop-blur-xl sticky top-0 z-[100] print:hidden">
         <div className="w-full px-6 md:px-12 h-20 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
             <div className="bg-brand-600 p-2 rounded-xl shadow-lg shadow-brand-500/30 group-hover:scale-110 transition-transform">

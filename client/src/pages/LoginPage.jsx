@@ -1,8 +1,15 @@
 import { useAuth } from '../hooks/useAuth';
+import { useLocation } from 'react-router-dom';
 import { Sparkles, BookOpen, GraduationCap, Target, Video, ArrowRight, Zap, Code, Shield, Bot, Layout, Award, CheckCircle2, Users, Mic, Volume2, Trophy, Headphones, Compass, Play } from 'lucide-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const location = useLocation();
+  const from = location.state?.from?.pathname + (location.state?.from?.search || '') || '/';
+
+  const handleLogin = () => {
+    login({ appState: { returnTo: from } });
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 overflow-x-hidden selection:bg-brand-100 selection:text-brand-900 font-sans">
@@ -24,7 +31,7 @@ export default function LoginPage() {
         </div>
 
         <button 
-          onClick={() => login()} 
+          onClick={handleLogin} 
           className="px-6 py-2.5 rounded-full font-bold text-white bg-slate-900 hover:bg-slate-800 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
         >
           Sign In
@@ -50,7 +57,7 @@ export default function LoginPage() {
           
           <div className="flex flex-col items-center justify-center gap-6 mt-4">
             <button 
-              onClick={() => login()} 
+              onClick={handleLogin} 
               className="w-full sm:w-auto px-8 py-4 bg-brand-600 hover:bg-brand-500 text-white text-lg font-bold rounded-full transition-all flex items-center justify-center gap-2 shadow-xl shadow-brand-500/30 hover:shadow-2xl hover:shadow-brand-500/40 hover:-translate-y-1"
             >
               Start Generating for Free
@@ -387,7 +394,10 @@ export default function LoginPage() {
                   <img className="w-16 h-16 rounded-full border-4 border-indigo-700 object-cover shadow-lg relative -top-3 transform group-hover:-translate-y-4 transition-transform duration-500 delay-75" src="https://randomuser.me/api/portraits/women/65.jpg" alt="Mentor 2" />
                   <img className="w-16 h-16 rounded-full border-4 border-indigo-700 object-cover shadow-lg transform group-hover:-translate-y-2 transition-transform duration-500 delay-150" src="https://randomuser.me/api/portraits/women/90.jpg" alt="Mentor 3" />
                 </div>
-                <button className="px-8 py-3 bg-white text-indigo-700 font-bold rounded-xl shadow-xl hover:shadow-2xl hover:-translate-y-1 hover:bg-brand-50 transition-all w-full">
+                <button 
+                  onClick={() => login({ appState: { returnTo: '/mentors' } })}
+                  className="px-8 py-3 bg-white text-indigo-700 font-bold rounded-xl shadow-xl hover:shadow-2xl hover:-translate-y-1 hover:bg-brand-50 transition-all w-full"
+                >
                   Find a Mentor
                 </button>
               </div>

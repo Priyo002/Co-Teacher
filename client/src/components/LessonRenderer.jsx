@@ -150,7 +150,7 @@ export default function LessonRenderer({ blocks }) {
                   </div>
                   <div>
                     {block.title && <h4 className="font-bold text-slate-900 mb-1">{block.title}</h4>}
-                    <div className="text-slate-700 prose max-w-none">
+                    <div className="text-slate-700 prose max-w-none [&>p:first-child]:mt-0">
                       <ReactMarkdown>{block.text}</ReactMarkdown>
                     </div>
                   </div>

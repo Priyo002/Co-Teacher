@@ -415,7 +415,7 @@ export default function LessonViewerPage() {
               !isRightSidebarOpen ? 'lg:pr-24' : 'lg:pr-16'
             }`}>
               {/* Breadcrumb */}
-              <div className="flex items-center gap-2 text-sm text-slate-500 mb-8 font-medium">
+              <div className="flex items-center gap-2 text-sm text-slate-500 mb-8 font-medium print:hidden">
                 <Link to={`/course/${courseId}`} className="truncate max-w-[150px] md:max-w-[300px] hover:text-slate-900 transition-colors">
                   {course.title}
                 </Link>
@@ -507,7 +507,7 @@ export default function LessonViewerPage() {
                 
                 {lesson.generationStatus === 'complete' && (
                   <>
-                    <div className="mt-8 pt-8 border-t border-slate-100 flex flex-col items-center">
+                    <div className="mt-8 pt-8 border-t border-slate-100 flex flex-col items-center print:hidden">
                       {lesson.isPassed ? (
                         <div className="text-center">
                           <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />

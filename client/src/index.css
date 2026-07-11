@@ -81,28 +81,73 @@
 /* Removed ambient light effects for clean theme */
 
 @media print {
-  .no-print, aside, nav, button {
+  @page {
+    margin: 20mm;
+    size: auto;
+  }
+  .no-print, aside, nav, button, header {
     display: none !important;
   }
   body {
     background: white !important;
-    color: black !important;
-  }
-  .glass-panel {
-    border: none !important;
-    box-shadow: none !important;
-    background: none !important;
-  }
-  h1, h2, h3, h4, h5, h6 {
-    color: black !important;
-  }
-  .text-slate-300, .text-slate-400, .text-white {
-    color: black !important;
-  }
-  .print-content {
-    width: 100% !important;
-    max-width: none !important;
+    color: #1a1a1a !important;
+    font-size: 12pt !important;
+    line-height: 1.6 !important;
     margin: 0 !important;
     padding: 0 !important;
   }
+  .print-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  
+  /* Strip out heavy UI elements */
+  .glass-panel { border: none !important; box-shadow: none !important; background: none !important; padding: 0 !important; margin: 0 !important; }
+  .rounded-2xl, .rounded-3xl, .rounded-xl, .rounded-lg { border-radius: 0 !important; }
+  .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl { box-shadow: none !important; }
+  .border, .border-slate-200 { border-color: #e5e7eb !important; border-width: 1px !important; }
+  .bg-slate-50, .bg-brand-50, .bg-slate-900, .bg-slate-100 { background: transparent !important; }
+  
+  /* Remove excessive spacing in print */
+  .mb-8, .mb-6 { margin-bottom: 12pt !important; }
+  .mt-10, .mt-8 { margin-top: 16pt !important; }
+  .my-8, .my-6 { margin-top: 12pt !important; margin-bottom: 12pt !important; }
+  
+  /* Text and Headings */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    break-after: avoid;
+    color: #000 !important;
+  }
+  .text-slate-300, .text-slate-400, .text-slate-500, .text-slate-600, .text-white { color: #4b5563 !important; }
+  .text-slate-700, .text-slate-900 { color: #1a1a1a !important; }
+
+  /* Markdown specific typography tweaks */
+  .prose { max-width: 100% !important; color: #1a1a1a !important; }
+  .prose h1 { font-size: 24pt !important; border-bottom: 1px solid #e5e7eb; padding-bottom: 8pt; }
+  .prose h2 { font-size: 18pt !important; }
+  .prose h3 { font-size: 14pt !important; }
+  .prose a { color: #2563eb !important; text-decoration: underline !important; }
+  .prose strong { color: #000 !important; }
+  
+  /* Prevent awkward page breaks */
+  p, li { orphans: 3; widows: 3; page-break-inside: auto; break-inside: auto; }
+  img, table, pre, blockquote, .print-avoid-break, .prose pre {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  /* Code blocks & media */
+  .prose pre {
+    background: #f8f9fa !important;
+    border: 1px solid #e5e7eb !important;
+    padding: 12pt !important;
+    white-space: pre-wrap !important;
+    border-radius: 4px !important;
+  }
+  .prose code { color: #ef4444 !important; background: transparent !important; }
+  img, svg { max-width: 100% !important; }
 }
