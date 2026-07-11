@@ -31,7 +31,7 @@ export default function RescheduleModal({ session, onClose, onRescheduled }) {
     try {
       await fetchApi(`/mentors/sessions/${session._id}/reschedule`, {
         method: 'PUT',
-        body: JSON.stringify({ newStartTime: selectedSlot.startTime })
+        body: JSON.stringify({ newStartTime: selectedSlot.startTime, newSlotId: selectedSlot._id })
       });
       toast.success('Session rescheduled successfully!');
       onRescheduled();

@@ -374,7 +374,7 @@ const razorpay = new Razorpay({
 
 exports.bookSession = async (req, res) => {
   try {
-    const { mentorId, startTime, durationMins, paymentMethod, context, notes } = req.body;
+    const { mentorId, slotId, startTime, durationMins, paymentMethod, context, notes } = req.body;
     
     if (durationMins !== 60) return res.status(400).json({ error: "Only 60 minute sessions are supported" });
     if (!mentorId || !startTime) return res.status(400).json({ error: "mentorId and startTime are required" });
@@ -438,6 +438,7 @@ exports.bookSession = async (req, res) => {
       const session = new MentorSession({
         student: req.user._id,
         mentor: mentor._id,
+        slot: slotId,
         startTime: sessionStart,
         durationMins,
         context,
@@ -447,6 +448,12 @@ exports.bookSession = async (req, res) => {
       });
       session.meetingLink = await generateGoogleMeetLink(mentor, session, req.user.name);
       await session.save();
+
+      const slot = await MentorSlot.findById(slotId);
+      if (slot) {
+        slot.bookedDuration += durationMins;
+        await slot.save();
+      }
       
       // Send emails
       await sendSessionScheduledEmails(req.user, mentor, session);
@@ -468,6 +475,7 @@ exports.bookSession = async (req, res) => {
     const session = new MentorSession({
       student: req.user._id,
       mentor: mentor._id,
+      slot: slotId,
       startTime: sessionStart,
       durationMins,
       context,
@@ -666,9 +674,9 @@ exports.googleAuthCallback = async (req, res) => {
 exports.rescheduleSession = async (req, res) => {
   try {
     const { id } = req.params;
-    const { newStartTime } = req.body;
+    const { newStartTime, newSlotId } = req.body;
     
-    if (!newStartTime) return res.status(400).json({ error: "newStartTime is required" });
+    if (!newStartTime || !newSlotId) return res.status(400).json({ error: "newStartTime and newSlotId are required" });
 
     const session = await MentorSession.findById(id).populate('student', 'name email').populate('mentor', 'name email mentorProfile');
     if (!session) return res.status(404).json({ error: "Session not found" });
@@ -678,6 +686,21 @@ exports.rescheduleSession = async (req, res) => {
       return res.status(403).json({ error: "Not authorized to reschedule this session" });
     }
     
+    // Handle slot duration transfers
+    if (session.slot && session.slot.toString() !== newSlotId) {
+      const oldSlot = await MentorSlot.findById(session.slot);
+      if (oldSlot) {
+        oldSlot.bookedDuration = Math.max(0, oldSlot.bookedDuration - session.durationMins);
+        await oldSlot.save();
+      }
+      const newSlot = await MentorSlot.findById(newSlotId);
+      if (newSlot) {
+        newSlot.bookedDuration += session.durationMins;
+        await newSlot.save();
+      }
+      session.slot = newSlotId;
+    }
+
     session.startTime = new Date(newStartTime);
     const sessionEnd = new Date(session.startTime.getTime() + session.durationMins * 60000);
     await session.save();
@@ -692,8 +715,8 @@ exports.rescheduleSession = async (req, res) => {
           calendarId: 'primary',
           eventId: session.googleEventId,
           resource: {
-            start: { dateTime: session.startTime.toISOString(), timeZone: 'UTC' },
-            end: { dateTime: sessionEnd.toISOString(), timeZone: 'UTC' }
+            start: { dateTime: session.startTime.toISOString(), timeZone: 'Asia/Kolkata' },
+            end: { dateTime: sessionEnd.toISOString(), timeZone: 'Asia/Kolkata' }
           }
         });
       } catch (calErr) {

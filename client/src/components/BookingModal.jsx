@@ -45,6 +45,7 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
         method: 'POST',
         body: JSON.stringify({
           mentorId: mentor._id,
+          slotId: selectedSlot._id,
           startTime: selectedSlot.startTime,
           durationMins: duration,
           notes,
