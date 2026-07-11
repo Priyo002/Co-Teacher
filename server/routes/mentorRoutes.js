@@ -15,6 +15,7 @@ router.get('/admin/applications', mentorController.getApplications);
 router.get('/admin/users', mentorController.getAllUsers);
 
 // --- Applications ---
+router.get('/application/status', mentorController.getApplicationStatus);
 router.post('/apply', mentorController.applyToMentor);
 
 // --- Profile & Discovery ---

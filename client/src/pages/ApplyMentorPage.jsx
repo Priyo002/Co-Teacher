@@ -1,8 +1,76 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Briefcase, BookOpen, CheckCircle, ArrowRight, Award, MapPin, Globe, Users, Code, Layers } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+
+const CooldownTimer = ({ rejectedAt, setAppStatus }) => {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [canApply, setCanApply] = useState(false);
+
+  useEffect(() => {
+    if (!rejectedAt) return;
+
+    const cooldownMs = 30 * 24 * 60 * 60 * 1000;
+    const targetDate = new Date(rejectedAt).getTime() + cooldownMs;
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const diff = targetDate - now;
+
+      if (diff <= 0) {
+        setCanApply(true);
+      } else {
+        setTimeLeft({
+          days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+          minutes: Math.floor((diff / 1000 / 60) % 60),
+          seconds: Math.floor((diff / 1000) % 60)
+        });
+      }
+    };
+
+    updateTimer(); // Initial call
+    const interval = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(interval);
+  }, [rejectedAt]);
+
+  if (canApply || !rejectedAt) {
+    return (
+      <button onClick={() => setAppStatus('none')} className="btn-primary">
+        Apply Again
+      </button>
+    );
+  }
+
+  return (
+    <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl inline-block mt-4 w-full max-w-sm">
+      <p className="text-sm font-semibold text-slate-700 mb-4 uppercase tracking-wider">Cooldown Period Active</p>
+      <div className="flex items-center justify-center gap-2 sm:gap-3 text-slate-800">
+        <div className="flex flex-col items-center bg-white border border-slate-200 rounded-xl p-2 w-[65px] shadow-sm">
+          <span className="text-2xl font-bold">{timeLeft.days}</span>
+          <span className="text-[10px] sm:text-xs text-slate-500 font-medium">DAYS</span>
+        </div>
+        <span className="text-xl font-bold text-slate-300">:</span>
+        <div className="flex flex-col items-center bg-white border border-slate-200 rounded-xl p-2 w-[65px] shadow-sm">
+          <span className="text-2xl font-bold">{timeLeft.hours.toString().padStart(2, '0')}</span>
+          <span className="text-[10px] sm:text-xs text-slate-500 font-medium">HOURS</span>
+        </div>
+        <span className="text-xl font-bold text-slate-300">:</span>
+        <div className="flex flex-col items-center bg-white border border-slate-200 rounded-xl p-2 w-[65px] shadow-sm">
+          <span className="text-2xl font-bold">{timeLeft.minutes.toString().padStart(2, '0')}</span>
+          <span className="text-[10px] sm:text-xs text-slate-500 font-medium">MINS</span>
+        </div>
+        <span className="text-xl font-bold text-slate-300">:</span>
+        <div className="flex flex-col items-center bg-white border border-slate-200 rounded-xl p-2 w-[65px] shadow-sm">
+          <span className="text-2xl font-bold text-brand-500">{timeLeft.seconds.toString().padStart(2, '0')}</span>
+          <span className="text-[10px] sm:text-xs text-slate-500 font-medium">SECS</span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function ApplyMentorPage() {
   const [formData, setFormData] = useState({
@@ -21,8 +89,24 @@ export default function ApplyMentorPage() {
 
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [appStatus, setAppStatus] = useState('loading'); // 'loading', 'none', 'pending', 'approved', 'rejected'
+  const [rejectedAt, setRejectedAt] = useState(null);
   const fetchApi = useApi();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const res = await fetchApi('/mentors/application/status');
+        setAppStatus(res.status);
+        if (res.updatedAt) setRejectedAt(res.updatedAt);
+      } catch (err) {
+        console.error("Failed to fetch application status", err);
+        setAppStatus('none');
+      }
+    };
+    checkStatus();
+  }, [fetchApi]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -91,6 +175,69 @@ export default function ApplyMentorPage() {
           >
             Back to Dashboard
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (appStatus === 'loading') {
+    return (
+      <div className="max-w-2xl mx-auto py-12 px-6 flex justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500"></div>
+      </div>
+    );
+  }
+
+  if (appStatus === 'pending') {
+    return (
+      <div className="max-w-2xl mx-auto py-12 px-6">
+        <div className="bg-white rounded-3xl p-10 border border-slate-200 shadow-sm text-center">
+          <div className="w-20 h-20 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Layers className="w-10 h-10" />
+          </div>
+          <h2 className="text-3xl font-bold text-slate-900 mb-4">Application Under Review</h2>
+          <p className="text-slate-600 mb-8 text-lg">
+            Your application is currently being reviewed by our team. We'll notify you once a decision is made.
+          </p>
+          <button onClick={() => navigate('/')} className="btn-primary">
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (appStatus === 'approved') {
+    return (
+      <div className="max-w-2xl mx-auto py-12 px-6">
+        <div className="bg-white rounded-3xl p-10 border border-slate-200 shadow-sm text-center">
+          <div className="w-20 h-20 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10" />
+          </div>
+          <h2 className="text-3xl font-bold text-slate-900 mb-4">You are Approved!</h2>
+          <p className="text-slate-600 mb-8 text-lg">
+            Congratulations! Your mentor application has been approved.
+          </p>
+          <button onClick={() => navigate('/mentor/dashboard')} className="btn-primary">
+            Go to Mentor Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (appStatus === 'rejected') {
+    return (
+      <div className="max-w-2xl mx-auto py-12 px-6">
+        <div className="bg-white rounded-3xl p-10 border border-slate-200 shadow-sm text-center">
+          <div className="w-20 h-20 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Users className="w-10 h-10" />
+          </div>
+          <h2 className="text-3xl font-bold text-slate-900 mb-4">Application Not Accepted</h2>
+          <p className="text-slate-600 mb-4 text-lg">
+            Unfortunately, your previous application was not accepted at this time.
+          </p>
+          <CooldownTimer rejectedAt={rejectedAt} setAppStatus={setAppStatus} />
         </div>
       </div>
     );

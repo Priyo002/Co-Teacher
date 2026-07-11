@@ -2,8 +2,53 @@ const User = require('../models/User');
 const MentorApplication = require('../models/MentorApplication');
 const MentorSlot = require('../models/MentorSlot');
 const MentorSession = require('../models/MentorSession');
+const { sendEmail } = require('../services/emailService');
+
+const sendSessionScheduledEmails = async (student, mentor, session) => {
+  if (!student.email || !mentor.email) return;
+  const timeStr = new Date(session.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'short' });
+  const htmlContent = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+      <h2>Mentorship Session Scheduled!</h2>
+      <p>A 60-minute mentorship session has been confirmed.</p>
+      <p><strong>Time:</strong> ${timeStr} (IST)</p>
+      <p><strong>Meeting Link:</strong> <a href="${session.meetingLink}">${session.meetingLink}</a></p>
+      <p><strong>Context:</strong> ${session.context || 'N/A'}</p>
+    </div>
+  `;
+  await sendEmail({ to: student.email, subject: `Session Scheduled with ${mentor.name}`, html: htmlContent });
+  await sendEmail({ to: mentor.email, subject: `Session Scheduled with ${student.name}`, html: htmlContent });
+};
+
+const sendSessionRescheduledEmails = async (student, mentor, session) => {
+  if (!student.email || !mentor.email) return;
+  const timeStr = new Date(session.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'short' });
+  const htmlContent = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+      <h2>Mentorship Session Rescheduled</h2>
+      <p>Your mentorship session has been rescheduled.</p>
+      <p><strong>New Time:</strong> ${timeStr} (IST)</p>
+      <p><strong>Meeting Link:</strong> <a href="${session.meetingLink}">${session.meetingLink}</a></p>
+    </div>
+  `;
+  await sendEmail({ to: student.email, subject: `Session Rescheduled with ${mentor.name}`, html: htmlContent });
+  await sendEmail({ to: mentor.email, subject: `Session Rescheduled with ${student.name}`, html: htmlContent });
+};
 
 // --- ADMIN / APPLICATION ---
+
+exports.getApplicationStatus = async (req, res) => {
+  try {
+    const app = await MentorApplication.findOne({ user: req.user._id }).sort({ createdAt: -1 });
+    if (!app) {
+      return res.json({ status: 'none' });
+    }
+    return res.json({ status: app.status, updatedAt: app.updatedAt });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch application status" });
+  }
+};
 
 exports.applyToMentor = async (req, res) => {
   try {
@@ -16,9 +61,22 @@ exports.applyToMentor = async (req, res) => {
       return res.status(400).json({ error: "Please fill out all required fields" });
     }
 
+    if (req.user.isMentor) {
+      return res.status(400).json({ error: "You are already an approved mentor" });
+    }
+
     const existingApp = await MentorApplication.findOne({ user: req.user._id, status: 'pending' });
     if (existingApp) {
       return res.status(400).json({ error: "You already have a pending application" });
+    }
+
+    const lastRejectedApp = await MentorApplication.findOne({ user: req.user._id, status: 'rejected' }).sort({ createdAt: -1 });
+    if (lastRejectedApp) {
+      const cooldownDays = 30;
+      const daysSinceRejection = (Date.now() - new Date(lastRejectedApp.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSinceRejection < cooldownDays) {
+        return res.status(400).json({ error: `You must wait ${Math.ceil(cooldownDays - daysSinceRejection)} more days before re-applying.` });
+      }
     }
 
     const application = new MentorApplication({
@@ -52,7 +110,7 @@ exports.approveMentor = async (req, res) => {
     }
 
     const { applicationId, status } = req.body; // status: 'approved' | 'rejected'
-    const app = await MentorApplication.findById(applicationId);
+    const app = await MentorApplication.findById(applicationId).populate('user');
     
     if (!app) return res.status(404).json({ error: "Application not found" });
 
@@ -60,7 +118,7 @@ exports.approveMentor = async (req, res) => {
     await app.save();
 
     if (status === 'approved') {
-      await User.findByIdAndUpdate(app.user, {
+      await User.findByIdAndUpdate(app.user._id, {
         isMentor: true,
         $set: {
           'mentorProfile.jobTitle': app.jobTitle,
@@ -77,6 +135,32 @@ exports.approveMentor = async (req, res) => {
           'mentorProfile.rateINR': 500,
           'mentorProfile.bio': `Hi! I'm a ${app.jobTitle} at ${app.company} with ${app.experienceYears}+ years of experience. I specialize in ${app.domains.join(', ')}.`
         }
+      });
+      
+      await sendEmail({
+        to: app.user.email,
+        subject: "🎉 You are now a Co-Teacher Mentor!",
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+            <h2>Congratulations, ${app.user.name}!</h2>
+            <p>Your mentor application has been approved. You are now officially a Co-Teacher Mentor.</p>
+            <p>You can now go to your Mentor Dashboard, connect your Google Calendar, and start setting up your availability slots so students can book you.</p>
+            <p>Welcome to the team!</p>
+          </div>
+        `
+      });
+    } else if (status === 'rejected') {
+      await sendEmail({
+        to: app.user.email,
+        subject: "Update on your Co-Teacher Mentor Application",
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+            <h2>Hi ${app.user.name},</h2>
+            <p>Thank you for applying to be a mentor on Co-Teacher.</p>
+            <p>Unfortunately, after careful review, we are unable to accept your application at this time. We receive many applications and have to make tough decisions.</p>
+            <p>You are welcome to gain some more experience and apply again in the future.</p>
+          </div>
+        `
       });
     }
 
@@ -350,6 +434,10 @@ exports.bookSession = async (req, res) => {
       });
       session.meetingLink = await generateGoogleMeetLink(mentor, session, req.user.name);
       await session.save();
+      
+      // Send emails
+      await sendSessionScheduledEmails(req.user, mentor, session);
+      
       return res.json({ freeSession: true, sessionId: session._id });
     }
 
@@ -397,7 +485,7 @@ exports.verifySessionPayment = async (req, res) => {
       return res.status(400).json({ error: "Invalid signature" });
     }
 
-    const session = await MentorSession.findById(sessionId).populate('student', 'name');
+    const session = await MentorSession.findById(sessionId).populate('student', 'name email').populate('mentor', 'name email');
     if (!session || session.status === 'confirmed') {
       return res.status(400).json({ error: "Session already confirmed or not found" });
     }
@@ -415,6 +503,9 @@ exports.verifySessionPayment = async (req, res) => {
       slot.bookedDuration += session.durationMins;
       await slot.save();
     }
+
+    // Send emails
+    await sendSessionScheduledEmails(session.student, session.mentor, session);
 
     res.json({ success: true, session });
   } catch (err) {
@@ -564,16 +655,19 @@ exports.rescheduleSession = async (req, res) => {
     
     if (!newStartTime) return res.status(400).json({ error: "newStartTime is required" });
 
-    const session = await MentorSession.findById(id);
+    const session = await MentorSession.findById(id).populate('student', 'name email').populate('mentor', 'name email');
     if (!session) return res.status(404).json({ error: "Session not found" });
 
     // Verify ownership
-    if (session.student.toString() !== req.user._id.toString() && session.mentor.toString() !== req.user._id.toString()) {
+    if (session.student._id.toString() !== req.user._id.toString() && session.mentor._id.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: "Not authorized to reschedule this session" });
     }
     
     session.startTime = new Date(newStartTime);
     await session.save();
+
+    // Send emails
+    await sendSessionRescheduledEmails(session.student, session.mentor, session);
 
     res.json({ success: true, session });
   } catch (err) {
