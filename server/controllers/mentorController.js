@@ -182,14 +182,18 @@ exports.getMentorSlots = async (req, res) => {
     const dateOverrides = mentor.mentorProfile?.dateOverrides || [];
     const slots = [];
     
-    // Generate dates for the next 14 days
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Generate dates for the next 14 days based on IST
+    const now = new Date();
+    const istTime = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
 
     for (let i = 0; i < 14; i++) {
-      const currentDate = new Date(today.getTime() + i * 24 * 60 * 60 * 1000);
-      const dayOfWeek = currentDate.getDay();
-      const dateString = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      const targetIST = new Date(istTime.getTime() + i * 24 * 60 * 60 * 1000);
+      const year = targetIST.getUTCFullYear();
+      const month = String(targetIST.getUTCMonth() + 1).padStart(2, '0');
+      const date = String(targetIST.getUTCDate()).padStart(2, '0');
+      
+      const dateString = `${year}-${month}-${date}`;
+      const dayOfWeek = targetIST.getUTCDay();
       
       // Check for overrides first
       const override = dateOverrides.find(o => o.date === dateString);
@@ -211,11 +215,8 @@ exports.getMentorSlots = async (req, res) => {
         const [startHour, startMin] = slotBlock.startTime.split(':').map(Number);
         const [endHour, endMin] = slotBlock.endTime.split(':').map(Number);
         
-        let currentSlotTime = new Date(currentDate);
-        currentSlotTime.setHours(startHour, startMin, 0, 0);
-        
-        const endDayTime = new Date(currentDate);
-        endDayTime.setHours(endHour, endMin, 0, 0);
+        let currentSlotTime = new Date(`${dateString}T${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}:00+05:30`);
+        const endDayTime = new Date(`${dateString}T${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}:00+05:30`);
 
         while (currentSlotTime < endDayTime) {
           const slotEndTime = new Date(currentSlotTime.getTime() + 60 * 60 * 1000);
@@ -237,6 +238,8 @@ exports.getMentorSlots = async (req, res) => {
 
     // Now fetch existing sessions to compute bookedDuration
     // We ignore pending sessions older than 5 minutes (assume payment abandoned)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const sessions = await MentorSession.find({
       mentor: req.params.mentorId,
       startTime: { $gte: today, $lte: new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000) },
