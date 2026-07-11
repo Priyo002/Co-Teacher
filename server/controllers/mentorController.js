@@ -7,9 +7,13 @@ const MentorSession = require('../models/MentorSession');
 
 exports.applyToMentor = async (req, res) => {
   try {
-    const { expertise, experience, linkedinUrl, portfolioUrl, proofOfWork } = req.body;
-    if (!expertise || !experience) {
-      return res.status(400).json({ error: "Expertise and experience are required" });
+    const { 
+      jobTitle, company, location, languages, experienceYears, targetAudience, domains, skills,
+      linkedinUrl, portfolioUrl, proofOfWork 
+    } = req.body;
+
+    if (!jobTitle || !company || !location || !languages || !experienceYears || !targetAudience || !domains || !skills) {
+      return res.status(400).json({ error: "Please fill out all required fields" });
     }
 
     const existingApp = await MentorApplication.findOne({ user: req.user._id, status: 'pending' });
@@ -19,8 +23,14 @@ exports.applyToMentor = async (req, res) => {
 
     const application = new MentorApplication({
       user: req.user._id,
-      expertise,
-      experience,
+      jobTitle,
+      company,
+      location,
+      languages,
+      experienceYears,
+      targetAudience,
+      domains,
+      skills,
       linkedinUrl,
       portfolioUrl,
       proofOfWork
@@ -53,8 +63,19 @@ exports.approveMentor = async (req, res) => {
       await User.findByIdAndUpdate(app.user, {
         isMentor: true,
         $set: {
-          'mentorProfile.expertise': app.expertise,
-          'mentorProfile.bio': `Experienced in ${app.expertise.join(', ')}. ${app.experience}`
+          'mentorProfile.jobTitle': app.jobTitle,
+          'mentorProfile.company': app.company,
+          'mentorProfile.location': app.location,
+          'mentorProfile.languages': app.languages,
+          'mentorProfile.experienceYears': app.experienceYears,
+          'mentorProfile.targetAudience': app.targetAudience,
+          'mentorProfile.domains': app.domains,
+          'mentorProfile.skills': app.skills,
+          'mentorProfile.linkedinUrl': app.linkedinUrl,
+          'mentorProfile.portfolioUrl': app.portfolioUrl,
+          'mentorProfile.proofOfWork': app.proofOfWork,
+          'mentorProfile.rateINR': 500,
+          'mentorProfile.bio': `Hi! I'm a ${app.jobTitle} at ${app.company} with ${app.experienceYears}+ years of experience. I specialize in ${app.domains.join(', ')}.`
         }
       });
     }
@@ -106,17 +127,32 @@ exports.updateMentorProfile = async (req, res) => {
   try {
     if (!req.user.isMentor) return res.status(403).json({ error: "You are not a mentor" });
 
-    const { bio, rateCredits, rateINR, meetingLink, upiId, bankDetails, availability, dateOverrides } = req.body;
+    const { 
+      bio, rateINR, meetingLink, upiId, bankDetails, availability, dateOverrides,
+      jobTitle, company, location, languages, domains, skills, targetAudience, 
+      experienceYears, linkedinUrl, portfolioUrl, proofOfWork
+    } = req.body;
     
     const updateData = {};
     if (bio !== undefined) updateData['mentorProfile.bio'] = bio;
-    if (rateCredits !== undefined) updateData['mentorProfile.rateCredits'] = rateCredits;
     if (rateINR !== undefined) updateData['mentorProfile.rateINR'] = rateINR;
     if (meetingLink !== undefined) updateData['mentorProfile.meetingLink'] = meetingLink;
     if (upiId !== undefined) updateData['mentorProfile.upiId'] = upiId;
     if (bankDetails !== undefined) updateData['mentorProfile.bankDetails'] = bankDetails;
     if (availability !== undefined) updateData['mentorProfile.availability'] = availability;
     if (dateOverrides !== undefined) updateData['mentorProfile.dateOverrides'] = dateOverrides;
+    
+    if (jobTitle !== undefined) updateData['mentorProfile.jobTitle'] = jobTitle;
+    if (company !== undefined) updateData['mentorProfile.company'] = company;
+    if (location !== undefined) updateData['mentorProfile.location'] = location;
+    if (languages !== undefined) updateData['mentorProfile.languages'] = languages;
+    if (domains !== undefined) updateData['mentorProfile.domains'] = domains;
+    if (skills !== undefined) updateData['mentorProfile.skills'] = skills;
+    if (targetAudience !== undefined) updateData['mentorProfile.targetAudience'] = targetAudience;
+    if (experienceYears !== undefined) updateData['mentorProfile.experienceYears'] = experienceYears;
+    if (linkedinUrl !== undefined) updateData['mentorProfile.linkedinUrl'] = linkedinUrl;
+    if (portfolioUrl !== undefined) updateData['mentorProfile.portfolioUrl'] = portfolioUrl;
+    if (proofOfWork !== undefined) updateData['mentorProfile.proofOfWork'] = proofOfWork;
 
     const user = await User.findByIdAndUpdate(req.user._id, { $set: updateData }, { new: true });
     res.json(user.mentorProfile);
@@ -200,10 +236,14 @@ exports.getMentorSlots = async (req, res) => {
     }
 
     // Now fetch existing sessions to compute bookedDuration
+    // We ignore pending sessions older than 5 minutes (assume payment abandoned)
     const sessions = await MentorSession.find({
       mentor: req.params.mentorId,
       startTime: { $gte: today, $lte: new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000) },
-      status: { $in: ['pending', 'confirmed', 'completed'] }
+      $or: [
+        { status: { $in: ['confirmed', 'completed'] } },
+        { status: 'pending', createdAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) } }
+      ]
     });
 
     sessions.forEach(session => {
@@ -265,7 +305,10 @@ exports.bookSession = async (req, res) => {
         $gte: new Date(sessionStart.getTime() - 60 * 60 * 1000), 
         $lt: new Date(sessionStart.getTime() + 60 * 60 * 1000) 
       },
-      status: { $in: ['pending', 'confirmed'] }
+      $or: [
+        { status: { $in: ['confirmed', 'completed'] } },
+        { status: 'pending', createdAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) } }
+      ]
     });
 
     // Check if total booked duration in the enclosing 1-hour block exceeds 60m
@@ -286,72 +329,54 @@ exports.bookSession = async (req, res) => {
       return res.status(400).json({ error: "Not enough time remaining in this slot" });
     }
 
+    const profile = mentor.mentorProfile || {};
+    const baseRate = profile.rateINR !== undefined ? profile.rateINR : 500;
     const rate = durationMins === 60 ? 1 : 0.5; // multiplier
-    const amountRequired = paymentMethod === 'CREDITS' 
-      ? Math.round(mentor.mentorProfile.rateCredits * rate)
-      : Math.round(mentor.mentorProfile.rateINR * rate);
+    const amountRequired = Math.round(baseRate * rate);
 
-    if (!amountRequired) return res.status(400).json({ error: "Mentor has not set pricing" });
-
-    // Handle CREDITS
-    if (paymentMethod === 'CREDITS') {
-      if (req.user.credits < amountRequired) {
-        return res.status(400).json({ error: "Insufficient credits" });
-      }
-      
-      // Deduct credits
-      req.user.credits -= amountRequired;
-      await req.user.save();
-      
-      await CreditHistory.create({
-        user: req.user._id,
-        amount: -amountRequired,
-        reason: `Booked ${durationMins}m session with ${mentor.name}`
-      });
-
+    if (amountRequired === 0) {
+      // Free session! Bypass Razorpay entirely.
       const session = new MentorSession({
         student: req.user._id,
         mentor: mentor._id,
         startTime: sessionStart,
         durationMins,
         context,
-        status: 'confirmed',
-        payment: { amount: amountRequired, currency: 'CREDITS', status: 'paid' },
-        meetingLink: mentor.mentorProfile.meetingLink
+        status: 'confirmed', // immediately confirm
+        payment: { amount: 0, currency: 'INR', status: 'paid' }
       });
-
+      session.meetingLink = await generateGoogleMeetLink(mentor, session, req.user.name);
       await session.save();
-      return res.status(201).json(session);
+      return res.json({ freeSession: true, sessionId: session._id });
     }
+
+    // Handle INR payment via Razorpay
 
     // Handle INR
-    if (paymentMethod === 'INR') {
-      const options = {
-        amount: amountRequired * 100, // paise
-        currency: "INR",
-        receipt: `sess_${req.user._id.toString().slice(-6)}_${Date.now()}`
-      };
+    const options = {
+      amount: amountRequired * 100, // paise
+      currency: "INR",
+      receipt: `sess_${req.user._id.toString().slice(-6)}_${Date.now()}`
+    };
 
-      const order = await razorpay.orders.create(options);
+    const order = await razorpay.orders.create(options);
 
-      const session = new MentorSession({
-        student: req.user._id,
-        mentor: mentor._id,
-        startTime: sessionStart,
-        durationMins,
-        context,
-        payment: { amount: amountRequired, currency: 'INR', status: 'pending', transactionId: order.id },
-        meetingLink: mentor.mentorProfile.meetingLink
-      });
-      await session.save();
+    const session = new MentorSession({
+      student: req.user._id,
+      mentor: mentor._id,
+      startTime: sessionStart,
+      durationMins,
+      context,
+      payment: { amount: amountRequired, currency: 'INR', status: 'pending', transactionId: order.id }
+    });
+    await session.save();
 
-      return res.json({ success: true, orderId: order.id, amount: order.amount, currency: order.currency, sessionId: session._id });
-    }
-
-    res.status(400).json({ error: "Invalid payment method" });
+    return res.json({ success: true, orderId: order.id, amount: order.amount, currency: order.currency, sessionId: session._id });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Booking failed" });
+    console.error("Razorpay Error:", err);
+    const errorMsg = err.error?.description || err.message || JSON.stringify(err);
+    res.status(500).json({ error: "Booking failed: " + errorMsg });
   }
 };
 
@@ -369,13 +394,17 @@ exports.verifySessionPayment = async (req, res) => {
       return res.status(400).json({ error: "Invalid signature" });
     }
 
-    const session = await MentorSession.findById(sessionId);
+    const session = await MentorSession.findById(sessionId).populate('student', 'name');
     if (!session || session.status === 'confirmed') {
       return res.status(400).json({ error: "Session already confirmed or not found" });
     }
 
     session.status = 'confirmed';
     session.payment.status = 'paid';
+    if (!session.meetingLink) {
+      const mentor = await User.findById(session.mentor);
+      session.meetingLink = await generateGoogleMeetLink(mentor, session, session.student?.name);
+    }
     await session.save();
 
     const slot = await MentorSlot.findById(session.slot);
@@ -408,9 +437,155 @@ exports.getMySessions = async (req, res) => {
       .populate('mentor', 'name email profilePicture mentorProfile')
       .sort({ startTime: 1 });
       
+    require('fs').appendFileSync('debug.log', `[getMySessions] req.user._id=${req.user._id} Found ${sessions.length} sessions\n`);
     res.json(sessions);
   } catch (err) {
-    console.error(err);
+    require('fs').appendFileSync('debug.log', `[getMySessions] Error: ${err.message}\n`);
+    console.error('[getMySessions] Error:', err);
     res.status(500).json({ error: "Failed to fetch sessions" });
+  }
+};
+
+exports.getMentorProfileDetails = async (req, res) => {
+  try {
+    if (!req.user || !req.user.isMentor) {
+      return res.status(403).json({ error: "Not a mentor" });
+    }
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    res.json(user.mentorProfile || {});
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch profile details" });
+  }
+};
+
+// --- Google Calendar Integration ---
+
+const { google } = require('googleapis');
+
+const getOauth2Client = () => {
+  return new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.RENDER_EXTERNAL_URL ? `${process.env.RENDER_EXTERNAL_URL}/api/mentors/auth/google/callback` : 'http://localhost:5001/api/mentors/auth/google/callback'
+  );
+};
+
+const generateGoogleMeetLink = async (mentor, session, studentName = null) => {
+  if (process.env.NODE_ENV === 'development' && !process.env.GOOGLE_CLIENT_ID) {
+    const chars = 'abcdefghijklmnopqrstuvwxyz';
+    const chunk = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    return `https://meet.google.com/${chunk(3)}-${chunk(4)}-${chunk(3)}`;
+  }
+
+  try {
+    const oauth2Client = getOauth2Client();
+    oauth2Client.setCredentials({ refresh_token: mentor.mentorProfile.googleRefreshToken });
+    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+    const summary = studentName ? `Mentorship: ${studentName} & ${mentor.name}` : `Co-Teacher Mentorship Session`;
+
+    const event = {
+      summary: summary,
+      description: `Mentorship session via Co-Teacher.\nContext: ${session.context || 'N/A'}`,
+      start: { dateTime: session.startTime.toISOString(), timeZone: 'UTC' },
+      end: { dateTime: new Date(session.startTime.getTime() + session.durationMins * 60000).toISOString(), timeZone: 'UTC' },
+      conferenceData: {
+        createRequest: {
+          requestId: session._id.toString(),
+          conferenceSolutionKey: { type: 'hangoutsMeet' }
+        }
+      }
+    };
+
+    const res = await calendar.events.insert({
+      calendarId: 'primary',
+      resource: event,
+      conferenceDataVersion: 1
+    });
+
+    return res.data.hangoutLink;
+  } catch (err) {
+    console.error("Failed to create Google Calendar event:", err);
+    return mentor.mentorProfile?.meetingLink || 'https://meet.google.com/fallback-link';
+  }
+};
+
+exports.connectGoogleCalendar = async (req, res) => {
+  try {
+    const oauth2Client = getOauth2Client();
+    const url = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      prompt: 'consent', // Force to get refresh token
+      scope: ['https://www.googleapis.com/auth/calendar.events'],
+      state: req.user._id.toString()
+    });
+    res.json({ url });
+  } catch (err) {
+    console.error("Google Auth Connect Error:", err);
+    res.status(500).json({ error: "Failed to generate Google Calendar auth URL" });
+  }
+};
+
+exports.googleAuthCallback = async (req, res) => {
+  try {
+    const { code, state } = req.query;
+    if (!code || !state) {
+      return res.redirect('http://localhost:5173/mentor-dashboard?error=missing_params');
+    }
+
+    const oauth2Client = getOauth2Client();
+    const { tokens } = await oauth2Client.getToken(code);
+    
+    if (tokens.refresh_token) {
+      const User = require('../models/User');
+      await User.findByIdAndUpdate(state, {
+        $set: { 'mentorProfile.googleRefreshToken': tokens.refresh_token }
+      });
+    }
+
+    // Redirect back to frontend
+    res.redirect('http://localhost:5173/mentor-dashboard?calendar_connected=true');
+  } catch (err) {
+    console.error("Google Auth Callback Error:", err);
+    res.redirect('http://localhost:5173/mentor-dashboard?error=auth_failed');
+  }
+};
+
+exports.rescheduleSession = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newStartTime } = req.body;
+    
+    if (!newStartTime) return res.status(400).json({ error: "newStartTime is required" });
+
+    const session = await MentorSession.findById(id);
+    if (!session) return res.status(404).json({ error: "Session not found" });
+
+    // Verify ownership
+    if (session.student.toString() !== req.user._id.toString() && session.mentor.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: "Not authorized to reschedule this session" });
+    }
+    
+    session.startTime = new Date(newStartTime);
+    await session.save();
+
+    res.json({ success: true, session });
+  } catch (err) {
+    res.status(500).json({ error: "Reschedule failed: " + err.message });
+  }
+};
+
+exports.getMentorProfileDetails = async (req, res) => {
+  try {
+    if (!req.user || !req.user.isMentor) {
+      return res.status(403).json({ error: "Not a mentor" });
+    }
+    res.json({ mentorProfile: req.user.mentorProfile });
+  } catch (err) {
+    console.error('[getMentorProfileDetails] Error:', err);
+    res.status(500).json({ error: "Failed to fetch profile details" });
   }
 };

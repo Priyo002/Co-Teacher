@@ -6,14 +6,15 @@ const mentorApplicationSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
-  expertise: [{
-    type: String,
-    required: true
-  }],
-  experience: {
-    type: String,
-    required: true
-  },
+  jobTitle: { type: String, required: true },
+  company: { type: String, required: true },
+  location: { type: String, required: true },
+  languages: [{ type: String, required: true }],
+  experienceYears: { type: Number, required: true },
+  targetAudience: [{ type: String, required: true }], // e.g. 'College', 'Professional'
+  domains: [{ type: String, required: true }], // e.g. 'Backend Developer', 'Frontend Developer'
+  skills: [{ type: String, required: true }], // e.g. 'Java', 'React'
+  
   linkedinUrl: { type: String },
   portfolioUrl: { type: String },
   proofOfWork: { type: String },

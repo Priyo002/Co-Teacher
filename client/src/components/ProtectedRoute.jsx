@@ -15,7 +15,7 @@ export default function ProtectedRoute({ children }) {
   }
 
   const { user } = useAuth();
-  if (user && !user.hasCompletedOnboarding && location.pathname !== '/onboarding') {
+  if (user && user.hasCompletedOnboarding === false && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
 

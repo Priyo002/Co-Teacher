@@ -123,18 +123,52 @@ export default function AdminDashboardPage() {
                       <h3 className="font-bold text-lg">{app.user?.name || 'Unknown User'}</h3>
                       <p className="text-sm text-slate-500 mb-2">{app.user?.email}</p>
                       <div className="mb-2">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Expertise:</span>
-                        <div className="flex gap-2 mt-1">
-                          {app.expertise.map((skill, i) => (
+                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Skills:</span>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {(app.skills || []).map((skill, i) => (
                             <span key={i} className="bg-brand-50 text-brand-700 px-2 py-1 rounded-md text-xs font-medium border border-brand-100">
                               {skill}
                             </span>
                           ))}
                         </div>
                       </div>
-                      <div>
-                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Experience:</span>
-                        <p className="text-sm text-slate-700 mt-1">{app.experience}</p>
+                      <div className="mb-2">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Domains:</span>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {(app.domains || []).map((domain, i) => (
+                            <span key={i} className="bg-purple-50 text-purple-700 px-2 py-1 rounded-md text-xs font-medium border border-purple-100">
+                              {domain}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="mb-2">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Target Audience:</span>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {(app.targetAudience || []).map((aud, i) => (
+                            <span key={i} className="bg-slate-100 text-slate-700 px-2 py-1 rounded-md text-xs font-medium border border-slate-200">
+                              {aud}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Job:</span>
+                          <p className="text-sm text-slate-700 mt-1 font-medium">{app.jobTitle} @ {app.company}</p>
+                        </div>
+                        <div>
+                          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Location:</span>
+                          <p className="text-sm text-slate-700 mt-1">{app.location}</p>
+                        </div>
+                        <div>
+                          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Languages:</span>
+                          <p className="text-sm text-slate-700 mt-1">{(app.languages || []).join(', ')}</p>
+                        </div>
+                        <div>
+                          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Experience:</span>
+                          <p className="text-sm text-slate-700 mt-1">{app.experienceYears ? `${app.experienceYears} Years` : app.experience}</p>
+                        </div>
                       </div>
                       
                       {(app.linkedinUrl || app.portfolioUrl || app.proofOfWork) && (

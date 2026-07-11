@@ -69,9 +69,15 @@ const userSchema = new mongoose.Schema({
   isMentor: { type: Boolean, default: false },
   mentorProfile: {
     bio: { type: String, maxlength: 1000 },
-    rateCredits: { type: Number },
+    jobTitle: { type: String },
+    company: { type: String },
+    location: { type: String },
+    languages: [{ type: String }],
+    experienceYears: { type: Number },
+    targetAudience: [{ type: String }],
+    domains: [{ type: String }],
+    skills: [{ type: String }],
     rateINR: { type: Number },
-    expertise: [{ type: String }],
     meetingLink: { type: String }, // e.g., Google Meet default link
     upiId: { type: String },
     bankDetails: { type: String },
@@ -88,7 +94,8 @@ const userSchema = new mongoose.Schema({
         startTime: { type: String },
         endTime: { type: String }
       }]
-    }]
+    }],
+    googleRefreshToken: { type: String }
   }
 }, { timestamps: true });
 

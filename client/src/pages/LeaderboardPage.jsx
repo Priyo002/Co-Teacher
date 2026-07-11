@@ -131,13 +131,12 @@ export default function LeaderboardPage() {
               <div className="flex-1 max-w-[220px] order-2 md:order-1 flex flex-col items-center transform transition-transform hover:-translate-y-2">
                 <div className="relative mb-4">
                   <div className="w-20 h-20 rounded-full bg-slate-100 border-4 border-slate-300 flex items-center justify-center shadow-lg shadow-slate-200 overflow-hidden">
-                    {top3[1].profilePicture ? (
-                      <img src={top3[1].profilePicture} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-2xl font-bold text-slate-500">
-                        {top3[1].name.charAt(0).toUpperCase()}
-                      </span>
-                    )}
+                    <img 
+                      src={top3[1].profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(top3[1].name)}&background=random`} 
+                      alt="Profile" 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(top3[1].name)}&background=random`; }}
+                    />
                   </div>
                   <div className="absolute -bottom-3 -right-2 bg-slate-300 text-slate-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-md border-2 border-white">
                     2
@@ -159,13 +158,12 @@ export default function LeaderboardPage() {
                 <div className="relative mb-6">
                   <Crown className="w-12 h-12 text-amber-500 absolute -top-10 left-1/2 -translate-x-1/2 drop-shadow-md" />
                   <div className="w-28 h-28 rounded-full bg-amber-50 border-4 border-amber-400 flex items-center justify-center shadow-xl shadow-amber-200 overflow-hidden">
-                    {top3[0].profilePicture ? (
-                      <img src={top3[0].profilePicture} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-4xl font-bold text-amber-600">
-                        {top3[0].name.charAt(0).toUpperCase()}
-                      </span>
-                    )}
+                    <img 
+                      src={top3[0].profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(top3[0].name)}&background=random`} 
+                      alt="Profile" 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(top3[0].name)}&background=random`; }}
+                    />
                   </div>
                   <div className="absolute -bottom-3 -right-2 bg-amber-400 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shadow-md border-2 border-white">
                     1
@@ -186,13 +184,12 @@ export default function LeaderboardPage() {
               <div className="flex-1 max-w-[220px] order-3 md:order-3 flex flex-col items-center transform transition-transform hover:-translate-y-2">
                 <div className="relative mb-4">
                   <div className="w-20 h-20 rounded-full bg-orange-50 border-4 border-orange-300 flex items-center justify-center shadow-lg shadow-orange-100 overflow-hidden">
-                    {top3[2].profilePicture ? (
-                      <img src={top3[2].profilePicture} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-2xl font-bold text-orange-500">
-                        {top3[2].name.charAt(0).toUpperCase()}
-                      </span>
-                    )}
+                    <img 
+                      src={top3[2].profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(top3[2].name)}&background=random`} 
+                      alt="Profile" 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(top3[2].name)}&background=random`; }}
+                    />
                   </div>
                   <div className="absolute -bottom-3 -right-2 bg-orange-300 text-orange-900 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-md border-2 border-white">
                     3
@@ -228,11 +225,12 @@ export default function LeaderboardPage() {
                     </div>
                     <div className="col-span-6 md:col-span-5 flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center font-bold text-brand-700 shadow-sm overflow-hidden shrink-0">
-                        {user?.profilePicture ? (
-                          <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
-                        ) : (
-                          user?.name?.charAt(0).toUpperCase()
-                        )}
+                        <img 
+                          src={user?.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'U')}&background=random`} 
+                          alt="Profile" 
+                          className="w-full h-full object-cover" 
+                          onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'U')}&background=random`; }}
+                        />
                       </div>
                       <span className="font-bold text-slate-900 truncate" title={user?.name}>
                         {user?.name}
@@ -263,11 +261,12 @@ export default function LeaderboardPage() {
                       </div>
                       <div className="col-span-6 md:col-span-5 flex items-center gap-3 w-full overflow-hidden">
                         <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 shrink-0 overflow-hidden">
-                          {u.profilePicture ? (
-                            <img src={u.profilePicture} alt="Profile" className="w-full h-full object-cover" />
-                          ) : (
-                            u.name.charAt(0).toUpperCase()
-                          )}
+                          <img 
+                            src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=random`} 
+                            alt="Profile" 
+                            className="w-full h-full object-cover" 
+                            onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=random`; }}
+                          />
                         </div>
                         <span className="font-semibold text-slate-800 truncate w-full" title={u.name}>
                           {u.name}

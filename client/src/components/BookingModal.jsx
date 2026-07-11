@@ -9,8 +9,8 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
   const [loading, setLoading] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [selectedDateStr, setSelectedDateStr] = useState(null);
+  const [context, setContext] = useState('');
   const duration = 60; // Hardcoded to 60 mins
-  const [paymentMethod, setPaymentMethod] = useState('CREDITS'); // 'CREDITS' or 'INR'
   const [booking, setBooking] = useState(false);
   
   const fetchApi = useApi();
@@ -41,28 +41,32 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
     
     setBooking(true);
     try {
-      const res = await fetchApi('/mentors/book', {
+      const res = await fetchApi('/mentors/sessions/book', {
         method: 'POST',
         body: JSON.stringify({
           mentorId: mentor._id,
           startTime: selectedSlot.startTime,
           durationMins: duration,
-          paymentMethod
+          context,
+          paymentMethod: 'razorpay'
         })
       });
 
-      if (paymentMethod === 'CREDITS') {
-        toast.success("Session booked successfully!");
+      if (res.freeSession) {
+        toast.success("Free session successfully booked!");
         onClose();
-      } else if (paymentMethod === 'INR') {
-        // Implement Razorpay flow
-        const options = {
-          key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
-          amount: res.amount,
-          currency: res.currency,
-          name: "Co-Teacher",
-          description: `Mentorship with ${mentor.name}`,
+        return;
+      }
+
+      // Implement Razorpay flow
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
+        amount: res.amount,
+        currency: res.currency,
+        name: "Co-Teacher",
+        description: `Mentorship with ${mentor.name}`,
           order_id: res.orderId,
+          timeout: 300, // 5 minutes in seconds
           handler: async function (response) {
             try {
               await fetchApi('/mentors/verify', {
@@ -84,7 +88,6 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
         };
         const rzp = new window.Razorpay(options);
         rzp.open();
-      }
     } catch (err) {
       toast.error(err.message || "Booking failed");
     } finally {
@@ -94,8 +97,9 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  const creditsCost = Math.round(mentor?.mentorProfile?.rateCredits || 0);
-  const inrCost = Math.round(mentor?.mentorProfile?.rateINR || 0);
+  const inrCost = mentor?.mentorProfile?.rateINR !== undefined 
+    ? Math.round(mentor.mentorProfile.rateINR) 
+    : 500;
 
   const groupedSlots = slots.reduce((acc, slot) => {
     const date = new Date(slot.startTime);
@@ -137,7 +141,7 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
           {/* Duration selection removed - defaulted to 60 minutes */}
 
           <h3 className="font-semibold text-slate-700 mb-4 flex items-center gap-2">
-            <CalendarIcon className="w-4 h-4" /> Available Slots
+            <CalendarIcon className="w-4 h-4" /> Available Slots (IST)
           </h3>
           {loading ? (
             <div className="flex flex-col md:flex-row gap-6 mb-8 border border-slate-200 rounded-2xl p-4 bg-white shadow-sm animate-pulse">
@@ -207,24 +211,29 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
             </div>
           )}
 
+          <div className="mb-8">
+            <h3 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
+              <CreditCard className="w-4 h-4" /> Note for Mentor (Optional)
+            </h3>
+            <textarea
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 focus:bg-white transition-all resize-none"
+              rows="3"
+              placeholder="Briefly describe what you'd like to discuss or need help with..."
+              value={context}
+              onChange={(e) => setContext(e.target.value)}
+            ></textarea>
+          </div>
+
           <h3 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
-            <CreditCard className="w-4 h-4" /> Payment Method
+            <CreditCard className="w-4 h-4" /> Order Summary
           </h3>
-          <div className="grid grid-cols-2 gap-3 mb-2">
-            <button
-              onClick={() => setPaymentMethod('CREDITS')}
-              className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-colors ${paymentMethod === 'CREDITS' ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}
-            >
-              <Gem className="w-6 h-6" />
-              <span className="font-bold">{creditsCost} Credits</span>
-            </button>
-            <button
-              onClick={() => setPaymentMethod('INR')}
-              className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-colors ${paymentMethod === 'INR' ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}
-            >
-              <span className="text-2xl font-serif leading-none">₹</span>
-              <span className="font-bold">₹{inrCost}</span>
-            </button>
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center mb-2">
+            <span className="text-slate-600 font-medium">1 Hour Mentorship Session</span>
+            {inrCost === 0 ? (
+              <span className="font-bold text-emerald-600 bg-emerald-100 px-3 py-1 rounded-lg text-lg border border-emerald-200">Free</span>
+            ) : (
+              <span className="font-bold text-slate-900 text-lg">₹{inrCost}</span>
+            )}
           </div>
           </div>
         </div>

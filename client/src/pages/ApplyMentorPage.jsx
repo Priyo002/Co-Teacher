@@ -1,24 +1,49 @@
 import { useState } from 'react';
-import { Briefcase, BookOpen, CheckCircle, ArrowRight, Award } from 'lucide-react';
+import { Briefcase, BookOpen, CheckCircle, ArrowRight, Award, MapPin, Globe, Users, Code, Layers } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 export default function ApplyMentorPage() {
-  const [expertise, setExpertise] = useState('');
-  const [experience, setExperience] = useState('');
-  const [linkedinUrl, setLinkedinUrl] = useState('');
-  const [portfolioUrl, setPortfolioUrl] = useState('');
-  const [proofOfWork, setProofOfWork] = useState('');
+  const [formData, setFormData] = useState({
+    jobTitle: '',
+    company: '',
+    location: '',
+    languages: '',
+    experienceYears: '',
+    targetAudience: [],
+    domains: '',
+    skills: '',
+    linkedinUrl: '',
+    portfolioUrl: '',
+    proofOfWork: ''
+  });
+
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const fetchApi = useApi();
   const navigate = useNavigate();
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAudienceChange = (audience) => {
+    setFormData(prev => {
+      const current = prev.targetAudience;
+      if (current.includes(audience)) {
+        return { ...prev, targetAudience: current.filter(a => a !== audience) };
+      } else {
+        return { ...prev, targetAudience: [...current, audience] };
+      }
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!expertise.trim() || !experience.trim()) {
-      toast.error("Please fill in all fields");
+    if (!formData.jobTitle || !formData.company || !formData.location || !formData.languages || !formData.experienceYears || !formData.domains || !formData.skills || formData.targetAudience.length === 0) {
+      toast.error("Please fill in all required fields");
       return;
     }
     
@@ -27,11 +52,17 @@ export default function ApplyMentorPage() {
       await fetchApi('/mentors/apply', {
         method: 'POST',
         body: JSON.stringify({ 
-          expertise: expertise.split(',').map(s => s.trim()).filter(Boolean),
-          experience,
-          linkedinUrl,
-          portfolioUrl,
-          proofOfWork
+          jobTitle: formData.jobTitle,
+          company: formData.company,
+          location: formData.location,
+          languages: formData.languages.split(',').map(s => s.trim()).filter(Boolean),
+          experienceYears: Number(formData.experienceYears),
+          targetAudience: formData.targetAudience,
+          domains: formData.domains.split(',').map(s => s.trim()).filter(Boolean),
+          skills: formData.skills.split(',').map(s => s.trim()).filter(Boolean),
+          linkedinUrl: formData.linkedinUrl,
+          portfolioUrl: formData.portfolioUrl,
+          proofOfWork: formData.proofOfWork
         })
       });
       setSubmitted(true);
@@ -66,98 +97,116 @@ export default function ApplyMentorPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto py-12 px-6">
+    <div className="max-w-3xl mx-auto py-12 px-6">
       <div className="mb-10 text-center">
         <h1 className="text-4xl font-extrabold text-slate-900 mb-4">Become a Mentor</h1>
         <p className="text-lg text-slate-600">Share your knowledge, help students learn faster, and earn money.</p>
       </div>
 
-      <div className="bg-white rounded-3xl p-8 md:p-10 border border-slate-200 shadow-sm">
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        
+        {/* Section 1: Professional Background */}
+        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
+          <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2 border-b border-slate-100 pb-4">
+            <Briefcase className="w-5 h-5 text-brand-500" /> Professional Background
+          </h3>
           
-          <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Job Title *</label>
+              <input type="text" name="jobTitle" value={formData.jobTitle} onChange={handleInputChange} placeholder="e.g. Senior Software Engineer" className="input-field" required disabled={loading} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Company *</label>
+              <input type="text" name="company" value={formData.company} onChange={handleInputChange} placeholder="e.g. Google" className="input-field" required disabled={loading} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2"><MapPin className="w-4 h-4" /> Location *</label>
+              <input type="text" name="location" value={formData.location} onChange={handleInputChange} placeholder="e.g. Karnataka, India" className="input-field" required disabled={loading} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2"><Globe className="w-4 h-4" /> Languages *</label>
+              <input type="text" name="languages" value={formData.languages} onChange={handleInputChange} placeholder="e.g. English, Hindi" className="input-field" required disabled={loading} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2"><Briefcase className="w-4 h-4" /> Years of Exp *</label>
+              <input type="number" name="experienceYears" value={formData.experienceYears} onChange={handleInputChange} placeholder="e.g. 5" className="input-field" required disabled={loading} min="0" />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 2: Mentorship Details */}
+        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
+          <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2 border-b border-slate-100 pb-4">
+            <BookOpen className="w-5 h-5 text-brand-500" /> Mentorship Details
+          </h3>
+
+          <div className="mb-6">
             <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-brand-500" />
-              What are your areas of expertise?
+              <Users className="w-4 h-4 text-brand-500" /> Target Audience *
             </label>
-            <input 
-              type="text" 
-              placeholder="e.g. React, Node.js, Python, Marketing (comma separated)" 
-              className="input-field"
-              value={expertise}
-              onChange={(e) => setExpertise(e.target.value)}
-              disabled={loading}
-            />
-            <p className="text-xs text-slate-500 mt-2">Separate multiple skills with commas.</p>
+            <p className="text-xs text-slate-500 mb-3">Who are you looking to mentor?</p>
+            <div className="flex flex-wrap gap-3">
+              {['High School', 'College', 'Professional', 'Hobbyist'].map(aud => (
+                <button
+                  key={aud}
+                  type="button"
+                  onClick={() => handleAudienceChange(aud)}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors border ${formData.targetAudience.includes(aud) ? 'bg-brand-50 border-brand-500 text-brand-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                >
+                  {aud}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="mb-6">
             <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-              <Briefcase className="w-4 h-4 text-brand-500" /> Tell us about your experience
+              <Layers className="w-4 h-4 text-brand-500" /> Domains *
             </label>
-            <textarea
-              className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 text-slate-900 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all min-h-[120px]"
-              placeholder="Briefly describe your professional background and why you'd be a great mentor..."
-              value={experience}
-              onChange={(e) => setExperience(e.target.value)}
-              required
-            ></textarea>
+            <input type="text" name="domains" value={formData.domains} onChange={handleInputChange} placeholder="e.g. Backend Developer, Data Scientist (comma separated)" className="input-field" required disabled={loading} />
           </div>
 
           <div className="mb-6">
             <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-              <Briefcase className="w-4 h-4 text-brand-500" /> LinkedIn Profile (Optional)
+              <Code className="w-4 h-4 text-brand-500" /> Core Skills *
             </label>
-            <input
-              type="url"
-              className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 text-slate-900 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all"
-              placeholder="https://linkedin.com/in/yourprofile"
-              value={linkedinUrl}
-              onChange={(e) => setLinkedinUrl(e.target.value)}
-            />
+            <input type="text" name="skills" value={formData.skills} onChange={handleInputChange} placeholder="e.g. Java, System Design, DSA (comma separated)" className="input-field" required disabled={loading} />
           </div>
+        </div>
 
-          <div className="mb-6">
-            <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-brand-500" /> GitHub / Portfolio (Optional)
-            </label>
-            <input
-              type="url"
-              className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 text-slate-900 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all"
-              placeholder="https://github.com/yourusername"
-              value={portfolioUrl}
-              onChange={(e) => setPortfolioUrl(e.target.value)}
-            />
-          </div>
+        {/* Section 3: Links */}
+        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
+          <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2 border-b border-slate-100 pb-4">
+            <Globe className="w-5 h-5 text-brand-500" /> Links & Proof of Work
+          </h3>
 
-          <div className="mb-8">
-            <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-              <Award className="w-4 h-4 text-brand-500" /> Additional Proof of Work (Optional)
-            </label>
-            <input
-              type="text"
-              className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 text-slate-900 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all"
-              placeholder="Link to a project, article, or credential"
-              value={proofOfWork}
-              onChange={(e) => setProofOfWork(e.target.value)}
-            />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">LinkedIn Profile (Optional)</label>
+              <input type="url" name="linkedinUrl" value={formData.linkedinUrl} onChange={handleInputChange} placeholder="https://linkedin.com/in/yourprofile" className="input-field" disabled={loading} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">GitHub / Portfolio (Optional)</label>
+              <input type="url" name="portfolioUrl" value={formData.portfolioUrl} onChange={handleInputChange} placeholder="https://github.com/yourusername" className="input-field" disabled={loading} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Additional Proof of Work (Optional)</label>
+              <input type="text" name="proofOfWork" value={formData.proofOfWork} onChange={handleInputChange} placeholder="Link to a project, article, or credential" className="input-field" disabled={loading} />
+            </div>
           </div>
+        </div>
 
-          <div className="pt-4 border-t border-slate-100">
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="btn-primary w-full text-lg py-4"
-            >
-              {loading ? 'Submitting...' : 'Submit Application'}
-              {!loading && <ArrowRight className="w-5 h-5 ml-2" />}
-            </button>
-            <p className="text-center text-xs text-slate-500 mt-4">
-              By submitting, you agree to our Mentor Terms of Service.
-            </p>
-          </div>
-        </form>
-      </div>
+        <div className="pt-4 flex justify-end">
+          <button type="submit" disabled={loading} className="btn-primary w-full md:w-auto text-lg py-4 px-12 shadow-xl hover:-translate-y-1 transition-transform">
+            {loading ? 'Submitting...' : 'Submit Application'}
+            {!loading && <ArrowRight className="w-5 h-5 ml-2 inline" />}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

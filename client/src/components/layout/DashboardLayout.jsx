@@ -98,6 +98,13 @@ export default function DashboardLayout({ children }) {
                     <Settings className="w-4 h-4" /> My Profile
                   </Link>
                   <Link 
+                    to="/my-sessions" 
+                    onClick={() => setIsProfileDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-brand-600 transition-colors"
+                  >
+                    <Video className="w-4 h-4" /> My Mentorships
+                  </Link>
+                  <Link 
                     to="/billing" 
                     onClick={() => setIsProfileDropdownOpen(false)}
                     className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-brand-600 transition-colors"

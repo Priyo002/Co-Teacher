@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, BookOpen, PlayCircle, BarChart3, TrendingUp, CheckCircle, Clock, Check, Bookmark, Search, Award, Sparkles, ArrowUp } from 'lucide-react';
+import { Plus, BookOpen, PlayCircle, BarChart3, TrendingUp, CheckCircle, Clock, Check, Bookmark, Search, Award, Sparkles, ArrowUp, Video } from 'lucide-react';
 import CourseCard from '../components/CourseCard';
 import CreateCourseModal from '../components/CreateCourseModal';
 import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
@@ -11,6 +11,7 @@ export default function HomePage() {
   const [courses, setCourses] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
   const [certificates, setCertificates] = useState([]);
+  const [sessions, setSessions] = useState([]);
   const [activeTab, setActiveTab] = useState('courses');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -28,14 +29,16 @@ export default function HomePage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [coursesRes, bookmarksRes, certificatesRes] = await Promise.all([
+        const [coursesRes, bookmarksRes, certificatesRes, sessionsRes] = await Promise.all([
           fetchApi('/courses/mine'),
           fetchApi('/user/bookmarks'),
-          fetchApi('/user/certificates')
+          fetchApi('/user/certificates'),
+          fetchApi('/mentors/sessions')
         ]);
         setCourses(coursesRes || []);
         setBookmarks(bookmarksRes.bookmarks || []);
         setCertificates(certificatesRes.certificates || []);
+        setSessions(sessionsRes || []);
       } catch (err) {
         console.error('Failed to load dashboard data', err);
       } finally {
@@ -572,6 +575,13 @@ export default function HomePage() {
                 <Award className="w-5 h-5" />
                 Certificates
               </button>
+              <button
+                onClick={() => setActiveTab('sessions')}
+                className={`pb-3 text-lg font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'sessions' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+              >
+                <Video className="w-5 h-5" />
+                Sessions
+              </button>
             </div>
 
             {activeTab === 'courses' ? (
@@ -593,6 +603,61 @@ export default function HomePage() {
                   }} className="btn-primary">
                     Create Your First Course
                   </button>
+                </div>
+              )
+            ) : activeTab === 'sessions' ? (
+              sessions.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {sessions.map(session => (
+                    <div key={session._id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-xl transition-all flex flex-col">
+                      <div className="flex items-center gap-4 mb-4">
+                        <img 
+                          src={session.mentor?.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(session.mentor?.name || 'M')}&background=random`} 
+                          alt={session.mentor?.name} 
+                          className="w-12 h-12 rounded-full object-cover border border-slate-200"
+                        />
+                        <div>
+                          <h4 className="font-bold text-slate-900">{session.mentor?.name || 'Mentor'}</h4>
+                          <span className="text-xs font-semibold px-2 py-1 bg-brand-100 text-brand-700 rounded-full">
+                            {session.durationMins} mins
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-sm text-slate-600 mb-6 flex-grow">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Clock className="w-4 h-4 text-slate-400" />
+                          <span>{new Date(session.startTime).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })} IST</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className={`w-4 h-4 ${session.status === 'confirmed' ? 'text-green-500' : 'text-slate-400'}`} />
+                          <span className="capitalize">{session.status}</span>
+                        </div>
+                      </div>
+                      {session.meetingLink && session.status === 'confirmed' ? (
+                        <a 
+                          href={session.meetingLink} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="w-full text-center px-4 py-2 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-colors"
+                        >
+                          Join Meeting
+                        </a>
+                      ) : (
+                        <button disabled className="w-full px-4 py-2 bg-slate-100 text-slate-400 rounded-xl font-bold cursor-not-allowed">
+                          Meeting Link Unavailable
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-20 bg-slate-50 rounded-2xl border border-slate-200">
+                  <Video className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">No Booked Sessions</h3>
+                  <p className="text-slate-500 mb-6">You haven't booked any 1-on-1 mentor sessions yet.</p>
+                  <Link to="/mentors" className="inline-flex items-center gap-2 px-6 py-3 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl transition-all shadow-lg hover:-translate-y-1">
+                    Find a Mentor
+                  </Link>
                 </div>
               )
             ) : activeTab === 'certificates' ? (
