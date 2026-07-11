@@ -379,6 +379,9 @@ exports.bookSession = async (req, res) => {
     if (durationMins !== 60) return res.status(400).json({ error: "Only 60 minute sessions are supported" });
     if (!mentorId || !startTime) return res.status(400).json({ error: "mentorId and startTime are required" });
 
+    const mongoose = require('mongoose');
+    const actualSlotId = (slotId && mongoose.Types.ObjectId.isValid(slotId) && !slotId.startsWith('dynamic_')) ? slotId : undefined;
+
     const mentor = await User.findById(mentorId);
     if (!mentor || !mentor.isMentor) return res.status(404).json({ error: "Mentor not found" });
 
@@ -438,7 +441,7 @@ exports.bookSession = async (req, res) => {
       const session = new MentorSession({
         student: req.user._id,
         mentor: mentor._id,
-        slot: slotId,
+        slot: actualSlotId,
         startTime: sessionStart,
         durationMins,
         context,
@@ -449,10 +452,12 @@ exports.bookSession = async (req, res) => {
       session.meetingLink = await generateGoogleMeetLink(mentor, session, req.user.name);
       await session.save();
 
-      const slot = await MentorSlot.findById(slotId);
-      if (slot) {
-        slot.bookedDuration += durationMins;
-        await slot.save();
+      if (actualSlotId) {
+        const slot = await MentorSlot.findById(actualSlotId);
+        if (slot) {
+          slot.bookedDuration += durationMins;
+          await slot.save();
+        }
       }
       
       // Send emails
@@ -475,7 +480,7 @@ exports.bookSession = async (req, res) => {
     const session = new MentorSession({
       student: req.user._id,
       mentor: mentor._id,
-      slot: slotId,
+      slot: actualSlotId,
       startTime: sessionStart,
       durationMins,
       context,
