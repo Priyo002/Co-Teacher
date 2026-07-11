@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Calendar as CalendarIcon, Clock, CreditCard, Gem } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Clock, CreditCard, Gem, AlertCircle } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import toast from 'react-hot-toast';
 
@@ -12,6 +12,8 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
   const [notes, setNotes] = useState('');
   const duration = 60; // Hardcoded to 60 mins
   const [booking, setBooking] = useState(false);
+  const [slotError, setSlotError] = useState(false);
+  const slotSectionRef = useRef(null);
   
   const fetchApi = useApi();
 
@@ -37,7 +39,15 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
   };
 
   const handleBook = async () => {
-    if (!selectedSlot) return toast.error("Please select a time slot");
+    if (!selectedSlot) {
+      setSlotError(true);
+      if (slotSectionRef.current) {
+        slotSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return toast.error("Please select a time slot");
+    }
+    
+    setSlotError(false);
     
     setBooking(true);
     try {
@@ -152,10 +162,18 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
           </div>
           {/* Duration selection removed - defaulted to 60 minutes */}
 
-          <h3 className="font-semibold text-slate-700 mb-4 flex items-center gap-2">
-            <CalendarIcon className="w-4 h-4" /> Available Slots (IST)
-          </h3>
-          {loading ? (
+          <div ref={slotSectionRef} className="scroll-mt-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-slate-700 flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4" /> Available Slots (IST)
+              </h3>
+              {slotError && (
+                <span className="text-sm font-bold text-red-500 flex items-center gap-1 bg-red-50 px-2 py-1 rounded-lg border border-red-200 animate-pulse">
+                  <AlertCircle className="w-4 h-4" /> Required Field
+                </span>
+              )}
+            </div>
+            {loading ? (
             <div className="flex flex-col md:flex-row gap-6 mb-8 border border-slate-200 rounded-2xl p-4 bg-white shadow-sm animate-pulse">
               {/* Skeleton Left: Date selector */}
               <div className="w-full md:w-1/3 md:border-r border-slate-100 md:pr-6 flex flex-col gap-2">
@@ -175,14 +193,14 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
               No available slots at the moment.
             </div>
           ) : (
-            <div className="flex flex-col md:flex-row gap-6 mb-8 border border-slate-200 rounded-2xl p-4 bg-white shadow-sm">
+            <div className={`flex flex-col md:flex-row gap-6 mb-8 border rounded-2xl p-4 bg-white shadow-sm transition-colors ${slotError ? 'border-red-400 ring-2 ring-red-100' : 'border-slate-200'}`}>
               {/* Left: Date selector */}
               <div className="w-full md:w-1/3 md:border-r border-slate-100 md:pr-6 flex flex-col">
                 <div className="flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-y-auto max-h-64 pb-2 md:pb-0 pr-2 custom-scrollbar">
                   {dates.map(date => (
                     <button 
                       key={date}
-                      onClick={() => { setSelectedDateStr(date); setSelectedSlot(null); }}
+                      onClick={() => { setSelectedDateStr(date); setSelectedSlot(null); setSlotError(false); }}
                       className={`shrink-0 w-[120px] md:w-full text-center md:text-left p-3 rounded-xl text-sm font-bold transition-all
                         ${selectedDateStr === date 
                           ? 'bg-brand-50 text-brand-700 border border-brand-500' 
@@ -204,7 +222,7 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
                     <button
                       key={slot._id}
                       disabled={!canBook}
-                      onClick={() => setSelectedSlot(slot)}
+                      onClick={() => { setSelectedSlot(slot); setSlotError(false); }}
                       className={`p-3 rounded-xl border text-sm font-bold flex justify-center items-center transition-all
                         ${selectedSlot?._id === slot._id 
                           ? 'border-brand-500 bg-brand-600 text-white shadow-md' 
@@ -222,6 +240,7 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
               </div>
             </div>
           )}
+          </div>
 
           <div className="mb-8">
             <h3 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
@@ -253,8 +272,8 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
         <div className="p-6 border-t border-slate-100 bg-slate-50">
           <button
             onClick={handleBook}
-            disabled={!selectedSlot || booking}
-            className="w-full btn-primary py-4 text-lg"
+            disabled={booking}
+            className={`w-full btn-primary py-4 text-lg ${!selectedSlot ? 'opacity-90' : ''}`}
           >
             {booking ? 'Processing...' : 'Confirm Booking'}
           </button>

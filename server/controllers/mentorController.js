@@ -384,6 +384,7 @@ exports.bookSession = async (req, res) => {
 
     const mentor = await User.findById(mentorId);
     if (!mentor || !mentor.isMentor) return res.status(404).json({ error: "Mentor not found" });
+    if (mentor._id.toString() === req.user._id.toString()) return res.status(400).json({ error: "You cannot book a session with yourself" });
 
     const sessionStart = new Date(startTime);
     const sessionEnd = new Date(sessionStart.getTime() + durationMins * 60 * 1000);
