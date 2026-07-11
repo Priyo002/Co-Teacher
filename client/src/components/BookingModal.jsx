@@ -124,20 +124,31 @@ export default function BookingModal({ mentor, isOpen, onClose }) {
         <div className="flex-grow flex flex-col min-h-0 pl-6 pt-6 pb-6 pr-2">
           <div className="overflow-y-auto flex-grow custom-scrollbar pr-4 pb-2">
           {/* Mentor Summary */}
-          <div className="flex items-center gap-4 mb-8 bg-slate-50 p-4 rounded-xl border border-slate-100">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 mb-8 bg-gradient-to-br from-slate-50 to-white p-5 rounded-2xl border border-slate-200 shadow-sm">
             {mentor?.profilePicture ? (
-              <img src={mentor.profilePicture} alt="" className="w-12 h-12 rounded-full object-cover" />
+              <img src={mentor.profilePicture} alt="" className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-sm shrink-0" />
             ) : (
-              <div className="w-12 h-12 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center font-bold">
+              <div className="w-20 h-20 bg-gradient-to-br from-brand-100 to-brand-50 text-brand-600 rounded-full flex items-center justify-center font-extrabold text-3xl border-4 border-white shadow-sm shrink-0">
                 {mentor?.name?.charAt(0)}
               </div>
             )}
-            <div>
-              <div className="font-bold">{mentor?.name}</div>
-              <div className="text-sm text-slate-500">{mentor?.mentorProfile?.expertise?.join(', ')}</div>
+            <div className="flex-1 text-center sm:text-left">
+              <h3 className="font-extrabold text-xl text-slate-900">{mentor?.name}</h3>
+              <p className="text-sm font-semibold text-brand-600 mt-0.5">
+                {mentor?.mentorProfile?.jobTitle || 'Expert'} {mentor?.mentorProfile?.company && `at ${mentor.mentorProfile.company}`}
+              </p>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs font-medium text-slate-500 mt-3">
+                <span className="flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded-lg">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                  {mentor?.mentorProfile?.location || 'Remote'}
+                </span>
+                <span className="flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded-lg">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                  {mentor?.mentorProfile?.languages?.join(', ') || 'English'}
+                </span>
+              </div>
             </div>
           </div>
-
           {/* Duration selection removed - defaulted to 60 minutes */}
 
           <h3 className="font-semibold text-slate-700 mb-4 flex items-center gap-2">
