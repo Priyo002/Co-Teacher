@@ -127,7 +127,7 @@ export default function ApplyMentorPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.jobTitle || !formData.company || !formData.location || !formData.languages || !formData.experienceYears || !formData.domains || !formData.skills || formData.targetAudience.length === 0) {
+    if (!formData.jobTitle || !formData.company || !formData.location || !formData.languages || formData.experienceYears === '' || formData.experienceYears === null || !formData.domains || !formData.skills || formData.targetAudience.length === 0) {
       toast.error("Please fill in all required fields");
       return;
     }

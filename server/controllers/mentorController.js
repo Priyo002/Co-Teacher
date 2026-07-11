@@ -58,7 +58,7 @@ exports.applyToMentor = async (req, res) => {
       linkedinUrl, portfolioUrl, proofOfWork 
     } = req.body;
 
-    if (!jobTitle || !company || !location || !languages || !experienceYears || !targetAudience || !domains || !skills) {
+    if (!jobTitle || !company || !location || !languages || experienceYears === undefined || experienceYears === null || !targetAudience || !domains || !skills) {
       return res.status(400).json({ error: "Please fill out all required fields" });
     }
 
