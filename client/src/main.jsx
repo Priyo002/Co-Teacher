@@ -10,7 +10,7 @@ function Auth0ProviderWithNavigate({ children }) {
   const navigate = useNavigate();
 
   const onRedirectCallback = (appState) => {
-    navigate(appState?.returnTo || window.location.pathname, { replace: true });
+    navigate(appState?.returnTo || '/', { replace: true });
   };
 
   return (

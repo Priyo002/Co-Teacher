@@ -1,11 +1,21 @@
 import { useAuth } from '../hooks/useAuth';
 import { useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { Sparkles, BookOpen, GraduationCap, Target, Video, ArrowRight, Zap, Code, Shield, Bot, Layout, Award, CheckCircle2, Users, Mic, Volume2, Trophy, Headphones, Compass, Play } from 'lucide-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const location = useLocation();
-  const from = location.state?.from?.pathname + (location.state?.from?.search || '') || '/';
+  const fromPath = location.state?.from?.pathname;
+  const fromSearch = location.state?.from?.search || '';
+  const from = fromPath ? (fromPath + fromSearch) : '/';
+
+  // Auto-redirect to Auth0 if user came from a protected route
+  useEffect(() => {
+    if (fromPath && fromPath !== '/' && fromPath !== '/login') {
+      login({ appState: { returnTo: from } });
+    }
+  }, [fromPath]);
 
   const handleLogin = () => {
     login({ appState: { returnTo: from } });
@@ -533,7 +543,7 @@ export default function LoginPage() {
               Join Co-Teacher today and turn any topic into a powerful, interactive learning experience.
             </p>
             <button 
-              onClick={() => login()} 
+              onClick={handleLogin} 
               className="px-10 py-5 bg-white text-brand-900 hover:bg-brand-50 font-bold rounded-full transition-all text-xl shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_rgba(255,255,255,0.5)] transform hover:-translate-y-1"
             >
               Get Started for Free
