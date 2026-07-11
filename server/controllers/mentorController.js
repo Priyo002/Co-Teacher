@@ -245,7 +245,7 @@ exports.updateMentorProfile = async (req, res) => {
     if (portfolioUrl !== undefined) updateData['mentorProfile.portfolioUrl'] = portfolioUrl;
     if (proofOfWork !== undefined) updateData['mentorProfile.proofOfWork'] = proofOfWork;
 
-    const user = await User.findByIdAndUpdate(req.user._id, { $set: updateData }, { new: true });
+    const user = await User.findByIdAndUpdate(req.user._id, { $set: updateData }, { returnDocument: 'after' });
     res.json(user.mentorProfile);
   } catch (err) {
     res.status(500).json({ error: "Failed to update profile" });
