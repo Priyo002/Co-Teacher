@@ -5,6 +5,7 @@ import BookingModal from '../components/BookingModal';
 import MentorProfileModal from '../components/MentorProfileModal';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
 import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
+import Pagination from '../components/Pagination';
 
 export default function FindMentorPage() {
   const [mentors, setMentors] = useState([]);
@@ -21,6 +22,9 @@ export default function FindMentorPage() {
   const [priceMax, setPriceMax] = useState(40000);
   const [expMin, setExpMin] = useState(0);
   
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 9;
+
   const [selectedMentor, setSelectedMentor] = useState(null);
   const [selectedMentorProfile, setSelectedMentorProfile] = useState(null);
   
@@ -104,6 +108,14 @@ export default function FindMentorPage() {
     return 0;
   });
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedDomains, selectedSkills, selectedAudience, priceMax, expMin]);
+
+  const totalPages = Math.ceil(sortedMentors.length / itemsPerPage);
+  const paginatedMentors = sortedMentors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   if (loading) return <DashboardSkeleton />;
 
   return (
@@ -130,8 +142,13 @@ export default function FindMentorPage() {
           </div>
 
           <div className="flex flex-col gap-6">
-            {sortedMentors.map(mentor => (
-              <div key={mentor._id} className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col md:flex-row gap-6 hover:shadow-xl transition-shadow">
+            {paginatedMentors.length === 0 ? (
+              <div className="bg-slate-50 border border-slate-200 border-dashed rounded-2xl p-12 text-center text-slate-500 font-medium">
+                No mentors found matching your filters. Try adjusting your search!
+              </div>
+            ) : 
+              paginatedMentors.map(mentor => (
+                <div key={mentor._id} className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col md:flex-row gap-6 hover:shadow-xl transition-shadow">
                 
                 {/* Mentor Image */}
                 <div className="w-full md:w-48 h-48 rounded-xl overflow-hidden shrink-0 bg-slate-100 border border-slate-200">
@@ -228,18 +245,18 @@ export default function FindMentorPage() {
                     </button>
                   </div>
                 </div>
-
               </div>
             ))}
-
-            {sortedMentors.length === 0 && (
-              <div className="text-center py-20 bg-slate-50 rounded-2xl border border-slate-200 border-dashed">
-                <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-slate-900 mb-2">No mentors found</h3>
-                <p className="text-slate-500 text-lg">Try adjusting your filters or search query.</p>
-              </div>
-            )}
           </div>
+          
+          <Pagination 
+            currentPage={currentPage} 
+            totalPages={totalPages} 
+            onPageChange={(page) => {
+              setCurrentPage(page);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }} 
+          />
         </div>
 
         {/* RIGHT COLUMN: Filters Sidebar */}

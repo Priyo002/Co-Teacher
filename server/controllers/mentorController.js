@@ -201,7 +201,13 @@ exports.getMentors = async (req, res) => {
   try {
     const mentors = await User.find({ isMentor: true })
       .select('name profilePicture mentorProfile');
-    res.json(mentors);
+      
+    const activeMentors = mentors.filter(mentor => {
+      const slots = generateBaseSlotsForMentor(mentor);
+      return slots.length > 0;
+    });
+
+    res.json(activeMentors);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch mentors" });
   }
@@ -257,68 +263,73 @@ exports.deleteSlot = async (req, res) => {
   res.status(400).json({ error: "Manual slots are deprecated." });
 };
 
+const generateBaseSlotsForMentor = (mentor) => {
+  const availability = mentor.mentorProfile?.availability || [];
+  const dateOverrides = mentor.mentorProfile?.dateOverrides || [];
+  const slots = [];
+  
+  // Generate dates for the next 14 days based on IST
+  const now = new Date();
+  const istTime = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+
+  for (let i = 0; i < 14; i++) {
+    const targetIST = new Date(istTime.getTime() + i * 24 * 60 * 60 * 1000);
+    const year = targetIST.getUTCFullYear();
+    const month = String(targetIST.getUTCMonth() + 1).padStart(2, '0');
+    const date = String(targetIST.getUTCDate()).padStart(2, '0');
+    
+    const dateString = `${year}-${month}-${date}`;
+    const dayOfWeek = targetIST.getUTCDay();
+    
+    // Check for overrides first
+    const override = dateOverrides.find(o => o.date === dateString);
+    let daySlots = [];
+    
+    if (override) {
+      daySlots = override.slots || [];
+    } else {
+      const dayConfig = availability.find(a => a.dayOfWeek === dayOfWeek);
+      if (dayConfig && dayConfig.slots) {
+        daySlots = dayConfig.slots;
+      } else if (dayConfig && dayConfig.startTime && dayConfig.endTime) { // Legacy fallback
+        daySlots = [{ startTime: dayConfig.startTime, endTime: dayConfig.endTime }];
+      }
+    }
+
+    // Generate 1-hour intervals for each slot block
+    daySlots.forEach(slotBlock => {
+      const [startHour, startMin] = slotBlock.startTime.split(':').map(Number);
+      const [endHour, endMin] = slotBlock.endTime.split(':').map(Number);
+      
+      let currentSlotTime = new Date(`${dateString}T${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}:00+05:30`);
+      const endDayTime = new Date(`${dateString}T${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}:00+05:30`);
+
+      while (currentSlotTime < endDayTime) {
+        const slotEndTime = new Date(currentSlotTime.getTime() + 60 * 60 * 1000);
+        if (slotEndTime <= endDayTime) {
+          // Only add if it's in the future
+          if (currentSlotTime > new Date()) {
+            slots.push({
+              _id: `dynamic_${currentSlotTime.getTime()}`,
+              startTime: new Date(currentSlotTime),
+              endTime: slotEndTime,
+              bookedDuration: 0
+            });
+          }
+        }
+        currentSlotTime = new Date(currentSlotTime.getTime() + 60 * 60 * 1000); // increment by 1 hour
+      }
+    });
+  }
+  return slots;
+};
+
 exports.getMentorSlots = async (req, res) => {
   try {
     const mentor = await User.findById(req.params.mentorId);
     if (!mentor || !mentor.isMentor) return res.status(404).json({ error: "Mentor not found" });
 
-    const availability = mentor.mentorProfile?.availability || [];
-    const dateOverrides = mentor.mentorProfile?.dateOverrides || [];
-    const slots = [];
-    
-    // Generate dates for the next 14 days based on IST
-    const now = new Date();
-    const istTime = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
-
-    for (let i = 0; i < 14; i++) {
-      const targetIST = new Date(istTime.getTime() + i * 24 * 60 * 60 * 1000);
-      const year = targetIST.getUTCFullYear();
-      const month = String(targetIST.getUTCMonth() + 1).padStart(2, '0');
-      const date = String(targetIST.getUTCDate()).padStart(2, '0');
-      
-      const dateString = `${year}-${month}-${date}`;
-      const dayOfWeek = targetIST.getUTCDay();
-      
-      // Check for overrides first
-      const override = dateOverrides.find(o => o.date === dateString);
-      let daySlots = [];
-      
-      if (override) {
-        daySlots = override.slots || [];
-      } else {
-        const dayConfig = availability.find(a => a.dayOfWeek === dayOfWeek);
-        if (dayConfig && dayConfig.slots) {
-          daySlots = dayConfig.slots;
-        } else if (dayConfig && dayConfig.startTime && dayConfig.endTime) { // Legacy fallback
-          daySlots = [{ startTime: dayConfig.startTime, endTime: dayConfig.endTime }];
-        }
-      }
-
-      // Generate 1-hour intervals for each slot block
-      daySlots.forEach(slotBlock => {
-        const [startHour, startMin] = slotBlock.startTime.split(':').map(Number);
-        const [endHour, endMin] = slotBlock.endTime.split(':').map(Number);
-        
-        let currentSlotTime = new Date(`${dateString}T${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}:00+05:30`);
-        const endDayTime = new Date(`${dateString}T${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}:00+05:30`);
-
-        while (currentSlotTime < endDayTime) {
-          const slotEndTime = new Date(currentSlotTime.getTime() + 60 * 60 * 1000);
-          if (slotEndTime <= endDayTime) {
-            // Only add if it's in the future
-            if (currentSlotTime > new Date()) {
-              slots.push({
-                _id: `dynamic_${currentSlotTime.getTime()}`,
-                startTime: new Date(currentSlotTime),
-                endTime: slotEndTime,
-                bookedDuration: 0
-              });
-            }
-          }
-          currentSlotTime = new Date(currentSlotTime.getTime() + 60 * 60 * 1000); // increment by 1 hour
-        }
-      });
-    }
+    const slots = generateBaseSlotsForMentor(mentor);
 
     // Now fetch existing sessions to compute bookedDuration
     // We ignore pending sessions older than 5 minutes (assume payment abandoned)

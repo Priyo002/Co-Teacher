@@ -1,13 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useApi } from '../hooks/useApi';
 import { Video, Calendar as CalendarIcon, Clock, MapPin, Search, CalendarClock } from 'lucide-react';
-import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
+import ListSkeleton from '../components/skeletons/ListSkeleton';
 import RescheduleModal from '../components/RescheduleModal';
+import Pagination from '../components/Pagination';
 
 export default function StudentSessionsPage() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [rescheduleSession, setRescheduleSession] = useState(null);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(sessions.length / itemsPerPage);
+  const paginatedSessions = sessions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   const fetchApi = useApi();
 
   useEffect(() => {
@@ -25,7 +32,7 @@ export default function StudentSessionsPage() {
     }
   };
 
-  if (loading) return <DashboardSkeleton />;
+  if (loading) return <ListSkeleton />;
 
   return (
     <div className="max-w-5xl mx-auto py-10 px-6">
@@ -50,7 +57,7 @@ export default function StudentSessionsPage() {
           </div>
         ) : (
           <div className="grid gap-6">
-            {sessions.map(session => (
+            {paginatedSessions.map(session => (
               <div key={session._id} className="border border-slate-200 rounded-2xl p-6 flex flex-col md:flex-row justify-between md:items-center gap-6 hover:shadow-md transition-shadow bg-white relative overflow-hidden group">
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-500"></div>
                 <div className="flex items-start md:items-center gap-5">
@@ -104,6 +111,17 @@ export default function StudentSessionsPage() {
               </div>
             ))}
           </div>
+        )}
+
+        {sessions.length > 0 && (
+          <Pagination 
+            currentPage={currentPage} 
+            totalPages={totalPages} 
+            onPageChange={(page) => {
+              setCurrentPage(page);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }} 
+          />
         )}
       </div>
 

@@ -4,6 +4,8 @@ import { useAuth } from '../hooks/useAuth';
 import { Clock, Calendar as CalendarIcon, User, Settings, Video, IndianRupee, Check, Plus, LayoutDashboard, Layout, Briefcase, MapPin, Globe, GraduationCap, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import RescheduleModal from '../components/RescheduleModal';
+import Pagination from '../components/Pagination';
+import MentorDashboardSkeleton from '../components/skeletons/MentorDashboardSkeleton';
 
 export default function MentorDashboardPage() {
   const { user, setUser } = useAuth();
@@ -13,6 +15,11 @@ export default function MentorDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [rescheduleSession, setRescheduleSession] = useState(null);
   const [connectingCalendar, setConnectingCalendar] = useState(false);
+  
+  const [currentSessionPage, setCurrentSessionPage] = useState(1);
+  const sessionsPerPage = 5;
+  const totalSessionPages = Math.ceil(sessions.length / sessionsPerPage);
+  const paginatedSessions = sessions.slice((currentSessionPage - 1) * sessionsPerPage, currentSessionPage * sessionsPerPage);
   
   const totalEarningsINR = useMemo(() => {
     return sessions
@@ -264,8 +271,31 @@ export default function MentorDashboardPage() {
     );
   }
 
+  const hasActiveAvailability = availability.some(a => a.active && a.slots?.length > 0) || dateOverrides.some(o => o.slots?.length > 0);
+
   return (
     <div className="max-w-7xl mx-auto py-10 px-6">
+      {!hasActiveAvailability && !loading && (
+        <div className="mb-8 bg-rose-50 border border-rose-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4">
+          <div className="p-3 bg-white rounded-xl shadow-sm border border-rose-100 shrink-0 mx-auto sm:mx-0">
+            <Settings className="w-8 h-8 text-rose-500" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-rose-800 mb-1">Action Required: Set up your availability schedule</h3>
+            <p className="text-rose-700 font-medium">
+              You must configure your available time slots to be listed on the Mentor Discovery page. 
+              Mentors without any active slots in the next 14 days are automatically hidden from students.
+            </p>
+          </div>
+          <button 
+            onClick={() => setActiveTab('schedule')}
+            className="shrink-0 bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 rounded-xl font-bold transition-colors whitespace-nowrap"
+          >
+            Set Up Schedule
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row gap-8">
         
         {/* Sidebar */}
@@ -297,9 +327,7 @@ export default function MentorDashboardPage() {
         {/* Main Content */}
         <div className="flex-1 min-w-0">
           {loading ? (
-            <div className="flex items-center justify-center h-64 bg-slate-50 rounded-3xl animate-pulse">
-              <span className="text-slate-400 font-semibold">Loading Dashboard...</span>
-            </div>
+            <MentorDashboardSkeleton />
           ) : (
             <div className="space-y-6">
               
@@ -321,7 +349,7 @@ export default function MentorDashboardPage() {
                     </div>
                   ) : (
                     <div className="grid gap-4">
-                      {sessions.map(session => (
+                      {paginatedSessions.map(session => (
                         <div key={session._id} className="border border-slate-200 rounded-2xl p-6 flex flex-col md:flex-row justify-between md:items-center gap-6 hover:shadow-md transition-shadow bg-white relative overflow-hidden group">
                           <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-500"></div>
                           <div className="flex items-center gap-5">
@@ -367,6 +395,17 @@ export default function MentorDashboardPage() {
                         </div>
                       ))}
                     </div>
+                  )}
+
+                  {sessions.length > 0 && (
+                    <Pagination 
+                      currentPage={currentSessionPage} 
+                      totalPages={totalSessionPages} 
+                      onPageChange={(page) => {
+                        setCurrentSessionPage(page);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }} 
+                    />
                   )}
                 </div>
               )}

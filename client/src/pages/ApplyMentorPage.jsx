@@ -3,6 +3,7 @@ import { Briefcase, BookOpen, CheckCircle, ArrowRight, Award, MapPin, Globe, Use
 import { useApi } from '../hooks/useApi';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import FormSkeleton from '../components/skeletons/FormSkeleton';
 
 const CooldownTimer = ({ rejectedAt, setAppStatus }) => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
@@ -181,11 +182,7 @@ export default function ApplyMentorPage() {
   }
 
   if (appStatus === 'loading') {
-    return (
-      <div className="max-w-2xl mx-auto py-12 px-6 flex justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500"></div>
-      </div>
-    );
+    return <FormSkeleton />;
   }
 
   if (appStatus === 'pending') {
