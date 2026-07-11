@@ -2,3 +2,5 @@
 *.md
 /server/node_modules
 /server/.env
+*.log
+debug.log
