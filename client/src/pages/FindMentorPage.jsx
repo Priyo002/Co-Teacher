@@ -4,7 +4,7 @@ import { Search, Star, Clock, GraduationCap, MapPin, Briefcase, Video, Filter, C
 import BookingModal from '../components/BookingModal';
 import MentorProfileModal from '../components/MentorProfileModal';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
-import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
+import MentorDiscoverySkeleton from '../components/skeletons/MentorDiscoverySkeleton';
 import Pagination from '../components/Pagination';
 
 export default function FindMentorPage() {
@@ -116,7 +116,7 @@ export default function FindMentorPage() {
   const totalPages = Math.ceil(sortedMentors.length / itemsPerPage);
   const paginatedMentors = sortedMentors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  if (loading) return <DashboardSkeleton />;
+  if (loading) return <MentorDiscoverySkeleton />;
 
   return (
     <div className="max-w-7xl mx-auto py-10 px-6">

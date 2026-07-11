@@ -160,12 +160,12 @@ export default function LessonRenderer({ blocks }) {
 
           case 'video':
             return (
-              <div key={idx} className="my-8 relative">
-                <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 shadow-md print:hidden">
+              <div key={idx} className="my-10 max-w-4xl mx-auto relative group">
+                <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 shadow-lg group-hover:shadow-xl transition-shadow bg-slate-900 print:hidden relative">
                   <iframe
                     src={block.url.replace('watch?v=', 'embed/')}
                     title={block.title || 'Video Player'}
-                    className="w-full h-full"
+                    className="absolute inset-0 w-full h-full"
                     allowFullScreen
                   ></iframe>
                 </div>

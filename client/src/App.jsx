@@ -48,12 +48,25 @@ export default function App() {
         toastOptions={{
           duration: 3500,
           style: {
-            background: 'rgba(21, 24, 40, 0.9)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
             borderRadius: '16px',
-            boxShadow: '0 18px 50px rgba(0, 0, 0, 0.35)',
-            color: '#e2e8f0',
-            backdropFilter: 'blur(16px)',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+            color: '#0f172a',
+            fontWeight: '600',
+            padding: '12px 24px',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#ffffff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#ffffff',
+            },
           },
         }}
       />
