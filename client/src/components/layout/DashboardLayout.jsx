@@ -1,6 +1,6 @@
 import { useAuth } from '../../hooks/useAuth';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { GraduationCap, Zap, Trophy, Settings, CreditCard, Activity, LogOut, ChevronDown, ShieldAlert, Award, Video, BrainCircuit } from 'lucide-react';
+import { GraduationCap, Zap, Trophy, Settings, CreditCard, Activity, LogOut, ChevronDown, ShieldAlert, Award, Video, BrainCircuit, TerminalSquare } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import PaymentModal from '../PaymentModal';
 
@@ -44,6 +44,16 @@ export default function DashboardLayout({ children }) {
               <Zap className="w-4 h-4 fill-amber-500 text-amber-500" />
               <span className="text-sm font-semibold">{user?.credits ?? 0}</span>
             </button>
+            <Link 
+              to="/ide"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-brand-300 hover:bg-brand-50 text-slate-700 rounded-full transition-colors shadow-sm"
+              title="Standalone Code IDE"
+            >
+              <TerminalSquare className="w-4 h-4 text-brand-500" />
+              <span className="text-sm font-semibold hidden sm:block">IDE</span>
+            </Link>
             <Link 
               to="/leaderboard"
               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-amber-300 hover:bg-amber-50 text-slate-700 rounded-full transition-colors shadow-sm"
