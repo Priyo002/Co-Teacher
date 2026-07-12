@@ -32,7 +32,7 @@ export default function MentorDashboardPage() {
 
   // Profile form state
   const [bio, setBio] = useState('');
-  const [rateINR, setRateINR] = useState(0);
+  const [rateINR, setRateINR] = useState(500);
   const [meetingLink, setMeetingLink] = useState('');
   const [upiId, setUpiId] = useState('');
   const [bankDetails, setBankDetails] = useState('');
@@ -73,7 +73,7 @@ export default function MentorDashboardPage() {
       const p = data.mentorProfile || {};
       
       setBio(p.bio || '');
-      setRateINR(p.rateINR || 0);
+      setRateINR(p.rateINR !== undefined ? p.rateINR : 500);
       setMeetingLink(p.meetingLink || '');
       setUpiId(p.upiId || '');
       setBankDetails(p.bankDetails || '');
