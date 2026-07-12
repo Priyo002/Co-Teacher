@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Sparkles, Bot, PanelRightClose, Trash2, Mic, MicOff, Volume2, Square } from 'lucide-react';
+import { Send, Sparkles, Bot, PanelRightClose, Trash2, Mic, MicOff, Volume2, Square, Headphones, X } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import ReactMarkdown from 'react-markdown';
 
@@ -22,10 +22,27 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
   const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [playingIndex, setPlayingIndex] = useState(null);
+  const [isVoiceMode, setIsVoiceMode] = useState(false);
   
   const fetchApi = useApi();
   const recognitionRef = useRef(null);
   const textareaRef = useRef(null);
+  
+  const voiceModeRef = useRef(isVoiceMode);
+  const messageRef = useRef(message);
+  const chatHistoryRef = useRef(chatHistory);
+  
+  useEffect(() => {
+    voiceModeRef.current = isVoiceMode;
+  }, [isVoiceMode]);
+
+  useEffect(() => {
+    messageRef.current = message;
+  }, [message]);
+
+  useEffect(() => {
+    chatHistoryRef.current = chatHistory;
+  }, [chatHistory]);
 
   // Auto-resize textarea when message changes
   useEffect(() => {
@@ -37,6 +54,7 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
 
   // Initialize Speech Recognition
   useEffect(() => {
+    let silenceTimer = null;
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       recognitionRef.current = new SpeechRecognition();
@@ -52,6 +70,14 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
         }
         if (newTranscript) {
           setMessage(prev => (prev ? prev + ' ' + newTranscript.trim() : newTranscript.trim()));
+          if (voiceModeRef.current) {
+            clearTimeout(silenceTimer);
+            silenceTimer = setTimeout(() => {
+              if (recognitionRef.current && voiceModeRef.current) {
+                recognitionRef.current.stop();
+              }
+            }, 1500);
+          }
         }
       };
       
@@ -64,6 +90,9 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
       
       recognitionRef.current.onend = () => {
         setIsListening(false);
+        if (voiceModeRef.current && messageRef.current.trim().length > 0) {
+          sendTutorMessage(messageRef.current);
+        }
       };
     }
     
@@ -122,8 +151,8 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
     }
   };
 
-  const toggleSpeech = (text, index) => {
-    if (playingIndex === index) {
+  const toggleSpeech = (text, index, isAutoSpeak = false) => {
+    if (playingIndex === index && !isAutoSpeak) {
       window.speechSynthesis.cancel();
       setPlayingIndex(null);
     } else {
@@ -132,7 +161,15 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
       const cleanText = text.replace(/[*#`_~]/g, '').trim();
       const utterance = new SpeechSynthesisUtterance(cleanText);
       
-      utterance.onend = () => setPlayingIndex(null);
+      utterance.onend = () => {
+        setPlayingIndex(null);
+        if (voiceModeRef.current && recognitionRef.current) {
+          try {
+            recognitionRef.current.start();
+            setIsListening(true);
+          } catch(e) {}
+        }
+      };
       utterance.onerror = () => setPlayingIndex(null);
       
       setPlayingIndex(index);
@@ -140,16 +177,15 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
     }
   };
 
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!message.trim() || isTyping) return;
+  const sendTutorMessage = async (text) => {
+    if (!text.trim() || isTyping) return;
 
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
     }
 
-    const userMsg = message.trim();
+    const userMsg = text.trim();
     setMessage('');
     setChatHistory(prev => [...prev, { role: 'user', content: userMsg }]);
     setIsTyping(true);
@@ -164,15 +200,32 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
         body: JSON.stringify({
           message: userMsg,
           currentLessonId: lessonId,
-          history: chatHistory
+          history: chatHistoryRef.current
         })
       });
-      setChatHistory(prev => [...prev, { role: 'assistant', content: data.reply }]);
+      setChatHistory(prev => {
+        const newHistory = [...prev, { role: 'assistant', content: data.reply }];
+        if (voiceModeRef.current) {
+          setTimeout(() => toggleSpeech(data.reply, newHistory.length - 1, true), 100);
+        }
+        return newHistory;
+      });
     } catch (err) {
       setChatHistory(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
+      if (voiceModeRef.current && recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+          setIsListening(true);
+        } catch(e) {}
+      }
     } finally {
       setIsTyping(false);
     }
+  };
+
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    sendTutorMessage(message);
   };
 
   return (
@@ -182,6 +235,29 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
           <Bot className="w-4 h-4" /> AI Tutor
         </div>
         <div className="flex items-center gap-1">
+          {/* Voice Mode Toggle */}
+          <button
+            onClick={() => {
+              if (isVoiceMode) {
+                setIsVoiceMode(false);
+                recognitionRef.current?.stop();
+                window.speechSynthesis.cancel();
+              } else {
+                setIsVoiceMode(true);
+                if (recognitionRef.current) {
+                  try {
+                    recognitionRef.current.start();
+                    setIsListening(true);
+                  } catch(e) {}
+                }
+              }
+            }}
+            className={`p-1.5 rounded transition-colors ${isVoiceMode ? 'bg-brand-100 text-brand-600' : 'text-slate-500 hover:text-brand-600 hover:bg-slate-100'}`}
+            title={isVoiceMode ? "Exit Voice Mode" : "Start Voice Mode"}
+          >
+            <Headphones className="w-5 h-5" />
+          </button>
+          
           {chatHistory.length > 1 && (
             <button
               onClick={handleClearHistory}
@@ -200,10 +276,90 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
               <PanelRightClose className="w-5 h-5" />
             </button>
           )}
-        </div>
+          </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+      {isVoiceMode ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-slate-900 via-[#111827] to-brand-950 animate-in fade-in duration-500 relative overflow-hidden">
+           {/* Decorative Background Elements */}
+           <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-brand-500/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen" />
+           <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-violet-600/20 rounded-full blur-[120px] pointer-events-none mix-blend-screen" />
+           
+           <div className="relative w-48 h-48 flex items-center justify-center mb-16">
+              {/* Outer pulsing rings when listening */}
+              {isListening && (
+                <>
+                  <div className="absolute inset-0 bg-brand-500/30 rounded-full animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]" />
+                  <div className="absolute inset-4 bg-brand-400/20 rounded-full animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" />
+                </>
+              )}
+              
+              {/* Inner glowing orb (Clickable) */}
+              <button 
+                type="button"
+                onClick={() => {
+                  if (!isListening && playingIndex === null && !isTyping) {
+                    if (recognitionRef.current) {
+                      try {
+                        recognitionRef.current.start();
+                        setIsListening(true);
+                      } catch(e) {}
+                    }
+                  } else if (isListening) {
+                    if (recognitionRef.current) {
+                      recognitionRef.current.stop();
+                    }
+                  } else if (playingIndex !== null) {
+                    window.speechSynthesis.cancel();
+                    setPlayingIndex(null);
+                  }
+                }}
+                className={`relative z-10 w-36 h-36 rounded-full flex items-center justify-center backdrop-blur-xl border border-white/10 transition-all duration-700 ease-out shadow-[0_0_80px_rgba(var(--brand-500-rgb),0.3)] hover:scale-105 active:scale-95 ${
+                  isTyping ? 'bg-gradient-to-tr from-brand-600 to-violet-500 animate-[spin_4s_linear_infinite]' :
+                  playingIndex !== null ? 'bg-gradient-to-tr from-brand-500 to-blue-500 scale-110 shadow-[0_0_100px_rgba(var(--brand-500-rgb),0.6)]' :
+                  isListening ? 'bg-gradient-to-tr from-brand-500 to-indigo-500 scale-100' : 'bg-white/5 hover:bg-white/10'
+                }`}
+              >
+                <div className={`flex items-center justify-center transition-all duration-500 ${isTyping ? 'animate-[spin_4s_linear_infinite_reverse]' : ''}`}>
+                  {isTyping ? (
+                    <Sparkles className="w-14 h-14 text-white/90 animate-pulse" />
+                  ) : playingIndex !== null ? (
+                    <Volume2 className="w-14 h-14 text-white/90 animate-pulse" />
+                  ) : isListening ? (
+                    <Mic className="w-14 h-14 text-white/90" />
+                  ) : (
+                    <MicOff className="w-14 h-14 text-slate-400" />
+                  )}
+                </div>
+              </button>
+           </div>
+           
+           <div className="text-center space-y-4 relative z-10">
+              <h3 className="text-3xl font-extrabold text-white tracking-tight drop-shadow-sm">
+                {isTyping ? "Thinking..." : playingIndex !== null ? "Speaking..." : isListening ? "Listening..." : "Paused"}
+              </h3>
+              <p className="text-slate-300/80 text-sm font-medium max-w-[280px] mx-auto leading-relaxed">
+                {isTyping ? "The AI tutor is processing your query." : 
+                 playingIndex !== null ? "Tap the orb to stop speaking." : 
+                 isListening ? "Speak now. I'll respond when you pause." : "Tap the mic orb to resume listening."}
+              </p>
+           </div>
+           
+           {/* Close Voice Mode button */}
+           <button
+             onClick={() => {
+                setIsVoiceMode(false);
+                recognitionRef.current?.stop();
+                window.speechSynthesis.cancel();
+             }}
+             className="absolute bottom-8 px-6 py-2.5 bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 text-white/90 rounded-full text-sm font-medium flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
+           >
+             <X className="w-4 h-4" /> Exit Voice Mode
+           </button>
+        </div>
+      ) : (
+        <>
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
         {chatHistory.map((msg, idx) => (
           <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'assistant' && (
@@ -319,6 +475,8 @@ export default function AITutorChat({ courseId, lessonId, onClose }) {
           )}
         </form>
       </div>
+      </>
+      )}
     </div>
   );
 }
