@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
+import { useApi } from '../hooks/useApi';
 import { Lightbulb, Terminal, AlertTriangle, Info, CheckCircle2, XCircle, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import EditorComponent from 'react-simple-code-editor';
@@ -13,7 +15,7 @@ import 'prismjs/components/prism-cpp';
 import 'prismjs/themes/prism.css';
 import { Play, Loader2 } from 'lucide-react';
 
-function CodeBlockWithTabs({ codes }) {
+function CodeBlockWithTabs({ codes, blockIndex }) {
   const cleanCode = (code) => {
     if (!code || typeof code !== 'string') return '';
     return code.replace(/^```[\w]*\n?/g, '').replace(/\n?```$/g, '').trim();
@@ -25,16 +27,67 @@ function CodeBlockWithTabs({ codes }) {
   const [copied, setCopied] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [output, setOutput] = useState(null);
+  
+  const { courseId, lessonId } = useParams();
+  const fetchApi = useApi();
+
+  // Debounced DB save
+  useEffect(() => {
+    // Only save if there's actually been a change and we have the necessary IDs
+    if (!courseId || !lessonId || typeof blockIndex === 'undefined') return;
+    
+    // Check if the current editableCodes differ from the original codes before saving
+    let hasChanges = false;
+    for (const lang of Object.keys(editableCodes)) {
+      if (editableCodes[lang] !== cleanCode(codes?.[lang])) {
+        hasChanges = true;
+        break;
+      }
+    }
+    
+    if (!hasChanges) return;
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        await fetchApi(`/courses/${courseId}/lessons/${lessonId}/code`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            blockIndex,
+            codes: editableCodes
+          })
+        });
+        console.log('Code saved to database automatically.');
+      } catch (err) {
+        console.error('Failed to save code to database:', err);
+      }
+    }, 1500); // 1.5s debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [editableCodes, courseId, lessonId, blockIndex, fetchApi, codes]);
 
   useEffect(() => {
     if (codes) {
       const initial = {};
+      const storageKey = typeof blockIndex !== 'undefined' ? `code_${window.location.pathname}_${blockIndex}` : null;
+      let saved = null;
+      
+      if (storageKey) {
+        try {
+          const savedStr = localStorage.getItem(storageKey);
+          if (savedStr) saved = JSON.parse(savedStr);
+        } catch(e) {}
+      }
+
       Object.keys(codes).forEach(l => {
-        initial[l] = cleanCode(codes[l]);
+        if (saved && saved[l] !== undefined) {
+          initial[l] = saved[l];
+        } else {
+          initial[l] = cleanCode(codes[l]);
+        }
       });
       setEditableCodes(initial);
     }
-  }, [codes]);
+  }, [codes, blockIndex]);
 
   const handleCopy = () => {
     const rawCode = editableCodes[activeTab] || '';
@@ -44,10 +97,18 @@ function CodeBlockWithTabs({ codes }) {
   };
 
   const handleCodeChange = (newCode) => {
-    setEditableCodes(prev => ({
-      ...prev,
-      [activeTab]: newCode
-    }));
+    setEditableCodes(prev => {
+      const next = { ...prev, [activeTab]: newCode };
+      
+      if (typeof blockIndex !== 'undefined') {
+        try {
+          const storageKey = `code_${window.location.pathname}_${blockIndex}`;
+          localStorage.setItem(storageKey, JSON.stringify(next));
+        } catch(e) {}
+      }
+      
+      return next;
+    });
   };
 
   const handleRunCode = async () => {
@@ -288,7 +349,7 @@ export default function LessonRenderer({ blocks }) {
             try {
               return (
                 <div key={idx} className="my-6 rounded-xl overflow-hidden border border-slate-200 bg-[#f6f8fa] shadow-sm">
-                  <CodeBlockWithTabs codes={block.codes || { python: block.code }} />
+                  <CodeBlockWithTabs codes={block.codes || { python: block.code }} blockIndex={idx} />
                 </div>
               );
             } catch (err) {

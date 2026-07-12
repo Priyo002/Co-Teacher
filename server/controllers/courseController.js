@@ -525,6 +525,37 @@ async function getCourseSuggestions(req, res) {
   }
 }
 
+async function updateLessonCode(req, res) {
+  try {
+    const { blockIndex, codes } = req.body;
+    
+    if (typeof blockIndex !== 'number' || !codes) {
+      return res.status(400).json({ error: "blockIndex and codes are required" });
+    }
+
+    const { lesson, course } = await getOwnedLesson(req.params.lessonId, req.user._id);
+
+    // Make sure we have content at this index and it is a code block
+    if (lesson.content && lesson.content[blockIndex] && lesson.content[blockIndex].type === 'code') {
+      
+      // Update the codes
+      lesson.content[blockIndex].codes = codes;
+      delete lesson.content[blockIndex].code; // Remove old format if it exists
+      
+      // We must mark the array as modified so Mongoose saves the Mixed type properly
+      lesson.markModified('content');
+      await lesson.save();
+      
+      return res.json({ success: true, message: "Code updated in database" });
+    } else {
+      return res.status(400).json({ error: "Invalid block index or block is not a code block" });
+    }
+  } catch (error) {
+    console.error("Code Save Error:", error);
+    return res.status(500).json({ error: error.message || "Failed to save code" });
+  }
+}
+
 module.exports = {
   deleteCourse,
   getCourseById,
@@ -537,4 +568,5 @@ module.exports = {
   startLessonTest,
   submitLessonTest,
   getCourseSuggestions,
+  updateLessonCode,
 };

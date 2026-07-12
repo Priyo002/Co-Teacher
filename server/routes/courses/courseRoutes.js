@@ -10,7 +10,8 @@ const {
   generateFinalTest,
   startLessonTest,
   submitLessonTest,
-  getCourseSuggestions
+  getCourseSuggestions,
+  updateLessonCode
 } = require("../../controllers/courseController");
 const { verifyAuth0Token } = require("../../middlewares/auth0Auth");
 
@@ -38,6 +39,7 @@ router.post("/:courseId/lessons/:lessonId/chat", chatAboutLesson);
 router.put("/:courseId/lessons/:lessonId/progress", updateLessonProgress);
 router.post("/:courseId/lessons/:lessonId/test/start", startLessonTest);
 router.post("/:courseId/lessons/:lessonId/test/submit", submitLessonTest);
+router.put("/:courseId/lessons/:lessonId/code", updateLessonCode);
 router.patch("/:courseId/sharing", updateSharing);
 
 router.route("/:courseId")
