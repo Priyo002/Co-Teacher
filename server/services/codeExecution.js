@@ -33,7 +33,7 @@ function getJdoodleCredentials() {
   return [];
 }
 
-async function executeCode(language, code) {
+async function executeCode(language, code, stdin = "") {
   const langConfig = LANGUAGE_MAP[language.toLowerCase()];
   
   if (!langConfig) {
@@ -62,6 +62,7 @@ async function executeCode(language, code) {
           clientId: cred.clientId,
           clientSecret: cred.clientSecret,
           script: code,
+          stdin: stdin || "",
           language: langConfig.language,
           versionIndex: langConfig.versionIndex
         })

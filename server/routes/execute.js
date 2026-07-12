@@ -5,13 +5,13 @@ const { executeCode } = require('../services/codeExecution');
 
 router.post('/', async (req, res) => {
   try {
-    const { language, code } = req.body;
+    const { language, code, stdin } = req.body;
     
     if (!language || !code) {
       return res.status(400).json({ success: false, error: 'Language and code are required.' });
     }
 
-    const result = await executeCode(language, code);
+    const result = await executeCode(language, code, stdin);
     res.json({ success: true, result });
   } catch (error) {
     console.error('Execution Route Error:', error);
