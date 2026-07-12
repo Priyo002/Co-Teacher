@@ -260,7 +260,7 @@ export default function FocusAnalyticsPage() {
                 <div className="flex items-center justify-between text-xs text-slate-400">
                   <span className="flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
-                    {new Date(session.startTime).toLocaleDateString()}
+                    {new Date(session.startTime).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric', timeZoneName: 'short' })}
                   </span>
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
@@ -312,7 +312,7 @@ export default function FocusAnalyticsPage() {
                 <div className="text-right">
                   <div className="text-sm text-slate-500 mb-1">Session Date</div>
                   <div className="font-medium text-slate-700">
-                    {new Date(selectedSession.startTime).toLocaleString()}
+                    {new Date(selectedSession.startTime).toLocaleString('en-IN', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', timeZoneName: 'short' })}
                   </div>
                 </div>
               </div>
@@ -371,7 +371,7 @@ export default function FocusAnalyticsPage() {
                 <div className="text-right">
                   <div className="text-sm text-slate-500 mb-1">Last Studied</div>
                   <div className="font-medium text-slate-700">
-                    {new Date(selectedCourse.sessions[0].startTime).toLocaleDateString()}
+                    {new Date(selectedCourse.sessions[0].startTime).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric', timeZoneName: 'short' })}
                   </div>
                 </div>
               </div>
