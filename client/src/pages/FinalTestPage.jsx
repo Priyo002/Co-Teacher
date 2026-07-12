@@ -71,8 +71,9 @@ export default function FinalTestPage() {
             throw new Error('Failed to generate final test.');
           }
         }
+        let sQuestions = [];
         if (data.finalTest?.questions) {
-          const sQuestions = data.finalTest.questions.map((q, i) => {
+          sQuestions = data.finalTest.questions.map((q, i) => {
             const optionsWithIndex = q.options.map((opt, idx) => ({ text: opt, originalIndex: idx }));
             optionsWithIndex.sort(() => Math.random() - 0.5);
             return {
@@ -209,6 +210,71 @@ export default function FinalTestPage() {
     );
   }
 
+  const questionsList = (
+    <div className="space-y-10 mt-8">
+      {questions.map((q, qIdx) => {
+        return (
+          <div key={qIdx} id={`question-${qIdx}`} className={`bg-white p-6 sm:p-8 rounded-2xl border shadow-sm transition-colors ${missedQuestions.includes(qIdx) ? 'border-red-300 bg-red-50/30' : 'border-slate-200'}`}>
+            <div className="flex items-start justify-between mb-6 gap-4">
+              <p className="text-xl font-bold text-slate-900 flex gap-4">
+                <span className="text-brand-600 shrink-0">{qIdx + 1}.</span> 
+                <span>{q.question}</span>
+              </p>
+              {missedQuestions.includes(qIdx) && (
+                <span className="shrink-0 bg-red-100 text-red-600 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                  Required
+                </span>
+              )}
+            </div>
+            <div className="space-y-3">
+                  {q.shuffledOptions && q.shuffledOptions.map((optObj, optIdx) => {
+                    const originalIdx = optObj.originalIndex;
+                    const isSelected = answers[qIdx] === optIdx;
+                    const isActualCorrect = showExplanation && originalIdx === q.correctAnswer;
+                    const isWrongSelection = showExplanation && isSelected && originalIdx !== q.correctAnswer;
+
+                    let borderClass = 'border-slate-200';
+                    let bgClass = 'bg-white hover:bg-slate-50';
+                    if (isSelected) {
+                      borderClass = 'border-brand-500';
+                      bgClass = 'bg-brand-50';
+                    }
+
+                    if (showExplanation) {
+                      if (isActualCorrect) {
+                        borderClass = 'border-green-500';
+                        bgClass = 'bg-green-50';
+                      } else if (isWrongSelection) {
+                        borderClass = 'border-red-300';
+                        bgClass = 'bg-red-50 opacity-50';
+                      } else {
+                        bgClass = 'bg-slate-50 opacity-50 cursor-default hover:bg-slate-50';
+                      }
+                    }
+
+                    return (
+                      <button
+                        key={optIdx}
+                        onClick={() => handleSelectOption(qIdx, optIdx)}
+                        disabled={!!result}
+                        className={`w-full text-left p-4 md:p-5 rounded-xl border-2 transition-all ${borderClass} ${bgClass}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={`text-base md:text-lg ${showExplanation && isActualCorrect ? 'text-green-700 font-medium' : isSelected ? 'text-brand-700 font-medium' : 'text-slate-700'}`}>
+                            {optObj.text}
+                          </span>
+                          {showExplanation && isActualCorrect && <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 ml-4" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
   return (
     <div className="p-4 sm:p-8 animate-fade-in max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -239,52 +305,55 @@ export default function FinalTestPage() {
       </div>
 
       {result ? (
-        <div className="mt-10 p-8 bg-white border border-brand-200 rounded-2xl text-center relative overflow-hidden group shadow-sm">
-          <div className="absolute inset-0 bg-gradient-to-r from-brand-50 via-purple-50 to-brand-50 opacity-50"></div>
-          <div className="relative z-10 flex flex-col items-center">
-            <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 border-4 shadow-sm ${result.passed ? 'bg-brand-50 border-brand-500 text-brand-600' : 'bg-red-50 border-red-500 text-red-600'}`}>
-              {result.passed ? <Trophy className="w-12 h-12" /> : <RotateCcw className="w-12 h-12" />}
-            </div>
-            
-            <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-              {result.passed ? 'Congratulations!' : 'Keep Learning!'}
-            </h1>
-            
-            <p className="text-xl text-slate-700 mb-8 max-w-lg">
-              {result.passed 
-                ? `You passed the Final Certification Test with a score of ${result.score}%!${result.creditsEarned ? ` You earned ${result.creditsEarned} credit points!` : ''}` 
-                : result.isMaxAttempts
-                  ? `You scored ${result.score}%. You didn't pass and have exhausted your 3 attempts. You will not receive a certificate. Please review the correct answers below.`
-                  : `You scored ${result.score !== null ? result.score : 'under 70'}%, which didn't quite hit the 70% mark. Review the course material and try again! (${3 - (result.attemptsCount || 1)} attempts left)`}
-            </p>
+        <>
+          <div className="mt-10 p-8 bg-white border border-brand-200 rounded-2xl text-center relative overflow-hidden group shadow-sm">
+            <div className="absolute inset-0 bg-gradient-to-r from-brand-50 via-purple-50 to-brand-50 opacity-50"></div>
+            <div className="relative z-10 flex flex-col items-center">
+              <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 border-4 shadow-sm ${result.passed ? 'bg-brand-50 border-brand-500 text-brand-600' : 'bg-red-50 border-red-500 text-red-600'}`}>
+                {result.passed ? <Trophy className="w-12 h-12" /> : <RotateCcw className="w-12 h-12" />}
+              </div>
+              
+              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
+                {result.passed ? 'Congratulations!' : 'Keep Learning!'}
+              </h1>
+              
+              <p className="text-xl text-slate-700 mb-8 max-w-lg">
+                {result.passed 
+                  ? `You passed the Final Certification Test with a score of ${result.score}%!${result.creditsEarned ? ` You earned ${result.creditsEarned} credit points!` : ''}` 
+                  : result.isMaxAttempts
+                    ? `You scored ${result.score}%. You didn't pass and have exhausted your 3 attempts. You will not receive a certificate. Please review the correct answers below.`
+                    : `You scored ${result.score !== null ? result.score : 'under 70'}%, which didn't quite hit the 70% mark. Review the course material and try again! (${3 - (result.attemptsCount || 1)} attempts left)`}
+              </p>
 
-            <div className="flex gap-4">
-              {result.passed ? (
-                <button 
-                  onClick={() => navigate(`/certificate/${result.certificateId}`)}
-                  className="btn-primary shadow-md shadow-brand-500/20 transform hover:-translate-y-0.5"
-                >
-                  <Sparkles className="w-5 h-5 mr-2 inline" /> View Certificate
-                </button>
-              ) : result.isMaxAttempts ? (
-                <button 
-                  onClick={() => navigate(`/course/${id}`)}
-                  className="btn-primary"
-                >
-                  Back to Course
-                </button>
-              ) : (
-                <button 
-                  onClick={handleRetry}
-                  className="btn-primary"
-                >
-                  Try Again
-                </button>
-              )}
+              <div className="flex gap-4">
+                {result.passed ? (
+                  <button 
+                    onClick={() => navigate(`/certificate/${result.certificateId}`)}
+                    className="btn-primary shadow-md shadow-brand-500/20 transform hover:-translate-y-0.5"
+                  >
+                    <Sparkles className="w-5 h-5 mr-2 inline" /> View Certificate
+                  </button>
+                ) : result.isMaxAttempts ? (
+                  <button 
+                    onClick={() => navigate(`/course/${id}`)}
+                    className="btn-primary"
+                  >
+                    Review Course
+                  </button>
+                ) : (
+                  <button 
+                    onClick={handleRetry}
+                    className="btn-primary"
+                  >
+                    Try Again
+                  </button>
+                )}
+              </div>
             </div>
+            {result.passed && <Confetti width={width} height={height} recycle={false} numberOfPieces={800} />}
           </div>
-          {result.passed && <Confetti width={width} height={height} recycle={false} numberOfPieces={800} />}
-        </div>
+          {(result.isMaxAttempts || result.passed) && questionsList}
+        </>
       ) : (
         <ProctoringWrapper
           key={attemptKey}
@@ -294,73 +363,17 @@ export default function FinalTestPage() {
           onStart={() => setIsTestStarted(true)}
         >
           <div className="mb-10">
-            <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">Final Certification Test</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
+              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">Final Certification Test</h1>
+              <span className="inline-block bg-brand-100 text-brand-700 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider shadow-sm border border-brand-200">
+                Attempt {(course?.finalTest?.attempts?.length || 0) + 1} of 3
+              </span>
+            </div>
             <p className="text-slate-700 text-lg">{course.title}</p>
             <p className="text-slate-600 mt-2">Answer the following questions to verify your understanding. You have 3 attempts to pass. Earn 20 credit points by passing on your first attempt!</p>
           </div>
 
-          <div className="space-y-10">
-            {questions.map((q, qIdx) => {
-              return (
-                <div key={qIdx} id={`question-${qIdx}`} className={`bg-white p-6 sm:p-8 rounded-2xl border shadow-sm transition-colors ${missedQuestions.includes(qIdx) ? 'border-red-300 bg-red-50/30' : 'border-slate-200'}`}>
-                  <div className="flex items-start justify-between mb-6 gap-4">
-                    <p className="text-xl font-bold text-slate-900 flex gap-4">
-                      <span className="text-brand-600 shrink-0">{qIdx + 1}.</span> 
-                      <span>{q.question}</span>
-                    </p>
-                    {missedQuestions.includes(qIdx) && (
-                      <span className="shrink-0 bg-red-100 text-red-600 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                        Required
-                      </span>
-                    )}
-                  </div>
-                  <div className="space-y-3">
-                        {q.shuffledOptions && q.shuffledOptions.map((optObj, optIdx) => {
-                          const originalIdx = optObj.originalIndex;
-                          const isSelected = answers[qIdx] === optIdx;
-                          const isActualCorrect = showExplanation && originalIdx === q.correctAnswer;
-                          const isWrongSelection = showExplanation && isSelected && originalIdx !== q.correctAnswer;
-
-                          let borderClass = 'border-slate-200';
-                          let bgClass = 'bg-white hover:bg-slate-50';
-                          if (isSelected) {
-                            borderClass = 'border-brand-500';
-                            bgClass = 'bg-brand-50';
-                          }
-
-                          if (showExplanation) {
-                            if (isActualCorrect) {
-                              borderClass = 'border-green-500';
-                              bgClass = 'bg-green-50';
-                            } else if (isWrongSelection) {
-                              borderClass = 'border-red-300';
-                              bgClass = 'bg-red-50 opacity-50';
-                            } else {
-                              bgClass = 'bg-slate-50 opacity-50 cursor-default hover:bg-slate-50';
-                            }
-                          }
-
-                          return (
-                            <button
-                              key={optIdx}
-                              onClick={() => handleSelectOption(qIdx, optIdx)}
-                              disabled={!!result}
-                              className={`w-full text-left p-4 md:p-5 rounded-xl border-2 transition-all ${borderClass} ${bgClass}`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className={`text-base md:text-lg ${showExplanation && isActualCorrect ? 'text-green-700 font-medium' : isSelected ? 'text-brand-700 font-medium' : 'text-slate-700'}`}>
-                                  {optObj.text}
-                                </span>
-                                {showExplanation && isActualCorrect && <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 ml-4" />}
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                </div>
-              );
-            })}
-          </div>
+          {questionsList}
 
           <div className="mt-12 flex justify-end pb-20">
             <button 
@@ -376,7 +389,7 @@ export default function FinalTestPage() {
       )}
 
       {showLeaveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
             <h3 className="text-xl font-bold text-slate-900 mb-2">Leave Final Test?</h3>
             <p className="text-slate-500 mb-6">
@@ -392,7 +405,7 @@ export default function FinalTestPage() {
               <button
                 onClick={() => {
                   setShowLeaveModal(false);
-                  handleSubmit(false, true).then(() => navigate(`/course/${courseId}`));
+                  handleSubmit(false, true).then(() => navigate(`/course/${id}`));
                 }}
                 className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors"
               >

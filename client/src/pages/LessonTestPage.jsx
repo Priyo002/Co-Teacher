@@ -362,7 +362,7 @@ export default function LessonTestPage() {
       />
 
       {showLeaveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
             <h3 className="text-xl font-bold text-slate-900 mb-2">Leave Test?</h3>
             <p className="text-slate-500 mb-6">
@@ -394,7 +394,13 @@ export default function LessonTestPage() {
   if (isReviewMode) return content;
 
   return (
-    <ProctoringWrapper key={attemptKey} onForceSubmit={handleSubmit} timeLimitMinutes={10} isSubmitted={!!result}>
+    <ProctoringWrapper 
+      key={attemptKey} 
+      onForceSubmit={handleSubmit} 
+      timeLimitMinutes={10} 
+      isSubmitted={!!result}
+      onStart={() => setIsTestStarted(true)}
+    >
       {content}
     </ProctoringWrapper>
   );

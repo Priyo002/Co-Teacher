@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, Circle, Menu, ChevronRight, Loader2, Bot, PanelLeftClose, PanelLeftOpen, PanelRightOpen, AlertTriangle, Download, ChevronsLeft, ChevronsRight, Bookmark, Lock } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Circle, Menu, ChevronRight, Loader2, Bot, PanelLeftClose, PanelLeftOpen, PanelRightOpen, AlertTriangle, Download, ChevronsLeft, ChevronsRight, Bookmark, Lock, Eye } from 'lucide-react';
 import LessonRenderer from '../components/LessonRenderer';
 import AITutorChat from '../components/AITutorChat';
+import FocusMode from '../components/FocusMode';
 
 import { useApi } from '../hooks/useApi';
 import { Sparkles } from 'lucide-react';
@@ -20,6 +21,7 @@ export default function LessonViewerPage() {
   const [generationError, setGenerationError] = useState(null);
   const [expandedModules, setExpandedModules] = useState({});
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [focusModeActive, setFocusModeActive] = useState(false);
 
   const fetchApi = useApi();
   const endOfContentRef = useRef(null);
@@ -442,6 +444,13 @@ export default function LessonViewerPage() {
                   >
                     <Bookmark className={`w-5 h-5 ${isBookmarked ? 'fill-current' : ''}`} />
                   </button>
+                  <button
+                    onClick={() => setFocusModeActive(!focusModeActive)}
+                    className={`flex items-center justify-center p-2 rounded-full transition-colors ${focusModeActive ? 'bg-brand-100 text-brand-600 hover:bg-brand-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900'}`}
+                    title={focusModeActive ? "Disable Focus Mode" : "Enable Focus Mode"}
+                  >
+                    <Eye className={`w-5 h-5 ${focusModeActive ? 'text-brand-600' : ''}`} />
+                  </button>
                 </div>
                 
                 {(lesson.isEnriched || lesson.generationStatus === 'complete') && (
@@ -601,6 +610,13 @@ export default function LessonViewerPage() {
         </aside>
       )}
 
+      <FocusMode
+        isActive={focusModeActive}
+        onRequestAITutor={() => {
+          setIsRightSidebarOpen(true);
+        }}
+        onDeactivate={() => setFocusModeActive(false)}
+      />
     </div>
   );
 }
