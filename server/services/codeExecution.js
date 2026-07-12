@@ -11,6 +11,28 @@ const LANGUAGE_MAP = {
   'cpp': { language: 'cpp', versionIndex: '5' }
 };
 
+let currentJdoodleKeyIndex = 0;
+
+function getJdoodleCredentials() {
+  const credsStr = process.env.JDOODLE_CREDENTIALS;
+  if (credsStr) {
+    const creds = credsStr.split(',').map(c => {
+      const [clientId, clientSecret] = c.split(':');
+      return { clientId: clientId?.trim(), clientSecret: clientSecret?.trim() };
+    }).filter(c => c.clientId && c.clientSecret);
+    if (creds.length > 0) return creds;
+  }
+  
+  // Fallback to single credentials
+  const clientId = process.env.JDOODLE_CLIENT_ID;
+  const clientSecret = process.env.JDOODLE_CLIENT_SECRET;
+  if (clientId && clientSecret) {
+    return [{ clientId, clientSecret }];
+  }
+  
+  return [];
+}
+
 async function executeCode(language, code) {
   const langConfig = LANGUAGE_MAP[language.toLowerCase()];
   
@@ -18,34 +40,48 @@ async function executeCode(language, code) {
     throw new Error(`Unsupported language: ${language}`);
   }
 
-  const clientId = process.env.JDOODLE_CLIENT_ID;
-  const clientSecret = process.env.JDOODLE_CLIENT_SECRET;
+  const credentials = getJdoodleCredentials();
 
-  if (!clientId || !clientSecret) {
+  if (credentials.length === 0) {
     throw new Error('JDoodle API credentials are missing from environment variables.');
   }
 
-  try {
-    const response = await fetch(JDOODLE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        clientId: clientId,
-        clientSecret: clientSecret,
-        script: code,
-        language: langConfig.language,
-        versionIndex: langConfig.versionIndex
-      })
-    });
+  let lastError = null;
+  let attempts = 0;
 
-    const data = await response.json();
+  while (attempts < credentials.length) {
+    const cred = credentials[currentJdoodleKeyIndex];
+    
+    try {
+      const response = await fetch(JDOODLE_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          clientId: cred.clientId,
+          clientSecret: cred.clientSecret,
+          script: code,
+          language: langConfig.language,
+          versionIndex: langConfig.versionIndex
+        })
+      });
 
-    if (!response.ok) {
-      console.error('JDoodle API Error Response:', data);
-      throw new Error(data.error || 'Failed to execute code via JDoodle API.');
-    }
+      const data = await response.json();
+
+      // If unauthorized (limit reached) or 429 (rate limit), rotate and retry
+      if (response.status === 401 || response.status === 429 || data.statusCode === 401 || data.statusCode === 429 || (data.error && data.error.toLowerCase().includes('limit'))) {
+        console.warn(`JDoodle key ${currentJdoodleKeyIndex} reached limit. Rotating...`);
+        currentJdoodleKeyIndex = (currentJdoodleKeyIndex + 1) % credentials.length;
+        attempts++;
+        lastError = new Error('Daily limit reached on this key.');
+        continue;
+      }
+
+      if (!response.ok) {
+        console.error('JDoodle API Error Response:', data);
+        throw new Error(data.error || 'Failed to execute code via JDoodle API.');
+      }
 
     // JDoodle returns: { output, statusCode, memory, cpuTime, error, compilationStatus }
     // We map it to our UI's expected format.
@@ -73,26 +109,31 @@ async function executeCode(language, code) {
         stdout = ''; // It was an error, not standard output
     }
 
-    return {
-      stdout: stdout,
-      stderr: stderr,
-      compile_output: compile_output,
-      status: finalStatus,
-      isError: isError,
-      time: data.cpuTime || null,
-      memory: data.memory || null
-    };
+      return {
+        stdout: stdout,
+        stderr: stderr,
+        compile_output: compile_output,
+        status: finalStatus,
+        isError: isError,
+        time: data.cpuTime || null,
+        memory: data.memory || null
+      };
 
-  } catch (error) {
-    console.error('Code Execution Service Error:', error);
-    return {
-      stdout: '',
-      stderr: error.message,
-      compile_output: '',
-      status: 'Error',
-      isError: true
-    };
+    } catch (error) {
+      // For network errors or unexpected crashes, just throw and don't retry other keys
+      throw error;
+    }
   }
+
+  // If we exhausted all keys
+  console.error('All JDoodle keys have been exhausted or failed.');
+  return {
+    stdout: '',
+    stderr: lastError ? lastError.message : 'Failed to execute code. All API keys exhausted.',
+    compile_output: '',
+    status: 'Error',
+    isError: true
+  };
 }
 
 module.exports = { executeCode };
