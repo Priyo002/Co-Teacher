@@ -15,6 +15,7 @@ export default function CourseOverviewPage() {
   const fetchApi = useApi();
   
   useEffect(() => {
+    window.scrollTo(0, 0);
     async function loadCourse() {
       try {
         const data = await fetchApi(`/courses/${id}`);
@@ -27,6 +28,12 @@ export default function CourseOverviewPage() {
     }
     loadCourse();
   }, [id]);
+
+  useEffect(() => {
+    if (!loading) {
+      window.scrollTo(0, 0);
+    }
+  }, [loading]);
 
   const handleDelete = async () => {
     if (window.confirm("Are you sure you want to delete this course? This action cannot be undone.")) {

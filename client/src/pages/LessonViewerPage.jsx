@@ -62,6 +62,10 @@ export default function LessonViewerPage() {
   }, []);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
+
+  useEffect(() => {
     const handleMouseMove = (e) => {
       if (isDraggingLeft.current) {
         const newWidth = e.clientX;
@@ -106,8 +110,8 @@ export default function LessonViewerPage() {
 
   useEffect(() => {
     async function loadLessonView() {
-      if (course) {
-        const optimisticLesson = course.modules.flatMap(m => m.lessons).find(l => l._id === id);
+      if (course && Array.isArray(course.modules)) {
+        const optimisticLesson = course.modules.flatMap(m => Array.isArray(m.lessons) ? m.lessons : []).find(l => l && l._id === id);
         if (optimisticLesson) {
           setLesson(optimisticLesson);
         } else {
@@ -365,7 +369,7 @@ export default function LessonViewerPage() {
                   {isExpanded && (
                     <div className="space-y-1 border-l border-slate-200 ml-2 pl-4">
                       {module.lessons.map((l) => {
-                        const isActive = l._id === lesson._id;
+                        const isActive = lesson && l._id === lesson._id;
                         const isLocked = !l.isUnlocked;
                         const Wrapper = isLocked ? 'div' : Link;
                         

@@ -81,6 +81,12 @@
   @apply bg-slate-400;
 }
 
+/* Remove focus ring from code editor */
+.editor-container textarea:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* Background effects */
 /* Removed ambient light effects for clean theme */
 

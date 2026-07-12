@@ -1,6 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Lightbulb, Terminal, AlertTriangle, Info, CheckCircle2, XCircle, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import EditorComponent from 'react-simple-code-editor';
+const Editor = EditorComponent.default || EditorComponent;
+import Prism from 'prismjs';
+import 'prismjs/components/prism-clike';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-java';
+import 'prismjs/components/prism-c';
+import 'prismjs/components/prism-cpp';
+import 'prismjs/themes/prism.css';
+import { Play, Loader2 } from 'lucide-react';
 
 function CodeBlockWithTabs({ codes }) {
   const cleanCode = (code) => {
@@ -10,13 +21,72 @@ function CodeBlockWithTabs({ codes }) {
 
   const availableLangs = ['python', 'cpp', 'java'].filter(l => codes && codes[l]);
   const [activeTab, setActiveTab] = useState(availableLangs[0] || 'python');
+  const [editableCodes, setEditableCodes] = useState({});
   const [copied, setCopied] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
+  const [output, setOutput] = useState(null);
+
+  useEffect(() => {
+    if (codes) {
+      const initial = {};
+      Object.keys(codes).forEach(l => {
+        initial[l] = cleanCode(codes[l]);
+      });
+      setEditableCodes(initial);
+    }
+  }, [codes]);
 
   const handleCopy = () => {
-    const rawCode = codes[activeTab] || codes?.python || '';
-    navigator.clipboard.writeText(cleanCode(rawCode));
+    const rawCode = editableCodes[activeTab] || '';
+    navigator.clipboard.writeText(rawCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCodeChange = (newCode) => {
+    setEditableCodes(prev => ({
+      ...prev,
+      [activeTab]: newCode
+    }));
+  };
+
+  const handleRunCode = async () => {
+    setIsRunning(true);
+    setOutput(null);
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+      const res = await fetch(`${baseUrl}/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language: activeTab,
+          code: editableCodes[activeTab]
+        })
+      });
+      
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error(`Server connection failed or returned an invalid response (Status: ${res.status}). Ensure the backend server is running.`);
+      }
+      
+      const data = await res.json();
+      if (data.success) {
+        setOutput(data.result);
+      } else {
+        setOutput({ stderr: data.error, isError: true });
+      }
+    } catch (error) {
+      setOutput({ stderr: error.message, isError: true });
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const getLanguageForPrism = (lang) => {
+    if (lang === 'cpp' || lang === 'c') return 'cpp';
+    if (lang === 'python') return 'python';
+    if (lang === 'java') return 'java';
+    return 'javascript';
   };
 
   if (availableLangs.length === 0) {
@@ -37,13 +107,16 @@ function CodeBlockWithTabs({ codes }) {
   }
 
   return (
-    <>
+    <div className="flex flex-col">
       <div className="flex items-center justify-between bg-slate-50 border-b border-slate-200 print:hidden">
         <div className="flex overflow-x-auto custom-scrollbar">
           {availableLangs.map(lang => (
             <button
               key={lang}
-              onClick={() => setActiveTab(lang)}
+              onClick={() => {
+                setActiveTab(lang);
+                setOutput(null);
+              }}
               className={`px-4 py-3 text-xs font-mono transition-colors border-b-2 whitespace-nowrap ${
                 activeTab === lang 
                   ? 'border-brand-600 text-brand-700 bg-brand-50' 
@@ -51,23 +124,101 @@ function CodeBlockWithTabs({ codes }) {
               }`}
             >
               <Terminal className="w-3 h-3 inline-block mr-2" />
-              {lang === 'cpp' ? 'C++' : lang === 'python' ? 'Python' : 'Java'}
+              {lang === 'cpp' ? 'C++' : lang === 'c' ? 'C' : lang === 'python' ? 'Python' : lang === 'java' ? 'Java' : 'JavaScript'}
             </button>
           ))}
         </div>
-        <button
-          onClick={handleCopy}
-          className="p-2 mr-2 bg-white hover:bg-slate-50 rounded-lg text-slate-500 hover:text-slate-900 transition-colors border border-slate-200 shadow-sm"
-          title="Copy code"
-        >
-          {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-        </button>
+        <div className="flex items-center pr-2 gap-2">
+          <button
+            onClick={handleRunCode}
+            disabled={isRunning}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+            title="Run Code"
+          >
+            {isRunning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+            Run
+          </button>
+          <button
+            onClick={handleCopy}
+            className="p-1.5 bg-white hover:bg-slate-50 rounded-lg text-slate-500 hover:text-slate-900 transition-colors border border-slate-200 shadow-sm"
+            title="Copy code"
+          >
+            {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+          </button>
+        </div>
       </div>
-      <div className="p-4 overflow-x-auto custom-scrollbar print:hidden">
-        <pre className="text-sm font-mono text-slate-800">
-          <code>{cleanCode(codes[activeTab])}</code>
-        </pre>
+      
+      <div className="relative overflow-hidden print:hidden bg-white">
+        <Editor
+          value={typeof editableCodes[activeTab] === 'string' ? editableCodes[activeTab] : ''}
+          onValueChange={handleCodeChange}
+          highlight={code => {
+            let safeCode = typeof code === 'string' ? code : '';
+            let lang = getLanguageForPrism(activeTab);
+            let grammar = Prism.languages[lang];
+            if (!grammar) {
+              grammar = Prism.languages.javascript;
+              lang = 'javascript';
+            }
+            if (!grammar) {
+              grammar = Prism.languages.clike;
+              lang = 'clike';
+            }
+            return grammar ? Prism.highlight(safeCode, grammar, lang) : safeCode;
+          }}
+          padding={16}
+          style={{
+            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+            fontSize: 14,
+            minHeight: '100px',
+            backgroundColor: '#ffffff'
+          }}
+          className="editor-container text-slate-800 focus:outline-none"
+        />
       </div>
+
+      {/* Terminal Output Area */}
+      {(output || isRunning) && (
+        <div className="border-t border-slate-200 bg-[#0d1117] text-slate-300 font-mono text-sm p-4 overflow-x-auto max-h-[300px] overflow-y-auto print:hidden">
+          {isRunning ? (
+            <div className="flex items-center gap-2 text-slate-400">
+              <Loader2 className="w-4 h-4 animate-spin text-brand-500" />
+              <span>Executing in Judge0 Sandbox...</span>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {output.compile_output && (
+                <div className="text-amber-400 whitespace-pre-wrap mb-4 pb-4 border-b border-white/10">
+                  <div className="text-xs uppercase tracking-wider text-amber-500/70 mb-1">Compiler Output</div>
+                  {output.compile_output}
+                </div>
+              )}
+              {output.stdout && (
+                <div className="whitespace-pre-wrap text-green-400">
+                  {output.stdout}
+                </div>
+              )}
+              {output.stderr && (
+                <div className="whitespace-pre-wrap text-red-400">
+                  {output.stderr}
+                </div>
+              )}
+              {(!output.stdout && !output.stderr && !output.compile_output) && (
+                <div className="text-slate-500 italic">Program finished with no output.</div>
+              )}
+              
+              <div className="flex items-center gap-4 text-xs text-slate-500 mt-4 pt-2 border-t border-white/10">
+                <span className="flex items-center gap-1">
+                  <div className={`w-2 h-2 rounded-full ${output.isError ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                  {output.status || (output.isError ? 'Error' : 'Success')}
+                </span>
+                {output.time && <span>⏱ {output.time}s</span>}
+                {output.memory && <span>💾 {output.memory} KB</span>}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       {/* Print only: stacked code blocks */}
       <div className="hidden print:block space-y-4">
         {availableLangs.map(lang => (
@@ -81,7 +232,7 @@ function CodeBlockWithTabs({ codes }) {
           </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -90,7 +241,7 @@ export default function LessonRenderer({ blocks }) {
   const [showResults, setShowResults] = useState({});
   const [quizCompleted, setQuizCompleted] = useState({});
   if (!blocks || !blocks.length) {
-    <div className="text-slate-500 italic">No content available for this lesson yet.</div>;
+    return <div className="text-slate-500 italic">No content available for this lesson yet.</div>;
   }
 
   return (
@@ -113,7 +264,7 @@ export default function LessonRenderer({ blocks }) {
           case 'paragraph':
             return (
               <div key={idx} className="mb-4 text-slate-700 text-lg prose max-w-none">
-                <ReactMarkdown>{block.text}</ReactMarkdown>
+                <ReactMarkdown>{typeof block.text === 'string' ? block.text : JSON.stringify(block.text)}</ReactMarkdown>
               </div>
             );
 
@@ -125,20 +276,28 @@ export default function LessonRenderer({ blocks }) {
             
             return (
               <ListTag key={idx} className={listClass}>
-                {block.items.map((item, i) => (
+                {block.items?.map((item, i) => (
                   <li key={i} className="pl-2 text-slate-700 text-lg prose max-w-none">
-                    <ReactMarkdown>{item}</ReactMarkdown>
+                    <ReactMarkdown>{typeof item === 'string' ? item : JSON.stringify(item)}</ReactMarkdown>
                   </li>
                 ))}
               </ListTag>
             );
 
           case 'code':
-            return (
-              <div key={idx} className="my-6 rounded-xl overflow-hidden border border-slate-200 bg-[#f6f8fa] shadow-sm">
-                <CodeBlockWithTabs codes={block.codes || { python: block.code }} />
-              </div>
-            );
+            try {
+              return (
+                <div key={idx} className="my-6 rounded-xl overflow-hidden border border-slate-200 bg-[#f6f8fa] shadow-sm">
+                  <CodeBlockWithTabs codes={block.codes || { python: block.code }} />
+                </div>
+              );
+            } catch (err) {
+              return (
+                <div key={idx} className="my-6 p-4 rounded-xl border border-red-200 bg-red-50 text-red-600 font-mono text-sm">
+                  Error rendering code block: {err.message}
+                </div>
+              );
+            }
 
           case 'callout':
             return (
@@ -151,7 +310,9 @@ export default function LessonRenderer({ blocks }) {
                   <div>
                     {block.title && <h4 className="font-bold text-slate-900 mb-1">{block.title}</h4>}
                     <div className="text-slate-700 prose max-w-none [&>p:first-child]:mt-0">
-                      <ReactMarkdown>{block.text}</ReactMarkdown>
+                      <div>
+                        <ReactMarkdown>{typeof block.text === 'string' ? block.text : JSON.stringify(block.text)}</ReactMarkdown>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -231,7 +392,7 @@ export default function LessonRenderer({ blocks }) {
 
                     return (
                       <div key={qIdx} className="bg-slate-50 p-6 rounded-xl border border-slate-200 print:bg-transparent print:border-black/20 print:p-4">
-                        <p className="font-bold text-slate-900 mb-4 print:text-black">{qIdx + 1}. {q.question}</p>
+                        <p className="font-bold text-slate-900 mb-4 print:text-black">{qIdx + 1}. {typeof q.question === 'string' ? q.question : JSON.stringify(q.question)}</p>
                         <div className="space-y-3">
                           {q.options.map((opt, oIdx) => {
                             let btnClass = "w-full text-left p-4 rounded-lg border transition-all break-words whitespace-pre-wrap print:border-black/20 print:text-black print:bg-transparent print:block print:opacity-100 ";
@@ -252,7 +413,7 @@ export default function LessonRenderer({ blocks }) {
                                 onClick={() => !isSubmitted && setQuizAnswers(prev => ({ ...prev, [questionKey]: oIdx }))}
                                 className={btnClass + (isSubmitted ? " cursor-default" : " cursor-pointer")}
                               >
-                                {opt}
+                                {typeof opt === 'string' ? opt : JSON.stringify(opt)}
                               </div>
                             );
                           })}
