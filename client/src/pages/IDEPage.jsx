@@ -20,8 +20,25 @@ const LANGUAGES = [
 ];
 
 export default function IDEPage() {
-  const [language, setLanguage] = useState(LANGUAGES[0]);
-  const [code, setCode] = useState(LANGUAGES[0].defaultCode);
+  const [language, setLanguage] = useState(() => {
+    const saved = localStorage.getItem('ide_language');
+    if (saved) {
+      const found = LANGUAGES.find(l => l.id === saved);
+      if (found) return found;
+    }
+    return LANGUAGES[0];
+  });
+  
+  const [code, setCode] = useState(() => {
+    try {
+      const savedCodes = JSON.parse(localStorage.getItem('ide_codes') || '{}');
+      const savedLang = localStorage.getItem('ide_language');
+      const currentLang = savedLang ? (LANGUAGES.find(l => l.id === savedLang) || LANGUAGES[0]) : LANGUAGES[0];
+      return savedCodes[currentLang.id] || currentLang.defaultCode;
+    } catch {
+      return LANGUAGES[0].defaultCode;
+    }
+  });
   const [mode, setMode] = useState('stdin'); // 'stdin' | 'testcases'
   const [stdin, setStdin] = useState('');
   const [output, setOutput] = useState(null);
@@ -37,6 +54,20 @@ export default function IDEPage() {
   const containerRef = useRef(null);
   
   const fetchApi = useApi();
+
+  useEffect(() => {
+    localStorage.setItem('ide_language', language.id);
+  }, [language]);
+
+  useEffect(() => {
+    try {
+      const savedCodes = JSON.parse(localStorage.getItem('ide_codes') || '{}');
+      savedCodes[language.id] = code;
+      localStorage.setItem('ide_codes', JSON.stringify(savedCodes));
+    } catch (e) {
+      console.error("Failed to save code to localStorage", e);
+    }
+  }, [code, language]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -71,7 +102,14 @@ export default function IDEPage() {
   const handleLanguageChange = (langId) => {
     const newLang = LANGUAGES.find(l => l.id === langId);
     setLanguage(newLang);
-    setCode(newLang.defaultCode);
+    
+    try {
+      const savedCodes = JSON.parse(localStorage.getItem('ide_codes') || '{}');
+      setCode(savedCodes[newLang.id] || newLang.defaultCode);
+    } catch {
+      setCode(newLang.defaultCode);
+    }
+    
     setOutput(null);
     setIsLangOpen(false);
   };
