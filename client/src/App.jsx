@@ -24,6 +24,7 @@ import MentorDashboardPage from './pages/MentorDashboardPage';
 import FindMentorPage from './pages/FindMentorPage';
 import StudentSessionsPage from './pages/StudentSessionsPage';
 import FocusAnalyticsPage from './pages/FocusAnalyticsPage';
+import LearningPathViewerPage from './pages/LearningPathViewerPage';
 
 function GuestRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -77,6 +78,7 @@ export default function App() {
         <Route path="/profile" element={<DashboardPage><ProfilePage /></DashboardPage>} />
         <Route path="/" element={<DashboardPage><HomePage /></DashboardPage>} />
         <Route path="/course/:id" element={<DashboardPage><CourseOverviewPage /></DashboardPage>} />
+        <Route path="/path/:id" element={<DashboardPage><LearningPathViewerPage /></DashboardPage>} />
         <Route path="/certificate/:id" element={<CertificatePage />} />
         <Route path="/course/:id/test" element={<DashboardPage><FinalTestPage /></DashboardPage>} />
         <Route path="/course/:courseId/lesson/:id" element={<DashboardPage><LessonViewerPage /></DashboardPage>} />

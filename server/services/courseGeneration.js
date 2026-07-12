@@ -119,4 +119,97 @@ All questions and explanations MUST be completely in this language: ${language}.
   }));
 }
 
-module.exports = { createCourseOutline, generatePreAssessmentQuestions };
+async function createLearningPathOutline(goal, language = "English", personalization = {}) {
+  let userContext = `THIS ROADMAP MUST BE GENERATED FOR A STUDENT AIMING TO ACHIEVE THIS GOAL: "${goal}".\n`;
+  if (personalization.educationLevel || personalization.fieldOfStudy || (personalization.learningStyle && personalization.learningStyle.length > 0)) {
+    userContext += "TAILOR THE ROADMAP FOR THIS SPECIFIC USER:\n";
+    if (personalization.educationLevel) userContext += `- Education Level: ${personalization.educationLevel}\n`;
+    if (personalization.fieldOfStudy) userContext += `- Field of Study/Industry: ${personalization.fieldOfStudy}\n`;
+    if (personalization.learningStyle && personalization.learningStyle.length > 0) {
+      userContext += `- Learning Style Preferences: ${personalization.learningStyle.join(', ')}\n`;
+    }
+  }
+
+  // STEP 1: Generate Phases
+  const phaseInstructions = `
+Create a high-level curriculum breakdown for the learning goal.
+Return JSON with exactly one property "phases", which is an array of 3 to 10 phase objects.
+Each phase object MUST have:
+- "title": Phase title (e.g., "Phase 1: Fundamentals").
+- "description": A 1-sentence description of what this phase covers.
+
+${userContext}
+The entire roadmap MUST be generated completely in this language: ${language}.
+CRITICAL INSTRUCTION: If the requested goal is inappropriate, unsafe, or gibberish, return { "rejectedReason": "A polite message explaining why." }.
+  `.trim();
+
+  const phaseResult = await generateJson(phaseInstructions, goal, 2048);
+  
+  if (phaseResult.rejectedReason) {
+    const error = new Error(phaseResult.rejectedReason);
+    error.statusCode = 400;
+    throw error;
+  }
+  
+  if (!phaseResult.phases || !Array.isArray(phaseResult.phases)) {
+    const error = new Error("AI returned an invalid phase structure.");
+    error.statusCode = 502;
+    throw error;
+  }
+
+  // STEP 2: Generate Courses for each Phase in parallel
+  const coursePromises = phaseResult.phases.map(async (phase, index) => {
+    const courseInstructions = `
+You are expanding Phase ${index + 1} of a comprehensive learning roadmap.
+Roadmap Goal: ${goal}
+Current Phase: ${phase.title} - ${phase.description}
+
+Generate a highly detailed list of courses required to complete this specific phase.
+Return JSON with exactly one property "courses", which is an array of 4 to 8 course objects.
+Each course object MUST have:
+- "title": Course title.
+- "description": A rich 2-3 sentence description of the course.
+- "estimatedHours": A number representing the estimated hours to complete it.
+- "difficulty": A string representing the course difficulty ("Beginner", "Intermediate", or "Advanced").
+- "prerequisites": An array of strings describing concepts the student should know before starting.
+
+${userContext}
+The courses MUST be generated completely in this language: ${language}.
+    `.trim();
+
+    try {
+      const courseResult = await generateJson(courseInstructions, `${goal} - ${phase.title}`, 4096);
+      return courseResult.courses || [];
+    } catch (err) {
+      console.error(`Failed to generate courses for phase ${phase.title}:`, err);
+      return []; // Return empty array for this phase if it fails, so we don't crash the whole path
+    }
+  });
+
+  const allPhasesCourses = await Promise.all(coursePromises);
+  
+  // Flatten the array of arrays into a single array of courses
+  let allCourses = allPhasesCourses.flat();
+  
+  if (allCourses.length === 0) {
+    const error = new Error("AI failed to generate courses for the roadmap.");
+    error.statusCode = 502;
+    throw error;
+  }
+
+  // Sanitize and enforce schema limits strictly before database insertion
+  allCourses = allCourses.map(course => ({
+    ...course,
+    title: (course.title || "Untitled Course").trim().slice(0, 200),
+    description: (course.description || "No description provided").trim().slice(0, 595),
+    prerequisites: Array.isArray(course.prerequisites) ? course.prerequisites : []
+  }));
+
+  return allCourses;
+}
+
+module.exports = {
+  createCourseOutline,
+  createLearningPathOutline,
+  generatePreAssessmentQuestions,
+};

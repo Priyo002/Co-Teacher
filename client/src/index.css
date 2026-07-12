@@ -20,6 +20,10 @@
     @apply bg-white border border-slate-200 rounded-2xl shadow-sm;
   }
   
+  .glass-panel-dark {
+    @apply bg-slate-900 border border-slate-700/50 rounded-2xl shadow-lg shadow-slate-900/50;
+  }
+  
   /* Vibrant Buttons */
   .btn-primary {
     @apply relative overflow-hidden inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-brand-600 hover:shadow-md active:scale-95;
@@ -150,4 +154,9 @@
   }
   .prose code { color: #ef4444 !important; background: transparent !important; }
   img, svg { max-width: 100% !important; }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
 }

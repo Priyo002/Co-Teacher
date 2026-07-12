@@ -4,6 +4,7 @@ import { Sparkles, X, Loader2, Mic, ArrowUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../hooks/useAuth';
+import CustomSelect from './CustomSelect';
 
 export default function CreateCourseModal({ isOpen, onClose, initialPrompt = '', initialLevel = 'Auto-detect' }) {
   const [prompt, setPrompt] = useState(initialPrompt);
@@ -288,32 +289,44 @@ export default function CreateCourseModal({ isOpen, onClose, initialPrompt = '',
               </div>
               
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Language</label>
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    disabled={isGenerating}
-                    className="input-field cursor-pointer appearance-none bg-white"
-                  >
-                    {SUPPORTED_LANGUAGES.map(lang => (
-                      <option key={lang} value={lang}>{lang}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Difficulty</label>
-                  <select
-                    value={level}
-                    onChange={(e) => setLevel(e.target.value)}
-                    disabled={isGenerating}
-                    className="input-field cursor-pointer appearance-none bg-white"
-                  >
-                    {SUPPORTED_LEVELS.map(lvl => (
-                      <option key={lvl} value={lvl}>{lvl === 'Auto-detect' ? 'Judge My Level' : lvl}</option>
-                    ))}
-                  </select>
-                </div>
+                <CustomSelect
+                  label="Language"
+                  value={language}
+                  onChange={setLanguage}
+                  disabled={isGenerating}
+                  options={[
+                    { value: 'English', label: 'English' },
+                    { value: 'Spanish', label: 'Spanish (Español)' },
+                    { value: 'French', label: 'French (Français)' },
+                    { value: 'German', label: 'German (Deutsch)' },
+                    { value: 'Hindi', label: 'Hindi (हिंदी)' },
+                    { value: 'Japanese', label: 'Japanese (日本語)' },
+                    { value: 'Mandarin', label: 'Mandarin (中文)' },
+                    { value: 'Arabic', label: 'Arabic (العربية)' },
+                    { value: 'Bengali', label: 'Bengali (বাংলা)' },
+                    { value: 'Telugu', label: 'Telugu (తెలుగు)' },
+                    { value: 'Marathi', label: 'Marathi (मराठी)' },
+                    { value: 'Tamil', label: 'Tamil (தமிழ்)' },
+                    { value: 'Urdu', label: 'Urdu (اردو)' },
+                    { value: 'Gujarati', label: 'Gujarati (ગુજરાતી)' },
+                    { value: 'Kannada', label: 'Kannada (ಕನ್ನಡ)' },
+                    { value: 'Odia', label: 'Odia (ଓଡ଼ିଆ)' },
+                    { value: 'Malayalam', label: 'Malayalam (മലയാളം)' },
+                    { value: 'Punjabi', label: 'Punjabi (ਪੰਜਾਬੀ)' },
+                    { value: 'Assamese', label: 'Assamese (অসমীয়া)' },
+                    { value: 'Portuguese', label: 'Portuguese (Português)' },
+                    { value: 'Russian', label: 'Russian (Русский)' },
+                    { value: 'Korean', label: 'Korean (한국어)' }
+                  ]}
+                />
+                
+                <CustomSelect
+                  label="Difficulty"
+                  value={level}
+                  onChange={setLevel}
+                  disabled={isGenerating}
+                  options={SUPPORTED_LEVELS.map(lvl => ({ value: lvl, label: lvl === 'Auto-detect' ? 'Judge My Level' : lvl }))}
+                />
               </div>
 
               <button
