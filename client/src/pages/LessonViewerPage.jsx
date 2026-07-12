@@ -22,6 +22,7 @@ export default function LessonViewerPage() {
   const [expandedModules, setExpandedModules] = useState({});
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [focusModeActive, setFocusModeActive] = useState(false);
+  const [showPrintWarning, setShowPrintWarning] = useState(false);
 
   const fetchApi = useApi();
   const endOfContentRef = useRef(null);
@@ -227,6 +228,42 @@ export default function LessonViewerPage() {
       navigate(`/course/${courseId}`);
     }
   };
+
+  const handleToggleFocusMode = async () => {
+    const newActiveState = !focusModeActive;
+    setFocusModeActive(newActiveState);
+    if (newActiveState) {
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen().catch(err => console.error("Fullscreen error:", err));
+      }
+    } else {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen().catch(err => console.error("Exit fullscreen error:", err));
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && focusModeActive) {
+        setFocusModeActive(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, [focusModeActive]);
+
+  const handlePrint = () => {
+    if (focusModeActive) {
+      setShowPrintWarning(true);
+    } else {
+      window.print();
+    }
+  };
+
+  useEffect(() => {
+    // We intentionally keep Focus Mode active across lessons now!
+  }, [id]);
 
   const toggleModule = (moduleId) => {
     setExpandedModules(prev => ({ ...prev, [moduleId]: !prev[moduleId] }));
@@ -445,7 +482,7 @@ export default function LessonViewerPage() {
                     <Bookmark className={`w-5 h-5 ${isBookmarked ? 'fill-current' : ''}`} />
                   </button>
                   <button
-                    onClick={() => setFocusModeActive(!focusModeActive)}
+                    onClick={handleToggleFocusMode}
                     className={`flex items-center justify-center p-2 rounded-full transition-colors ${focusModeActive ? 'bg-brand-100 text-brand-600 hover:bg-brand-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900'}`}
                     title={focusModeActive ? "Disable Focus Mode" : "Enable Focus Mode"}
                   >
@@ -456,7 +493,7 @@ export default function LessonViewerPage() {
                 {(lesson.isEnriched || lesson.generationStatus === 'complete') && (
                   <div className="flex items-center gap-3 no-print shrink-0">
                     <button
-                      onClick={() => window.print()}
+                      onClick={handlePrint}
                       className="flex items-center justify-center p-2.5 rounded-full transition-colors bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900"
                       title="Download PDF"
                     >
@@ -612,11 +649,43 @@ export default function LessonViewerPage() {
 
       <FocusMode
         isActive={focusModeActive}
+        courseId={courseId}
+        lessonId={id}
+        courseTitle={course?.title}
+        lessonTitle={lesson?.title}
         onRequestAITutor={() => {
           setIsRightSidebarOpen(true);
         }}
         onDeactivate={() => setFocusModeActive(false)}
       />
+      {/* Print Warning Modal */}
+      {showPrintWarning && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-scale-in">
+            <h3 className="text-xl font-bold text-slate-900 mb-2">Download & Print</h3>
+            <p className="text-slate-600 mb-6">
+              Opening the print dialog will automatically exit Focus Mode and Full Screen. Do you want to continue?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setShowPrintWarning(false)}
+                className="px-4 py-2 text-slate-600 font-semibold hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  setShowPrintWarning(false);
+                  window.print();
+                }}
+                className="px-4 py-2 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700 transition-colors shadow-sm shadow-brand-500/20"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

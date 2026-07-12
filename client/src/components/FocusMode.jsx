@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as faceapi from '@vladmandic/face-api';
 import { Eye, Loader2, X, BrainCircuit, Maximize2, Minimize2 } from 'lucide-react';
+import { useApi } from '../hooks/useApi';
 
-export default function FocusMode({ isActive, onRequestAITutor, onDeactivate }) {
+export default function FocusMode({ isActive, courseId, lessonId, courseTitle, lessonTitle, onRequestAITutor, onDeactivate }) {
+  const fetchApi = useApi();
   const [isSetup, setIsSetup] = useState(false);
   const [error, setError] = useState(null);
   const [focusScore, setFocusScore] = useState(100);
@@ -17,6 +19,10 @@ export default function FocusMode({ isActive, onRequestAITutor, onDeactivate }) 
   const [sessionTime, setSessionTime] = useState(0);
   
   const lastNudgeTimeRef = useRef(0);
+  const dataPointsRef = useRef([]);
+  const nudgeCountRef = useRef(0);
+  const currentFocusScoreRef = useRef(100);
+  const sessionInfoRef = useRef({ courseId, lessonId, courseTitle, lessonTitle });
   
   const [widgetPosition, setWidgetPosition] = useState({ x: 24, y: window.innerHeight - 380 });
   const [isDragging, setIsDragging] = useState(false);
@@ -90,10 +96,51 @@ export default function FocusMode({ isActive, onRequestAITutor, onDeactivate }) 
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
     }
+
+    if (sessionStartTimeRef.current) {
+      const endTime = Date.now();
+      const duration = Math.floor((endTime - sessionStartTimeRef.current) / 1000);
+      
+      // Ensure we have at least one data point
+      if (duration > 0) {
+        dataPointsRef.current.push({
+          timestamp: endTime,
+          timeOffset: duration,
+          score: currentFocusScoreRef.current
+        });
+      }
+
+      if (dataPointsRef.current.length > 0) {
+        const avgScore = dataPointsRef.current.reduce((acc, dp) => acc + dp.score, 0) / dataPointsRef.current.length;
+        
+        const payload = {
+          courseId: sessionInfoRef.current.courseId,
+          lessonId: sessionInfoRef.current.lessonId,
+          courseTitle: sessionInfoRef.current.courseTitle,
+          lessonTitle: sessionInfoRef.current.lessonTitle,
+          startTime: sessionStartTimeRef.current,
+        endTime,
+        duration,
+        averageScore: Math.round(avgScore),
+        nudgeCount: nudgeCountRef.current,
+        dataPoints: dataPointsRef.current
+      };
+
+        fetchApi('/focus', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        }).catch(console.error);
+      }
+    }
+
     setIsSetup(false);
     setFocusScore(100);
+    currentFocusScoreRef.current = 100;
     setShowNudge(false);
     focusHistoryRef.current = [];
+    dataPointsRef.current = [];
+    nudgeCountRef.current = 0;
+    sessionStartTimeRef.current = null;
   };
   
   useEffect(() => {
@@ -105,6 +152,53 @@ export default function FocusMode({ isActive, onRequestAITutor, onDeactivate }) 
     
     return cleanup;
   }, [isActive]);
+
+  // Seamlessly split the session when the user changes lessons
+  useEffect(() => {
+    if (sessionInfoRef.current.lessonId !== lessonId) {
+      if (isActive && isSetup && sessionStartTimeRef.current) {
+        // 1. Submit the old session
+        const endTime = Date.now();
+        const duration = Math.floor((endTime - sessionStartTimeRef.current) / 1000);
+        
+        if (duration > 0) {
+          dataPointsRef.current.push({
+            timestamp: endTime,
+            timeOffset: duration,
+            score: currentFocusScoreRef.current
+          });
+        }
+
+        if (dataPointsRef.current.length > 0) {
+          const avgScore = dataPointsRef.current.reduce((acc, dp) => acc + dp.score, 0) / dataPointsRef.current.length;
+          const payload = {
+            courseId: sessionInfoRef.current.courseId,
+            lessonId: sessionInfoRef.current.lessonId,
+            courseTitle: sessionInfoRef.current.courseTitle,
+            lessonTitle: sessionInfoRef.current.lessonTitle,
+            startTime: sessionStartTimeRef.current,
+            endTime,
+            duration,
+            averageScore: Math.round(avgScore),
+            nudgeCount: nudgeCountRef.current,
+            dataPoints: [...dataPointsRef.current]
+          };
+          fetchApi('/focus', { method: 'POST', body: JSON.stringify(payload) }).catch(console.error);
+        }
+
+        // 2. Start a new session seamlessly for the new lesson
+        sessionStartTimeRef.current = Date.now();
+        dataPointsRef.current = [];
+        nudgeCountRef.current = 0;
+        focusHistoryRef.current = [];
+        setSessionTime(0);
+      }
+    }
+    
+    // 3. Always update the reference to point to the latest props
+    // This is crucial because lessonTitle updates asynchronously AFTER lessonId changes!
+    sessionInfoRef.current = { courseId, lessonId, courseTitle, lessonTitle };
+  }, [lessonId, courseId, courseTitle, lessonTitle, isActive, isSetup]);
   
   useEffect(() => {
     if (isSetup && videoRef.current && streamRef.current) {
@@ -112,11 +206,22 @@ export default function FocusMode({ isActive, onRequestAITutor, onDeactivate }) 
     }
   }, [isSetup]);
   
-  // Timer for UI
+  // Timer and Data Point Collection
   useEffect(() => {
     if (!isSetup) return;
     const timer = setInterval(() => {
-      setSessionTime(Math.floor((Date.now() - sessionStartTimeRef.current) / 1000));
+      const now = Date.now();
+      const offset = Math.floor((now - sessionStartTimeRef.current) / 1000);
+      setSessionTime(offset);
+      
+      // Collect data point approximately every 10 seconds
+      if (offset >= (dataPointsRef.current.length + 1) * 10) {
+        dataPointsRef.current.push({
+          timestamp: now,
+          timeOffset: offset,
+          score: currentFocusScoreRef.current
+        });
+      }
     }, 1000);
     return () => clearInterval(timer);
   }, [isSetup]);
@@ -167,17 +272,15 @@ export default function FocusMode({ isActive, onRequestAITutor, onDeactivate }) 
           .withFaceLandmarks()
           .withFaceExpressions();
           
-        const currentScore = calculateFocus(detections);
+        const score = calculateFocus(detections);
         
-        // Add to history
-        focusHistoryRef.current.push(currentScore);
-        if (focusHistoryRef.current.length > 10) {
-          focusHistoryRef.current.shift();
-        }
+        // Keep history of last 5 scores for smoothing
+        focusHistoryRef.current.push(score);
+        if (focusHistoryRef.current.length > 5) focusHistoryRef.current.shift();
+        const avg = Math.round(focusHistoryRef.current.reduce((a, b) => a + b, 0) / focusHistoryRef.current.length);
         
-        // Calculate rolling average
-        const avgScore = focusHistoryRef.current.reduce((a, b) => a + b, 0) / focusHistoryRef.current.length;
-        setFocusScore(Math.round(avgScore));
+        setFocusScore(avg);
+        currentFocusScoreRef.current = avg;
         
         // Nudge logic: if average score < 40% for the last 4 readings (approx 8 seconds)
         if (focusHistoryRef.current.length >= 4) {
@@ -185,6 +288,7 @@ export default function FocusMode({ isActive, onRequestAITutor, onDeactivate }) 
           const now = Date.now();
           if (recentLow && (now - lastNudgeTimeRef.current > 60000) && !showNudge) {
             setShowNudge(true);
+            nudgeCountRef.current++;
           }
         }
         

@@ -23,6 +23,7 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 import MentorDashboardPage from './pages/MentorDashboardPage';
 import FindMentorPage from './pages/FindMentorPage';
 import StudentSessionsPage from './pages/StudentSessionsPage';
+import FocusAnalyticsPage from './pages/FocusAnalyticsPage';
 
 function GuestRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -87,6 +88,7 @@ export default function App() {
         <Route path="/mentors" element={<DashboardPage><FindMentorPage /></DashboardPage>} />
         <Route path="/become-mentor" element={<DashboardPage><ApplyMentorPage /></DashboardPage>} />
         <Route path="/mentor-dashboard" element={<DashboardPage><MentorDashboardPage /></DashboardPage>} />
+        <Route path="/analytics" element={<DashboardPage><FocusAnalyticsPage /></DashboardPage>} />
         <Route path="/admin" element={<DashboardPage><AdminDashboardPage /></DashboardPage>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useApi } from '../hooks/useApi';
 import { countryCodes } from '../utils/countryCodes';
-import { User, Phone, BookOpen, Target, CheckCircle, Smartphone, Save, Loader2, Camera } from 'lucide-react';
+import { User, Phone, BookOpen, Target, CheckCircle, Smartphone, Save, Loader2, Camera, BrainCircuit } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Link } from 'react-router-dom';
 
 export default function ProfilePage() {
   const { user, refreshProfile, getToken } = useAuth();
@@ -169,6 +170,7 @@ export default function ProfilePage() {
               </label>
             </div>
           </div>
+
 
           {/* General Info */}
           <div className="glass-panel p-6 sm:p-8 bg-white border border-slate-200 flex-1 flex flex-col">

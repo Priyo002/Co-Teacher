@@ -1,6 +1,6 @@
 import { useAuth } from '../../hooks/useAuth';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { GraduationCap, Zap, Trophy, Settings, CreditCard, Activity, LogOut, ChevronDown, ShieldAlert, Award, Video } from 'lucide-react';
+import { GraduationCap, Zap, Trophy, Settings, CreditCard, Activity, LogOut, ChevronDown, ShieldAlert, Award, Video, BrainCircuit } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import PaymentModal from '../PaymentModal';
 
@@ -103,6 +103,13 @@ export default function DashboardLayout({ children }) {
                     className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-brand-600 transition-colors"
                   >
                     <Video className="w-4 h-4" /> My Mentorships
+                  </Link>
+                  <Link 
+                    to="/analytics" 
+                    onClick={() => setIsProfileDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-brand-600 transition-colors"
+                  >
+                    <BrainCircuit className="w-4 h-4" /> Study Analytics
                   </Link>
                   <Link 
                     to="/billing" 

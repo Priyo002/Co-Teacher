@@ -4,6 +4,7 @@ const userRoutes = require("./user");
 const certificateRoutes = require("./certificates");
 const leaderboardRoutes = require("./leaderboard");
 const mentorRoutes = require("./mentorRoutes");
+const focusRoutes = require("./focus");
 
 const router = Router();
 
@@ -12,5 +13,6 @@ router.use("/user", userRoutes);
 router.use("/certificates", certificateRoutes);
 router.use("/leaderboard", leaderboardRoutes);
 router.use("/mentors", mentorRoutes);
+router.use("/focus", focusRoutes);
 
 module.exports = router;
