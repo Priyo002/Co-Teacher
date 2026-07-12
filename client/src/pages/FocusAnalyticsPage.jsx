@@ -12,6 +12,38 @@ export default function FocusAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedSession, setSelectedSession] = useState(null);
+  const [viewMode, setViewMode] = useState('lessons'); // 'lessons' | 'courses'
+  const [selectedCourse, setSelectedCourse] = useState(null);
+
+  const courses = React.useMemo(() => {
+    const courseMap = {};
+    sessions.forEach(session => {
+      const cId = session.courseId || session.courseTitle || 'Unknown Course';
+      if (!courseMap[cId]) {
+        courseMap[cId] = {
+          _id: cId,
+          title: session.courseTitle || 'Unknown Course',
+          sessions: [],
+          totalDuration: 0,
+          totalNudges: 0,
+          scoreSum: 0
+        };
+      }
+      courseMap[cId].sessions.push(session);
+      courseMap[cId].totalDuration += session.duration;
+      courseMap[cId].totalNudges += session.nudgeCount;
+      courseMap[cId].scoreSum += session.averageScore * session.duration;
+    });
+
+    return Object.values(courseMap).map(c => ({
+      ...c,
+      averageScore: c.totalDuration > 0 ? Math.round(c.scoreSum / c.totalDuration) : 0
+    })).sort((a, b) => {
+       const aTime = a.sessions[0]?.startTime || 0;
+       const bTime = b.sessions[0]?.startTime || 0;
+       return new Date(bTime) - new Date(aTime);
+    });
+  }, [sessions]);
 
   useEffect(() => {
     async function loadData() {
@@ -32,6 +64,12 @@ export default function FocusAnalyticsPage() {
     }
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (courses.length > 0 && !selectedCourse) {
+      setSelectedCourse(courses[0]);
+    }
+  }, [courses, selectedCourse]);
 
   if (loading) {
     return (
@@ -129,6 +167,12 @@ export default function FocusAnalyticsPage() {
     score: dp.score
   })) || [];
 
+  const courseChartData = selectedCourse?.sessions?.slice().reverse().map((s, idx) => ({
+    name: `Session ${idx + 1}`,
+    score: s.averageScore,
+    duration: Math.floor(s.duration / 60)
+  })) || [];
+
   return (
     <div className="p-4 sm:p-8 max-w-6xl mx-auto animate-fade-in bg-slate-50 min-h-screen">
       <div className="flex items-center gap-4 mb-8">
@@ -173,9 +217,26 @@ export default function FocusAnalyticsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 space-y-4">
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Recent Sessions</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-slate-800">Recent Activity</h2>
+            <div className="flex bg-slate-100 rounded-lg p-1">
+              <button 
+                onClick={() => setViewMode('lessons')} 
+                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${viewMode === 'lessons' ? 'bg-white shadow-sm text-brand-600' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Lessons
+              </button>
+              <button 
+                onClick={() => setViewMode('courses')} 
+                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${viewMode === 'courses' ? 'bg-white shadow-sm text-brand-600' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Courses
+              </button>
+            </div>
+          </div>
+          
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
-            {sessions.map((session, idx) => (
+            {viewMode === 'lessons' ? sessions.map((session, idx) => (
               <button
                 key={session._id || idx}
                 onClick={() => setSelectedSession(session)}
@@ -207,12 +268,41 @@ export default function FocusAnalyticsPage() {
                   </span>
                 </div>
               </button>
+            )) : courses.map((course, idx) => (
+              <button
+                key={course._id || idx}
+                onClick={() => setSelectedCourse(course)}
+                className={`w-full text-left p-4 hover:bg-slate-50 transition-colors border-l-4 ${selectedCourse?._id === course._id ? 'bg-brand-50 !border-l-brand-500' : '!border-l-transparent'}`}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div className="font-semibold text-slate-900 truncate pr-2">
+                    {course.title}
+                  </div>
+                  <span className={`text-xs font-bold px-2 py-1 rounded-full shrink-0 ${
+                    course.averageScore >= 80 ? 'bg-green-100 text-green-700' : 
+                    course.averageScore >= 50 ? 'bg-amber-100 text-amber-700' : 
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {course.averageScore}%
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <span className="flex items-center gap-1">
+                    <BrainCircuit className="w-3 h-3" />
+                    {course.sessions.length} sessions
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {formatDuration(course.totalDuration)}
+                  </span>
+                </div>
+              </button>
             ))}
           </div>
         </div>
 
         <div className="lg:col-span-2">
-          {selectedSession && (
+          {viewMode === 'lessons' && selectedSession && (
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
               <div className="flex justify-between items-start mb-6">
                 <div>
@@ -266,6 +356,65 @@ export default function FocusAnalyticsPage() {
                 <div className="bg-slate-50 p-4 rounded-xl">
                   <div className="text-sm text-slate-500 mb-1">AI Interventions</div>
                   <div className="font-bold text-slate-800 text-lg">{selectedSession.nudgeCount} nudges</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {viewMode === 'courses' && selectedCourse && (
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800">{selectedCourse.title}</h3>
+                  <p className="text-slate-500">{selectedCourse.sessions.length} sessions recorded</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-slate-500 mb-1">Last Studied</div>
+                  <div className="font-medium text-slate-700">
+                    {new Date(selectedCourse.sessions[0].startTime).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-80 w-full mb-6">
+                {courseChartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={courseChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 12}} />
+                      <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 12}} />
+                      <Tooltip 
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        labelStyle={{ color: '#64748B', marginBottom: '4px' }}
+                      />
+                      <ReferenceLine y={40} stroke="#EF4444" strokeDasharray="3 3" label={{ position: 'insideTopLeft', value: 'Low Focus Threshold', fill: '#EF4444', fontSize: 10 }} />
+                      <Line 
+                        type="monotone" 
+                        dataKey="score" 
+                        name="Avg Session Score" 
+                        stroke="#10B981" 
+                        strokeWidth={3}
+                        dot={{ r: 4, fill: '#10B981', strokeWidth: 0 }}
+                        activeDot={{ r: 6, fill: '#10B981', stroke: '#fff', strokeWidth: 2 }} 
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="w-full h-full flex flex-col justify-center items-center bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                    <AlertCircle className="w-8 h-8 text-slate-400 mb-2" />
+                    <p className="text-slate-500">Not enough data points collected.</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-50 p-4 rounded-xl">
+                  <div className="text-sm text-slate-500 mb-1">Total Course Duration</div>
+                  <div className="font-bold text-slate-800 text-lg">{formatDuration(selectedCourse.totalDuration)}</div>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-xl">
+                  <div className="text-sm text-slate-500 mb-1">Total AI Interventions</div>
+                  <div className="font-bold text-slate-800 text-lg">{selectedCourse.totalNudges} nudges</div>
                 </div>
               </div>
             </div>
