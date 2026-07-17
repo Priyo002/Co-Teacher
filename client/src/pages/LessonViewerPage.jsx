@@ -247,15 +247,7 @@ export default function LessonViewerPage() {
     }
   };
 
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      if (!document.fullscreenElement && focusModeActive) {
-        setFocusModeActive(false);
-      }
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, [focusModeActive]);
+  // Removed fullscreenchange listener so permission dialogs don't kill Focus Mode
 
   const handlePrint = () => {
     if (focusModeActive) {
@@ -660,7 +652,12 @@ export default function LessonViewerPage() {
         onRequestAITutor={() => {
           setIsRightSidebarOpen(true);
         }}
-        onDeactivate={() => setFocusModeActive(false)}
+        onDeactivate={() => {
+          setFocusModeActive(false);
+          if (document.fullscreenElement) {
+            document.exitFullscreen().catch(err => console.error("Exit fullscreen error:", err));
+          }
+        }}
       />
       {/* Print Warning Modal */}
       {showPrintWarning && (

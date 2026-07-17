@@ -10,6 +10,7 @@ export default function FocusMode({ isActive, courseId, lessonId, courseTitle, l
   const [focusScore, setFocusScore] = useState(100);
   const [showNudge, setShowNudge] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [needsFullscreenGesture, setNeedsFullscreenGesture] = useState(false);
   
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -79,6 +80,14 @@ export default function FocusMode({ isActive, courseId, lessonId, courseTitle, l
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+      }
+      
+      // Auto-resume fullscreen if the permission popup forced an exit
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(e => {
+          console.log("Could not auto-resume fullscreen, requires user gesture:", e);
+          setNeedsFullscreenGesture(true);
+        });
       }
       
       setIsSetup(true);
@@ -331,6 +340,25 @@ export default function FocusMode({ isActive, courseId, lessonId, courseTitle, l
 
   return (
     <>
+      {/* Fullscreen Resume Overlay */}
+      {needsFullscreenGesture && (
+        <div 
+          className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center cursor-pointer text-white transition-all animate-in fade-in duration-300"
+          onClick={() => {
+            if (document.documentElement.requestFullscreen) {
+              document.documentElement.requestFullscreen().catch(console.error);
+            }
+            setNeedsFullscreenGesture(false);
+          }}
+        >
+          <div className="bg-brand-500/20 p-6 rounded-full mb-8 border border-brand-500/30 shadow-[0_0_40px_rgba(34,211,238,0.2)]">
+            <Maximize2 className="w-16 h-16 text-brand-400 animate-pulse" />
+          </div>
+          <h2 className="text-4xl font-bold mb-4 tracking-tight">Ready to Focus</h2>
+          <p className="text-xl text-slate-300 font-medium">Click anywhere to resume full screen</p>
+        </div>
+      )}
+
       {/* Nudge Popup */}
       {showNudge && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
