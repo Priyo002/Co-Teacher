@@ -273,21 +273,41 @@ export default function IDEPage() {
       <div className="flex flex-1 overflow-hidden" ref={containerRef}>
         {/* Left: Code Editor */}
         <div className="flex-1 overflow-hidden flex flex-col bg-white">
-          <div className="flex-1 overflow-y-auto custom-scrollbar relative">
-            <Editor
-              value={code}
-              onValueChange={setCode}
-              highlight={c => Prism.highlight(c, Prism.languages[language.id === 'cpp' ? 'cpp' : language.id === 'java' ? 'java' : language.id === 'python' ? 'python' : 'javascript'] || Prism.languages.javascript, language.id)}
-              padding={16}
-              className="font-mono min-h-full"
+          <div className="flex-1 overflow-y-auto custom-scrollbar relative flex">
+            {/* Line Numbers */}
+            <div 
+              className="flex flex-col text-right pr-3 pt-[16px] pb-[16px] select-none text-slate-400 bg-slate-50 border-r border-slate-200 shrink-0"
               style={{
                 fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                backgroundColor: 'transparent',
                 fontSize: `${fontSize}px`,
-                color: '#333'
+                lineHeight: 1.5,
+                minWidth: '48px',
               }}
-              textareaClassName="focus:outline-none"
-            />
+            >
+              {code.split('\n').map((_, i) => (
+                <div key={i + 1} className="opacity-60 hover:opacity-100 transition-opacity">
+                  {i + 1}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex-1 relative">
+              <Editor
+                value={code}
+                onValueChange={setCode}
+                highlight={c => Prism.highlight(c, Prism.languages[language.id === 'cpp' ? 'cpp' : language.id === 'java' ? 'java' : language.id === 'python' ? 'python' : 'javascript'] || Prism.languages.javascript, language.id)}
+                padding={16}
+                className="font-mono min-h-full"
+                style={{
+                  fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                  backgroundColor: 'transparent',
+                  fontSize: `${fontSize}px`,
+                  lineHeight: 1.5,
+                  color: '#333'
+                }}
+                textareaClassName="focus:outline-none"
+              />
+            </div>
           </div>
         </div>
 

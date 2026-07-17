@@ -209,33 +209,53 @@ function CodeBlockWithTabs({ codes, blockIndex }) {
         </div>
       </div>
       
-      <div className="relative overflow-hidden print:hidden bg-white">
-        <Editor
-          value={typeof editableCodes[activeTab] === 'string' ? editableCodes[activeTab] : ''}
-          onValueChange={handleCodeChange}
-          highlight={code => {
-            let safeCode = typeof code === 'string' ? code : '';
-            let lang = getLanguageForPrism(activeTab);
-            let grammar = Prism.languages[lang];
-            if (!grammar) {
-              grammar = Prism.languages.javascript;
-              lang = 'javascript';
-            }
-            if (!grammar) {
-              grammar = Prism.languages.clike;
-              lang = 'clike';
-            }
-            return grammar ? Prism.highlight(safeCode, grammar, lang) : safeCode;
-          }}
-          padding={16}
+      <div className="relative overflow-hidden print:hidden bg-white flex">
+        {/* Line Numbers */}
+        <div 
+          className="flex flex-col text-right pr-3 pt-[16px] pb-[16px] select-none text-slate-400 bg-slate-50 border-r border-slate-200 shrink-0"
           style={{
             fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-            fontSize: 14,
-            minHeight: '100px',
-            backgroundColor: '#ffffff'
+            fontSize: '14px',
+            lineHeight: 1.5,
+            minWidth: '48px',
           }}
-          className="editor-container text-slate-800 focus:outline-none"
-        />
+        >
+          {((typeof editableCodes[activeTab] === 'string' ? editableCodes[activeTab] : '') || '').split('\n').map((_, i) => (
+            <div key={i + 1} className="opacity-60 hover:opacity-100 transition-opacity">
+              {i + 1}
+            </div>
+          ))}
+        </div>
+
+        <div className="flex-1 relative">
+          <Editor
+            value={typeof editableCodes[activeTab] === 'string' ? editableCodes[activeTab] : ''}
+            onValueChange={handleCodeChange}
+            highlight={code => {
+              let safeCode = typeof code === 'string' ? code : '';
+              let lang = getLanguageForPrism(activeTab);
+              let grammar = Prism.languages[lang];
+              if (!grammar) {
+                grammar = Prism.languages.javascript;
+                lang = 'javascript';
+              }
+              if (!grammar) {
+                grammar = Prism.languages.clike;
+                lang = 'clike';
+              }
+              return grammar ? Prism.highlight(safeCode, grammar, lang) : safeCode;
+            }}
+            padding={16}
+            style={{
+              fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+              fontSize: 14,
+              lineHeight: 1.5,
+              minHeight: '100px',
+              backgroundColor: '#ffffff'
+            }}
+            className="editor-container text-slate-800 focus:outline-none min-h-full"
+          />
+        </div>
       </div>
 
       {/* Terminal Output Area */}
