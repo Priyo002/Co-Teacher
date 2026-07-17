@@ -8,6 +8,7 @@ export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMi
   const [isLoading, setIsLoading] = useState(false);
   const [strikes, setStrikes] = useState(0);
   const [warningMessage, setWarningMessage] = useState(null);
+  const [needsFullscreenGesture, setNeedsFullscreenGesture] = useState(false);
   const [timeLeft, setTimeLeft] = useState(timeLimitMinutes ? timeLimitMinutes * 60 : null);
   
   // Drag state for PIP (now top-right relative)
@@ -58,12 +59,19 @@ export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMi
     }
   };
 
+  const completeSetup = () => {
+    setHasStarted(true);
+    setNeedsFullscreenGesture(false);
+    if (onStart) onStart();
+    startProctoringLoop();
+  };
+
   const handleStartSetup = async () => {
     setIsLoading(true);
     try {
       // 1. Request Fullscreen
       if (document.documentElement.requestFullscreen) {
-        await document.documentElement.requestFullscreen();
+        await document.documentElement.requestFullscreen().catch(() => {});
       }
       
       // 2. Load Models
@@ -74,14 +82,22 @@ export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMi
       streamRef.current = stream;
       
       initAudioMonitoring(stream);
-      setHasStarted(true);
-      if (onStart) onStart();
-      startProctoringLoop();
+      
+      // Check if permission prompt dropped us out of fullscreen
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().then(() => {
+          completeSetup();
+        }).catch(() => {
+          setNeedsFullscreenGesture(true);
+          setIsLoading(false);
+        });
+      } else {
+        completeSetup();
+      }
       
     } catch (error) {
       console.error("Setup failed:", error);
       toast.error("You must allow Camera, Microphone, and Fullscreen to take this test.");
-    } finally {
       setIsLoading(false);
     }
   };
@@ -266,13 +282,30 @@ export default function ProctoringWrapper({ children, onForceSubmit, timeLimitMi
             </div>
           </div>
           
-          <button 
-            onClick={handleStartSetup} 
-            disabled={isLoading}
-            className="w-full btn-primary py-4 text-lg"
-          >
-            {isLoading ? "Loading AI Models..." : "Start Setup & Begin Test"}
-          </button>
+          {needsFullscreenGesture ? (
+            <button 
+              onClick={() => {
+                if (document.documentElement.requestFullscreen) {
+                  document.documentElement.requestFullscreen().then(() => {
+                    completeSetup();
+                  }).catch(console.error);
+                } else {
+                  completeSetup(); // fallback if unsupported
+                }
+              }}
+              className="w-full btn-primary py-4 text-lg bg-green-600 hover:bg-green-700 shadow-green-500/30 shadow-lg animate-pulse"
+            >
+              Enter Fullscreen & Begin Test
+            </button>
+          ) : (
+            <button 
+              onClick={handleStartSetup} 
+              disabled={isLoading}
+              className="w-full btn-primary py-4 text-lg"
+            >
+              {isLoading ? "Loading AI & Permissions..." : "Start Setup & Begin Test"}
+            </button>
+          )}
         </div>
       </div>
     );
